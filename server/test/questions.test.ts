@@ -38,7 +38,7 @@ async function testQuestionsDomainAndApi() {
   console.log('OK   [2] 복수 키워드 정답 모델 검증 통과 (원자성, 영속성)');
 
   // (3) 코드 문제 (C, Java, Python)
-  const cQuestion = allQuestions.find((q) => q.language === 'C' && q.sourceType === 'REAL_EXAM');
+  const cQuestion = allQuestions.find((q) => q.language === 'C' && q.sourceType === 'TEST_FIXTURE');
   const javaQuestion = allQuestions.find((q) => q.language === 'JAVA');
   const pythonQuestion = allQuestions.find((q) => q.language === 'PYTHON');
   assert(cQuestion && cQuestion.code && cQuestion.groundTruthAnswer === '40', 'C언어 코드 문제 검증');

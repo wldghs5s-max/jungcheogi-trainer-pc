@@ -7,3 +7,4 @@ export * from './types/concept.js';
 export * from './types/health.js';
 export * from './constants/subjects.js';
 export * from './constants/sources.js';
+export * from './utils/grading.js';

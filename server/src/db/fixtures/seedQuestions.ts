@@ -19,7 +19,7 @@ export const SEED_QUESTIONS: Question[] = [
   // 1. [실제 기출] 주관식 단답형 - 디자인 패턴 (소프트웨어설계)
   {
     id: 'q_2020_01_01',
-    sourceType: 'REAL_EXAM',
+    sourceType: 'TEST_FIXTURE',
     examYear: 2020,
     examRound: 1,
     questionNumber: 1,
@@ -42,7 +42,7 @@ export const SEED_QUESTIONS: Question[] = [
   // 2. [실제 기출] 복수 키워드가 필요한 문제 - 트랜잭션 ACID (데이터베이스구축)
   {
     id: 'q_2020_02_02',
-    sourceType: 'REAL_EXAM',
+    sourceType: 'TEST_FIXTURE',
     examYear: 2020,
     examRound: 2,
     questionNumber: 2,
@@ -65,7 +65,7 @@ export const SEED_QUESTIONS: Question[] = [
   // 3. [실제 기출] 코드 문제 - C 언어 포인터와 1차원 배열 (프로그래밍언어활용)
   {
     id: 'q_2021_01_03',
-    sourceType: 'REAL_EXAM',
+    sourceType: 'TEST_FIXTURE',
     examYear: 2021,
     examRound: 1,
     questionNumber: 3,
@@ -96,7 +96,7 @@ int main() {
   // 4. [실제 기출] 코드 문제 - Java 상속과 다형성 및 재귀 (프로그래밍언어활용)
   {
     id: 'q_2022_02_04',
-    sourceType: 'REAL_EXAM',
+    sourceType: 'TEST_FIXTURE',
     examYear: 2022,
     examRound: 2,
     questionNumber: 4,
@@ -139,7 +139,7 @@ public class Main {
   // 5. [실제 기출] 코드 문제 - Python 슬라이싱과 map/lambda (프로그래밍언어활용)
   {
     id: 'q_2023_01_05',
-    sourceType: 'REAL_EXAM',
+    sourceType: 'TEST_FIXTURE',
     examYear: 2023,
     examRound: 1,
     questionNumber: 5,
@@ -165,7 +165,7 @@ print(sum(result))`,
   // 6. [실제 기출] SQL 문제 - 집계 및 조건절 (데이터베이스구축)
   {
     id: 'q_2021_02_06',
-    sourceType: 'REAL_EXAM',
+    sourceType: 'TEST_FIXTURE',
     examYear: 2021,
     examRound: 2,
     questionNumber: 6,
@@ -191,7 +191,7 @@ FROM EMPLOYEE
   // 7. [실제 기출] 설명/서술형 문제 - 응집도 (소프트웨어설계)
   {
     id: 'q_2020_03_07',
-    sourceType: 'REAL_EXAM',
+    sourceType: 'TEST_FIXTURE',
     examYear: 2020,
     examRound: 3,
     questionNumber: 7,
@@ -214,7 +214,7 @@ FROM EMPLOYEE
   // 8. [실제 기출] 신기술/보안 단답형 - 소프트웨어 개발 보안
   {
     id: 'q_2022_01_08',
-    sourceType: 'REAL_EXAM',
+    sourceType: 'TEST_FIXTURE',
     examYear: 2022,
     examRound: 1,
     questionNumber: 8,
@@ -235,7 +235,7 @@ FROM EMPLOYEE
   // 9. [실제 기출] 정보시스템구축관리 단답형 - 차세대 네트워크 기술
   {
     id: 'q_2023_02_09',
-    sourceType: 'REAL_EXAM',
+    sourceType: 'TEST_FIXTURE',
     examYear: 2023,
     examRound: 2,
     questionNumber: 9,

@@ -9,8 +9,11 @@ import {
   Info,
   Eye,
   FileCheck,
+  Play,
+  Flame,
 } from 'lucide-react';
 import { Header } from './components/Header';
+import { StudySessionModal } from './components/study/StudySessionModal';
 import { checkBackendHealth } from './api/health';
 import { fetchQuestions, fetchQuestionDetail } from './api/questions';
 import {
@@ -43,6 +46,10 @@ export const App: React.FC = () => {
   const [selectedSourceType, setSelectedSourceType] = useState<QuestionSourceType | ''>('');
   const [selectedType, setSelectedType] = useState<QuestionType | ''>('');
   const [searchTerm, setSearchTerm] = useState<string>('');
+
+  // Phase 3 Study Session State
+  const [isStudySessionOpen, setIsStudySessionOpen] = useState<boolean>(false);
+  const [studySessionSubject, setStudySessionSubject] = useState<Subject | ''>('');
 
   const loadHealth = useCallback(async () => {
     setHealthLoading(true);
@@ -100,6 +107,7 @@ export const App: React.FC = () => {
     }
   }, [selectedQuestionId, loadDetail]);
 
+  const fixtureCount = questions.filter((q) => q.sourceType === 'TEST_FIXTURE').length;
   const realExamCount = questions.filter((q) => q.sourceType === 'REAL_EXAM').length;
   const aiVariationCount = questions.filter((q) => q.sourceType === 'AI_VARIATION').length;
   const codeQuestionCount = questions.filter((q) => q.type === 'CODE_TRACE').length;
@@ -132,21 +140,21 @@ export const App: React.FC = () => {
           </div>
         )}
 
-        {/* Phase 2 헤더 카드 */}
+        {/* Phase 3 헤더 카드 */}
         <section style={styles.heroSection}>
           <div style={styles.heroHeader}>
             <div style={styles.badgeRow}>
-              <span style={styles.badgePrimary}>Phase 2 : 문제 도메인 및 데이터 파이프라인 기반 구축</span>
+              <span style={styles.badgePrimary}>Phase 3 : 실기 문제 풀이 & 스마트 채점 시스템 가동</span>
               <span style={styles.badgeGreen}>
-                검증용 Fixture {totalQuestions}문항 적재 완료
+                검증용 Fixture {totalQuestions}문항 풀이 준비 완료
               </span>
             </div>
             <h2 style={styles.heroTitle}>
-              정보처리기사 실기 문항 도메인 & Ground Truth 분리 검증
+              정보처리기사 실기 집중 풀이 & 스마트 주관식 채점
             </h2>
             <p style={styles.heroSubtitle}>
-              대량 무작위 크롤링 대신, 정밀하게 검증된 기출 원본(Ground Truth)과 AI 파생 변형 문제를
-              명확히 분리하고 parentQuestionId 계층 관계를 보장하는 데이터 아키텍처입니다.
+              공백·특수기호 정규화, 한글/영문 동의어 매칭, 1글자 오탈자 허용, 복수 키워드 부분점수 및
+              "모르겠음" 분리 기록을 제공하는 PC 특화 실기 학습 플랫폼입니다.
             </p>
           </div>
 
@@ -159,7 +167,7 @@ export const App: React.FC = () => {
                 </div>
                 <span style={styles.cardTag}>SQLite Table</span>
               </div>
-              <h3 style={styles.cardTitle}>적재된 검증 Fixture</h3>
+              <h3 style={styles.cardTitle}>전체 적재 문항</h3>
               <p style={styles.cardDesc}>
                 단답형, 복수 키워드, C/Java/Python 코드, 서술형, AI 변형 전체 포괄.
               </p>
@@ -169,7 +177,7 @@ export const App: React.FC = () => {
               </div>
             </div>
 
-            {/* 통계 2: 실제 기출 */}
+            {/* 통계 2: 검증 Fixture / 기출 */}
             <div style={styles.card}>
               <div style={styles.cardHeader}>
                 <div style={{ ...styles.cardIconBox, backgroundColor: 'rgba(16, 185, 129, 0.15)' }}>
@@ -177,13 +185,13 @@ export const App: React.FC = () => {
                 </div>
                 <span style={styles.cardTag}>Ground Truth</span>
               </div>
-              <h3 style={styles.cardTitle}>공식 기출 원본</h3>
+              <h3 style={styles.cardTitle}>검증 Fixture / 기출</h3>
               <p style={styles.cardDesc}>
                 공식 정답 및 해설이 보존되며, AI 출력에 의해 절대 덮어써지지 않음.
               </p>
               <div style={styles.cardFooter}>
-                <span style={styles.footerLabel}>현재 기출수:</span>
-                <span style={styles.statusOk}>{realExamCount}문항</span>
+                <span style={styles.footerLabel}>Fixture / 기출:</span>
+                <span style={styles.statusOk}>{fixtureCount + realExamCount}문항</span>
               </div>
             </div>
 
@@ -222,6 +230,34 @@ export const App: React.FC = () => {
                 <span style={styles.statusOk}>{codeQuestionCount}문항</span>
               </div>
             </div>
+          </div>
+
+          {/* Phase 3 집중 풀이 실행 배너 */}
+          <div style={styles.sessionBanner}>
+            <div style={styles.sessionBannerLeft}>
+              <div style={styles.sessionBannerIcon}>
+                <Flame size={28} color="#F59E0B" />
+              </div>
+              <div>
+                <h3 style={styles.sessionBannerTitle}>
+                  Phase 3 스마트 채점 기반 실기 집중 풀이 세션
+                </h3>
+                <p style={styles.sessionBannerSubtitle}>
+                  시험 실전과 동일한 환경에서 단답형, 다중 키워드, C/Java/Python 코드 추적 문제를 풀이하고
+                  즉시 스마트 채점 결과와 Ground Truth 공식 해설을 확인하세요.
+                </p>
+              </div>
+            </div>
+            <button
+              onClick={() => {
+                setStudySessionSubject(selectedSubject);
+                setIsStudySessionOpen(true);
+              }}
+              style={styles.sessionBannerBtn}
+            >
+              <Play size={18} />
+              <span>집중 학습 세션 시작하기</span>
+            </button>
           </div>
         </section>
 
@@ -267,6 +303,7 @@ export const App: React.FC = () => {
                 style={styles.selectInput}
               >
                 <option value="">모든 출처 (전체)</option>
+                <option value="TEST_FIXTURE">테스트 Fixture (TEST_FIXTURE)</option>
                 <option value="REAL_EXAM">실제 기출 (REAL_EXAM)</option>
                 <option value="AI_VARIATION">기출 변형 (AI_VARIATION)</option>
                 <option value="TEXTBOOK">공인 교재 (TEXTBOOK)</option>
@@ -384,6 +421,17 @@ export const App: React.FC = () => {
                           {questionDetail.question.examYear}년 {questionDetail.question.examRound}회 기출 ({questionDetail.question.questionNumber}번)
                         </span>
                       )}
+                      <button
+                        onClick={() => {
+                          setStudySessionSubject(questionDetail.question.subject);
+                          setIsStudySessionOpen(true);
+                        }}
+                        style={styles.solveDetailBtn}
+                        title="이 과목을 대상으로 집중 문제 풀이 세션을 시작합니다"
+                      >
+                        <Play size={13} />
+                        <span>이 과목 풀이 세션</span>
+                      </button>
                     </div>
                   </div>
 
@@ -536,10 +584,20 @@ export const App: React.FC = () => {
 
       <footer style={styles.footer}>
         <div style={styles.footerContent}>
-          <span>jungcheogi-trainer-pc &bull; Phase 2 Question Domain & Pipeline</span>
+          <span>jungcheogi-trainer-pc &bull; Phase 3 Practice & Smart Grading Engine</span>
           <span>Node.js Fastify (:8765) + SQLite + React Vite</span>
         </div>
       </footer>
+
+      {/* Phase 3 집중 문제 풀이 모달 */}
+      <StudySessionModal
+        isOpen={isStudySessionOpen}
+        onClose={() => {
+          setIsStudySessionOpen(false);
+          loadQuestions();
+        }}
+        initialSubject={studySessionSubject}
+      />
     </div>
   );
 };
@@ -1135,5 +1193,75 @@ const styles: Record<string, React.CSSProperties> = {
     color: 'var(--color-text-muted)',
     flexWrap: 'wrap',
     gap: '8px',
+  },
+  sessionBanner: {
+    marginTop: '24px',
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    backgroundColor: 'rgba(59, 130, 246, 0.08)',
+    border: '1.5px solid rgba(59, 130, 246, 0.3)',
+    borderRadius: '12px',
+    padding: '20px 24px',
+    gap: '20px',
+    flexWrap: 'wrap',
+  },
+  sessionBannerLeft: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '16px',
+    flex: 1,
+    minWidth: '280px',
+  },
+  sessionBannerIcon: {
+    width: '48px',
+    height: '48px',
+    borderRadius: '12px',
+    backgroundColor: 'rgba(245, 158, 11, 0.15)',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexShrink: 0,
+  },
+  sessionBannerTitle: {
+    fontSize: '16px',
+    fontWeight: 700,
+    color: '#F8FAFC',
+    marginBottom: '4px',
+  },
+  sessionBannerSubtitle: {
+    fontSize: '13px',
+    color: '#CBD5E1',
+    lineHeight: 1.5,
+  },
+  sessionBannerBtn: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '8px',
+    backgroundColor: '#3B82F6',
+    color: '#FFFFFF',
+    padding: '12px 24px',
+    borderRadius: '8px',
+    fontSize: '14px',
+    fontWeight: 700,
+    cursor: 'pointer',
+    boxShadow: '0 4px 12px rgba(59, 130, 246, 0.3)',
+    transition: 'all 0.15s ease',
+    flexShrink: 0,
+  },
+  solveDetailBtn: {
+    display: 'inline-flex',
+    alignItems: 'center',
+    gap: '6px',
+    backgroundColor: 'rgba(59, 130, 246, 0.15)',
+    border: '1px solid rgba(59, 130, 246, 0.4)',
+    color: '#60A5FA',
+    padding: '4px 10px',
+    borderRadius: '6px',
+    fontSize: '12px',
+    fontWeight: 600,
+    cursor: 'pointer',
+    marginLeft: 'auto',
+    transition: 'all 0.15s ease',
   },
 };

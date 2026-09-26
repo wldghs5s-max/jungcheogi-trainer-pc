@@ -40,9 +40,7 @@ CREATE TABLE IF NOT EXISTS attempts (
   session_id TEXT,
   user_answer TEXT NOT NULL,
   is_correct INTEGER NOT NULL,
-  score REAL DEFAULT 0,
-  time_spent_ms INTEGER NOT NULL DEFAULT 0,
-  ai_feedback TEXT,
+  miss_type TEXT,
   created_at TEXT NOT NULL,
   FOREIGN KEY (question_id) REFERENCES questions (id) ON DELETE CASCADE
 );
