@@ -1,6 +1,15 @@
 /**
  * 정처기 실기 주관식 채점 및 문자열 정규화 모듈
  * (기존 검증된 모바일 앱 로직을 PC 도메인 구조에 맞게 이식 및 확장)
+ * 
+ * [주의 사항 및 채점 원칙]:
+ * 1. Levenshtein 퍼지 매칭(편집 거리 1 이하 허용)은 실제 자격증 시험의 공식 기준이 아니라,
+ *    학습자가 사소한 오탈자로 인해 불필요한 좌절을 겪지 않도록 지원하는 "플랫폼 자동 채점 보조 규칙"입니다.
+ * 2. 영문 약어(SDN, SAN, PK, FK, IP 등 3글자 이하)는 1글자 차이로 완전히 다른 기술 용어가 되므로
+ *    퍼지 매칭을 엄격히 배제하고 정확 일치 또는 등록된 동의어만 인정합니다.
+ * 3. SYNONYM_GROUPS 사전은 명시적으로 검증 등록된 정적 동의어만 취급하며, AI에 의한 자동 확장을 배제합니다.
+ * 4. 자동 채점이 애매한 경우(예: 오탈자 허용 매칭)에는 needsReview: true 플래그를 제공하여
+ *    사용자나 검수자가 재검토할 수 있도록 진단 정보를 함께 반환합니다.
  */
 
 /**
@@ -20,8 +29,19 @@ export function normalizeAnswer(ans: string): string {
 }
 
 /**
+ * 3글자 이하의 영문/숫자 약어 여부를 판별합니다.
+ * (예: SDN, SAN, PK, FK, IP, SQL, XSS, LAN, WAN 등)
+ * 약어는 1글자만 달라져도 완전히 다른 기술이 되므로 퍼지 매칭을 금지합니다.
+ */
+export function isShortAcronym(word: string): boolean {
+  if (!word) return false;
+  return /^[A-Z0-9]{1,3}$/.test(word);
+}
+
+/**
  * 정처기 주요 용어 동의어/표기 변형 그룹
  * (한글 음차, 원어 영문 약어, 풀네임, 한자어 대칭)
+ * ※ 명시적으로 사전 등록된 항목만 동의어로 취급합니다.
  */
 export const SYNONYM_GROUPS: string[][] = [
   // SQL 및 DB
@@ -117,39 +137,118 @@ export function levenshtein(a: string, b: string): number {
 
 /**
  * 3글자 이상 단어에 대해 1글자 오탈자(타이포)를 허용하는 퍼지 매칭
+ * (단, 3글자 이하의 영문 약어는 제외)
  */
 export function isFuzzyMatch(left: string, right: string): boolean {
   if (!left || !right) return false;
   if (left === right) return true;
+
+  // 약어는 오탈자 허용 금지 (예: SDN != SAN, LAN != WAN, PK != FK)
+  if (isShortAcronym(left) || isShortAcronym(right)) {
+    return false;
+  }
+
   const minLen = Math.min(left.length, right.length);
   if (minLen < 3) return false;
   if (Math.abs(left.length - right.length) > 1) return false;
+
   return levenshtein(left, right) <= 1;
 }
 
-/**
- * 단일 답안 일치 여부 판정 (동의어 그룹 + 1글자 퍼지 매칭 지원)
- */
-export function isCloseMatch(user: string, correct: string): boolean {
-  if (!user || !correct) return false;
+export type MatchType = 'EXACT' | 'SYNONYM' | 'FUZZY_TYPO' | 'NONE';
 
+export interface SingleMatchDetail {
+  isMatch: boolean;
+  matchType: MatchType;
+  needsReview: boolean;
+  normalizedUser: string;
+  matchedTarget?: string;
+  feedback?: string;
+}
+
+/**
+ * 단일 답안 일치 여부 및 매칭 세부 정보(정확/동의어/오탈자/불일치) 분석
+ */
+export function checkMatchDetails(user: string, correct: string): SingleMatchDetail {
+  const normUser = normalizeAnswer(user);
+  const normCorrect = normalizeAnswer(correct);
+
+  if (!normUser || !normCorrect) {
+    return {
+      isMatch: false,
+      matchType: 'NONE',
+      needsReview: false,
+      normalizedUser: normUser,
+      feedback: '답안이 비어있습니다.',
+    };
+  }
+
+  // 1. 단순 정규화 완벽 일치 (EXACT)
+  if (normUser === normCorrect) {
+    return {
+      isMatch: true,
+      matchType: 'EXACT',
+      needsReview: false,
+      normalizedUser: normUser,
+      matchedTarget: normCorrect,
+      feedback: '정답입니다!',
+    };
+  }
+
+  // 2. 동의어 사전 매칭 (SYNONYM)
   const userForms = expandForms(user);
   const correctForms = expandForms(correct);
 
-  // 1. 동의어 그룹 내 완벽 일치
-  if (userForms.some((form) => correctForms.includes(form))) {
-    return true;
+  for (const uForm of userForms) {
+    if (correctForms.includes(uForm)) {
+      return {
+        isMatch: true,
+        matchType: 'SYNONYM',
+        needsReview: false,
+        normalizedUser: normUser,
+        matchedTarget: uForm,
+        feedback: '동의어 사전 일치로 정답 처리되었습니다.',
+      };
+    }
   }
 
-  // 2. 오탈자(레벤슈타인 1자 이내) 허용 매칭
-  const typed = normalizeAnswer(user);
-  return correctForms.some((form) => isFuzzyMatch(typed, form));
+  // 3. 1글자 오탈자 허용 매칭 (FUZZY_TYPO)
+  // (단, 약어 금지 및 최소 3글자 이상 충족 시)
+  for (const cForm of correctForms) {
+    if (isFuzzyMatch(normUser, cForm)) {
+      return {
+        isMatch: true,
+        matchType: 'FUZZY_TYPO',
+        needsReview: true, // 자동 채점 보조 규칙이므로 검토 대상 권장
+        normalizedUser: normUser,
+        matchedTarget: cForm,
+        feedback: '1글자 오탈자 허용 보조 규칙으로 정답 처리되었습니다 (수동 검토 권장).',
+      };
+    }
+  }
+
+  return {
+    isMatch: false,
+    matchType: 'NONE',
+    needsReview: false,
+    normalizedUser: normUser,
+    feedback: '오답입니다.',
+  };
+}
+
+/**
+ * 단일 답안 일치 여부 판정 (하위 호환성 유지)
+ */
+export function isCloseMatch(user: string, correct: string): boolean {
+  return checkMatchDetails(user, correct).isMatch;
 }
 
 export interface ItemMatchResult {
   expected: string;
   provided: string;
   isMatch: boolean;
+  matchType?: MatchType;
+  needsReview?: boolean;
 }
 
 export interface GradingResult {
@@ -157,6 +256,8 @@ export interface GradingResult {
   score: number; // 0.0 ~ 1.0 (부분 점수 지원)
   isUnknown: boolean;
   feedback: string;
+  matchType?: MatchType;
+  needsReview?: boolean;
   itemResults?: ItemMatchResult[];
 }
 
@@ -174,6 +275,8 @@ export function gradeAnswer(
       isCorrect: false,
       score: 0,
       isUnknown: true,
+      matchType: 'NONE',
+      needsReview: false,
       feedback: '모르는 문제로 표시되었습니다. 해설을 확인하고 복습하세요.',
     };
   }
@@ -189,6 +292,8 @@ export function gradeAnswer(
       isCorrect: false,
       score: 0,
       isUnknown: false,
+      matchType: 'NONE',
+      needsReview: false,
       feedback: '답안이 입력되지 않았습니다.',
     };
   }
@@ -200,36 +305,52 @@ export function gradeAnswer(
     if (Array.isArray(userAnswer)) {
       userArr = userAnswer;
     } else {
-      userArr = userAnswer.split(/[,/\n]+/).map((s) => s.trim()).filter(Boolean);
+      userArr = userAnswer
+        .split(/[,/\n]+/)
+        .map((s) => s.trim())
+        .filter(Boolean);
     }
 
     // 만약 사용자가 단일 문자열을 냈고 Ground Truth 후보 중 하나와 일치하면 (동의어 목록으로 제공된 경우)
-    if (userArr.length === 1 && groundTruthAnswer.some((cand) => isCloseMatch(userArr[0], cand))) {
-      return {
-        isCorrect: true,
-        score: 1.0,
-        isUnknown: false,
-        feedback: '정답입니다!',
-      };
+    if (userArr.length === 1) {
+      for (const cand of groundTruthAnswer) {
+        const detail = checkMatchDetails(userArr[0], cand);
+        if (detail.isMatch) {
+          return {
+            isCorrect: true,
+            score: 1.0,
+            isUnknown: false,
+            matchType: detail.matchType,
+            needsReview: detail.needsReview,
+            feedback: detail.feedback || '정답입니다!',
+          };
+        }
+      }
     }
 
     // 빈칸 순서형 또는 복수 키워드 목록 채점
     const itemResults: ItemMatchResult[] = [];
     let matchCount = 0;
+    let hasReviewItem = false;
 
     for (let i = 0; i < groundTruthAnswer.length; i++) {
       const expected = groundTruthAnswer[i];
       const provided = userArr[i] || '';
-      const isMatch = isCloseMatch(provided, expected);
+      const detail = checkMatchDetails(provided, expected);
 
       itemResults.push({
         expected,
         provided,
-        isMatch,
+        isMatch: detail.isMatch,
+        matchType: detail.matchType,
+        needsReview: detail.needsReview,
       });
 
-      if (isMatch) {
+      if (detail.isMatch) {
         matchCount++;
+      }
+      if (detail.needsReview) {
+        hasReviewItem = true;
       }
     }
 
@@ -241,8 +362,11 @@ export function gradeAnswer(
       isCorrect,
       score,
       isUnknown: false,
+      needsReview: hasReviewItem,
       feedback: isCorrect
-        ? '모든 정답 키워드가 일치합니다!'
+        ? (hasReviewItem
+            ? '모든 정답 키워드가 일치합니다 (일부 오탈자 허용 포함).'
+            : '모든 정답 키워드가 일치합니다!')
         : matchCount > 0
         ? `부분 정답입니다 (${matchCount}/${totalItems}개 일치).`
         : '오답입니다.',
@@ -252,13 +376,15 @@ export function gradeAnswer(
 
   // 3. Ground Truth가 단일 정답인 경우
   const userStr = Array.isArray(userAnswer) ? userAnswer.join('') : userAnswer;
-  const isMatch = isCloseMatch(userStr, groundTruthAnswer);
+  const detail = checkMatchDetails(userStr, groundTruthAnswer);
 
   return {
-    isCorrect: isMatch,
-    score: isMatch ? 1.0 : 0.0,
+    isCorrect: detail.isMatch,
+    score: detail.isMatch ? 1.0 : 0.0,
     isUnknown: false,
-    feedback: isMatch ? '정답입니다!' : '오답입니다.',
+    matchType: detail.matchType,
+    needsReview: detail.needsReview,
+    feedback: detail.feedback || (detail.isMatch ? '정답입니다!' : '오답입니다.'),
   };
 }
 

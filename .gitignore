@@ -16,6 +16,7 @@ build/
 !.env.example
 
 # Local SQLite databases and temp files
+data/
 server/data/*.db
 server/data/*.db-journal
 server/data/*.db-wal

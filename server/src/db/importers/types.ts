@@ -43,6 +43,8 @@ export interface RawImportQuestion {
   // 추출된 원본 정답 및 해설 후보
   extractedAnswer: string | string[];
   extractedExplanation?: string;
+  aiExplanation?: string;
+  aiVariationNotes?: string;
 
   difficulty?: string;
   keywords?: string[];

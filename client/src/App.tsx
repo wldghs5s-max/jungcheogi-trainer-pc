@@ -11,9 +11,11 @@ import {
   FileCheck,
   Play,
   Flame,
+  UploadCloud,
 } from 'lucide-react';
 import { Header } from './components/Header';
 import { StudySessionModal } from './components/study/StudySessionModal';
+import { ImportModal } from './components/importer/ImportModal';
 import { checkBackendHealth } from './api/health';
 import { fetchQuestions, fetchQuestionDetail } from './api/questions';
 import {
@@ -50,6 +52,9 @@ export const App: React.FC = () => {
   // Phase 3 Study Session State
   const [isStudySessionOpen, setIsStudySessionOpen] = useState<boolean>(false);
   const [studySessionSubject, setStudySessionSubject] = useState<Subject | ''>('');
+
+  // Phase 4 Import & Review Modal State
+  const [isImportModalOpen, setIsImportModalOpen] = useState<boolean>(false);
 
   const loadHealth = useCallback(async () => {
     setHealthLoading(true);
@@ -248,16 +253,25 @@ export const App: React.FC = () => {
                 </p>
               </div>
             </div>
-            <button
-              onClick={() => {
-                setStudySessionSubject(selectedSubject);
-                setIsStudySessionOpen(true);
-              }}
-              style={styles.sessionBannerBtn}
-            >
-              <Play size={18} />
-              <span>집중 학습 세션 시작하기</span>
-            </button>
+            <div style={styles.sessionBannerActions}>
+              <button
+                onClick={() => {
+                  setStudySessionSubject(selectedSubject);
+                  setIsStudySessionOpen(true);
+                }}
+                style={styles.sessionBannerBtn}
+              >
+                <Play size={18} />
+                <span>집중 학습 세션 시작하기</span>
+              </button>
+              <button
+                onClick={() => setIsImportModalOpen(true)}
+                style={styles.importBannerBtn}
+              >
+                <UploadCloud size={18} color="#60A5FA" />
+                <span>데이터 Import & 검수 (Phase 4)</span>
+              </button>
+            </div>
           </div>
         </section>
 
@@ -597,6 +611,15 @@ export const App: React.FC = () => {
           loadQuestions();
         }}
         initialSubject={studySessionSubject}
+      />
+
+      {/* Phase 4 문제 데이터 검수 및 Import 모달 */}
+      <ImportModal
+        isOpen={isImportModalOpen}
+        onClose={() => setIsImportModalOpen(false)}
+        onQuestionsUpdated={() => {
+          loadQuestions();
+        }}
       />
     </div>
   );
@@ -1246,6 +1269,27 @@ const styles: Record<string, React.CSSProperties> = {
     fontWeight: 700,
     cursor: 'pointer',
     boxShadow: '0 4px 12px rgba(59, 130, 246, 0.3)',
+    transition: 'all 0.15s ease',
+    flexShrink: 0,
+  },
+  sessionBannerActions: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '12px',
+    flexWrap: 'wrap',
+  },
+  importBannerBtn: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '8px',
+    backgroundColor: 'rgba(59, 130, 246, 0.12)',
+    border: '1px solid rgba(59, 130, 246, 0.4)',
+    color: '#93C5FD',
+    padding: '12px 20px',
+    borderRadius: '8px',
+    fontSize: '14px',
+    fontWeight: 600,
+    cursor: 'pointer',
     transition: 'all 0.15s ease',
     flexShrink: 0,
   },

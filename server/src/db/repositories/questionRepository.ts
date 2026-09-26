@@ -40,7 +40,12 @@ interface QuestionRow {
 function mapRowToQuestion(row: QuestionRow): Question {
   let groundTruthAnswer: string | string[];
   try {
-    groundTruthAnswer = JSON.parse(row.ground_truth_answer);
+    const parsed = JSON.parse(row.ground_truth_answer);
+    if (Array.isArray(parsed)) {
+      groundTruthAnswer = parsed.map(String);
+    } else {
+      groundTruthAnswer = String(parsed);
+    }
   } catch {
     groundTruthAnswer = row.ground_truth_answer;
   }
@@ -197,8 +202,8 @@ export class QuestionRepository {
 
     if (filter.search && filter.search.trim()) {
       const term = `%${filter.search.trim()}%`;
-      conditions.push('(question_text LIKE ? OR keywords_json LIKE ? OR category LIKE ?)');
-      params.push(term, term, term);
+      conditions.push('(question_text LIKE ? OR keywords_json LIKE ? OR category LIKE ? OR code_snippet LIKE ?)');
+      params.push(term, term, term, term);
     }
 
     const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';

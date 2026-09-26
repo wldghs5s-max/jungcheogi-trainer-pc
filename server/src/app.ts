@@ -4,6 +4,7 @@ import { env } from './config/env';
 import { healthRoutes } from './routes/health';
 import { questionRoutes } from './routes/questions';
 import { sessionRoutes } from './routes/sessions';
+import { importRoutes } from './routes/imports';
 
 export function buildApp(): FastifyInstance {
   const app = fastify({
@@ -38,6 +39,7 @@ export function buildApp(): FastifyInstance {
   app.register(healthRoutes);
   app.register(questionRoutes);
   app.register(sessionRoutes);
+  app.register(importRoutes);
 
   return app;
 }
