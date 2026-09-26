@@ -29,6 +29,7 @@ export interface RawImportQuestion {
   examRound?: number;
   questionNumber?: number;
   parentQuestionId?: string;
+  conceptId?: string;
 
   subject?: string;
   category?: string;

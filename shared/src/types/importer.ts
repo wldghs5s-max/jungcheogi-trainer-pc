@@ -90,6 +90,7 @@ export interface ParseImportRequest {
   format: ImportFormat;
   sourceName: string;
   sourceType?: QuestionSourceType;
+  conceptId?: string;
   content: string;
 }
 
@@ -104,6 +105,7 @@ export interface UpdateStagedQuestionRequest {
   examRound?: number;
   questionNumber?: number;
   parentQuestionId?: string;
+  conceptId?: string;
   subject?: Subject;
   category?: string;
   subCategory?: string;

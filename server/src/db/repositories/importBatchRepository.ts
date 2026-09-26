@@ -270,7 +270,7 @@ export class ImportBatchRepository {
       .prepare(
         `UPDATE staged_questions SET
           source_type = ?, exam_year = ?, exam_round = ?, question_number = ?,
-          parent_question_id = ?, subject = ?, category = ?, sub_category = ?,
+          parent_question_id = ?, concept_id = ?, subject = ?, category = ?, sub_category = ?,
           type = ?, question_text = ?, code_snippet = ?, language = ?,
           options_json = ?, ground_truth_answer = ?, official_explanation = ?,
           ai_explanation = ?, ai_variation_notes = ?, difficulty = ?,
@@ -283,6 +283,7 @@ export class ImportBatchRepository {
         merged.examRound ?? null,
         merged.questionNumber ?? null,
         merged.parentQuestionId ?? null,
+        merged.conceptId ?? null,
         merged.subject,
         merged.category,
         merged.subCategory ?? null,

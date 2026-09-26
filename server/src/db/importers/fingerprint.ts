@@ -72,9 +72,37 @@ export function analyzeDuplicates(
     subject: string;
     fingerprint: string;
     parentQuestionId?: string;
+    sourceType?: string;
+    examYear?: number;
+    examRound?: number;
+    questionNumber?: number;
   },
   existingQuestions: Question[],
 ): DuplicateAnalysisResult {
+  // 0. 기출문제(REAL_EXAM) 자연 키(Natural Key) 중복 사전 검사
+  if (
+    staged.sourceType === "REAL_EXAM" &&
+    staged.examYear !== undefined &&
+    staged.examRound !== undefined &&
+    staged.questionNumber !== undefined
+  ) {
+    const naturalKeyMatch = existingQuestions.find(
+      (q) =>
+        q.sourceType === "REAL_EXAM" &&
+        q.examYear === staged.examYear &&
+        q.examRound === staged.examRound &&
+        q.questionNumber === staged.questionNumber,
+    );
+    if (naturalKeyMatch) {
+      return {
+        status: "DUPLICATE_WARNING",
+        duplicateQuestionId: naturalKeyMatch.id,
+        similarity: 1.0,
+        reason: `동일한 회차의 실제 기출문제(${staged.examYear}년 ${staged.examRound}회 ${staged.questionNumber}번, ID: ${naturalKeyMatch.id})가 이미 등록되어 있습니다 (기출 자연 키 충돌).`,
+      };
+    }
+  }
+
   // 1. 완전 일치 핑거프린트 검사
   const exactMatch = existingQuestions.find(
     (q) => q.structuralFingerprint === staged.fingerprint,

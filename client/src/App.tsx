@@ -16,9 +16,12 @@ import {
   Target,
   RotateCcw,
   CheckCircle,
+  CheckCircle2,
   Zap,
   Crosshair,
   TrendingUp,
+  X,
+  ShieldCheck,
 } from "lucide-react";
 import { Header } from "./components/Header";
 import { StudySessionModal } from "./components/study/StudySessionModal";
@@ -33,6 +36,7 @@ import {
   fetchRecommendations,
   createDailySession,
   createConceptDrillSession,
+  generateVariationApi,
 } from "./api/learning";
 import {
   HealthCheckResponse,
@@ -111,6 +115,28 @@ export const App: React.FC = () => {
   const [drillLoadingConceptId, setDrillLoadingConceptId] = useState<
     string | null
   >(null);
+
+  // Phase 7 AI Variation Generation State
+  const [isVariationModalOpen, setIsVariationModalOpen] = useState<boolean>(false);
+  const [selectedVarType, setSelectedVarType] = useState<string>("PARAMETER_VARIATION");
+  const [isGeneratingVar, setIsGeneratingVar] = useState<boolean>(false);
+  const [generatedVarResult, setGeneratedVarResult] = useState<any>(null);
+
+  const handleGenerateVariation = async () => {
+    if (!questionDetail) return;
+    setIsGeneratingVar(true);
+    const res = await generateVariationApi({
+      questionId: questionDetail.question.id,
+      variationType: selectedVarType,
+      autoStage: true,
+    });
+    setIsGeneratingVar(false);
+    if (res.data) {
+      setGeneratedVarResult(res.data);
+    } else {
+      alert(res.error || "변형 문제 생성에 실패했습니다.");
+    }
+  };
 
   const loadHealth = useCallback(async () => {
     setHealthLoading(true);
@@ -1232,6 +1258,26 @@ export const App: React.FC = () => {
                     )}
                   </div>
 
+                  {/* Phase 7: AI 변형 문제 생성 액션 바 */}
+                  <div style={styles.variationActionBar}>
+                    <div style={styles.variationActionLeft}>
+                      <Sparkles size={16} color="#C084FC" />
+                      <span style={styles.variationActionTitle}>
+                        이 원본 문제를 기반으로 AI 변형 문제를 생성하여 Staging 검수 파이프라인에 등록할 수 있습니다.
+                      </span>
+                    </div>
+                    <button
+                      style={styles.generateVarBtn}
+                      onClick={() => {
+                        setGeneratedVarResult(null);
+                        setIsVariationModalOpen(true);
+                      }}
+                    >
+                      <Sparkles size={14} />
+                      <span>AI 변형 문제 생성 (Staging 검수)</span>
+                    </button>
+                  </div>
+
                   {/* AI 보조 해설 및 변형 노트 섹션 (Ground Truth와 명확히 분리) */}
                   {(questionDetail.question.aiExplanation ||
                     questionDetail.question.aiVariationNotes) && (
@@ -1401,6 +1447,196 @@ export const App: React.FC = () => {
           loadLearningData();
         }}
       />
+
+      {/* Phase 7 AI 변형 문제 생성 및 Staging 검수 모달 */}
+      {isVariationModalOpen && questionDetail && (
+        <div style={styles.varModalOverlay}>
+          <div style={styles.varModalContent}>
+            <div style={styles.varModalHeader}>
+              <div style={styles.varModalTitleGroup}>
+                <Sparkles size={20} color="#C084FC" />
+                <h3 style={styles.varModalTitle}>
+                  AI 변형 문제 생성 및 Staging 검수 파이프라인
+                </h3>
+              </div>
+              <button
+                onClick={() => setIsVariationModalOpen(false)}
+                style={styles.closeBtn}
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            <div style={styles.varModalBody}>
+              <div style={styles.varSourceBox}>
+                <div style={styles.varSourceHeader}>
+                  <span style={styles.varSourceId}>
+                    기준 원본: {questionDetail.question.id}
+                  </span>
+                  <span style={styles.varSourceSubject}>
+                    {questionDetail.question.subject}
+                  </span>
+                  {questionDetail.question.conceptId && (
+                    <span style={styles.varSourceConcept}>
+                      개념: {questionDetail.question.conceptId}
+                    </span>
+                  )}
+                </div>
+                <p style={styles.varSourceText}>
+                  {questionDetail.question.question}
+                </p>
+              </div>
+
+              {!generatedVarResult ? (
+                <div style={styles.varConfigSection}>
+                  <label style={styles.varLabel}>
+                    변형 문제 유형 선택 (Variation Type):
+                  </label>
+                  <select
+                    value={selectedVarType}
+                    onChange={(e) => setSelectedVarType(e.target.value)}
+                    style={styles.varSelect}
+                  >
+                    <option value="PARAMETER_VARIATION">
+                      1. PARAMETER_VARIATION (수치 / 변수 / 파라미터 변형)
+                    </option>
+                    <option value="CODE_VARIATION">
+                      2. CODE_VARIATION (코드 구조 / 제어문 / 연산자 변형)
+                    </option>
+                    <option value="SCENARIO_VARIATION">
+                      3. SCENARIO_VARIATION (실무 시나리오 / 적용 맥락 변형)
+                    </option>
+                    <option value="CONCEPT_VARIATION">
+                      4. CONCEPT_VARIATION (개념 재구성 / 역방향 핵심 평가)
+                    </option>
+                    <option value="DIFFICULTY_VARIATION">
+                      5. DIFFICULTY_VARIATION (다단계 제약 / 난이도 심화 조절)
+                    </option>
+                  </select>
+
+                  <div style={styles.varSafetyNotice}>
+                    <ShieldCheck size={16} color="#34D399" />
+                    <span>
+                      ★ 생성된 변형 문제는 Live DB에 즉시 삽입되지 않으며,{" "}
+                      <strong>staged_questions</strong>에{" "}
+                      <strong>PENDING</strong> 상태로 안전하게 격리 등록됩니다.
+                    </span>
+                  </div>
+
+                  <div style={styles.varModalFooter}>
+                    <button
+                      onClick={() => setIsVariationModalOpen(false)}
+                      style={styles.cancelBtn}
+                    >
+                      취소
+                    </button>
+                    <button
+                      onClick={handleGenerateVariation}
+                      disabled={isGeneratingVar}
+                      style={styles.executeVarBtn}
+                    >
+                      {isGeneratingVar
+                        ? "변형 문항 생성 및 검증 중..."
+                        : "변형 문제 생성 및 Staging 적재"}
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <div style={styles.varResultSection}>
+                  <div style={styles.varResultHeader}>
+                    <CheckCircle2 size={18} color="#34D399" />
+                    <span style={styles.varResultTitle}>
+                      변형 문제 생성 및 3단계 무결성 검증 완료 (Staging 등록됨)
+                    </span>
+                  </div>
+
+                  <div style={styles.varPreviewBox}>
+                    <div style={styles.varMetaRow}>
+                      <span style={styles.varMetaBadge}>
+                        유형: {generatedVarResult.variation?.variationType}
+                      </span>
+                      <span style={styles.varMetaBadge}>
+                        부모: {generatedVarResult.variation?.parentQuestionId}
+                      </span>
+                      {generatedVarResult.variation?.conceptId && (
+                        <span style={styles.varMetaBadge}>
+                          개념: {generatedVarResult.variation?.conceptId}
+                        </span>
+                      )}
+                      <span style={styles.varStatusBadge}>
+                        검수 상태: PENDING (검수 대기)
+                      </span>
+                    </div>
+
+                    <div style={styles.varFieldGroup}>
+                      <span style={styles.varFieldLabel}>변형 문제 지문:</span>
+                      <p style={styles.varFieldContent}>
+                        {generatedVarResult.variation?.prompt}
+                      </p>
+                    </div>
+
+                    {generatedVarResult.variation?.codeSnippet && (
+                      <div style={styles.varFieldGroup}>
+                        <span style={styles.varFieldLabel}>변형 소스코드:</span>
+                        <pre style={styles.varCodeSnippet}>
+                          <code>
+                            {generatedVarResult.variation?.codeSnippet}
+                          </code>
+                        </pre>
+                      </div>
+                    )}
+
+                    <div style={styles.varFieldGroup}>
+                      <span style={styles.varFieldLabel}>생성된 기준 정답:</span>
+                      <span style={styles.varAnswerValue}>
+                        {Array.isArray(
+                          generatedVarResult.variation?.groundTruthAnswer,
+                        )
+                          ? generatedVarResult.variation?.groundTruthAnswer.join(
+                              ", ",
+                            )
+                          : generatedVarResult.variation?.groundTruthAnswer}
+                      </span>
+                    </div>
+
+                    <div style={styles.varFieldGroup}>
+                      <span style={styles.varFieldLabel}>AI 보조 해설:</span>
+                      <p style={styles.varFieldContent}>
+                        {generatedVarResult.variation?.aiExplanation}
+                      </p>
+                    </div>
+
+                    <div style={styles.varFieldGroup}>
+                      <span style={styles.varFieldLabel}>변형 설계 의도:</span>
+                      <p style={styles.varFieldContent}>
+                        {generatedVarResult.variation?.aiVariationNotes}
+                      </p>
+                    </div>
+                  </div>
+
+                  <div style={styles.varModalFooter}>
+                    <button
+                      onClick={() => {
+                        setIsVariationModalOpen(false);
+                        setIsImportModalOpen(true);
+                      }}
+                      style={styles.openImportBtn}
+                    >
+                      검수 관리자 대시보드(ImportModal) 열기 &rarr;
+                    </button>
+                    <button
+                      onClick={() => setIsVariationModalOpen(false)}
+                      style={styles.primaryBtn}
+                    >
+                      확인
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
@@ -2542,5 +2778,272 @@ const styles: Record<string, React.CSSProperties> = {
     fontWeight: 600,
     cursor: "pointer",
     transition: "background-color 0.15s",
+  },
+  // Phase 7 AI Variation Styles
+  variationActionBar: {
+    display: "flex",
+    justifyContent: "space-between",
+    alignItems: "center",
+    backgroundColor: "rgba(168, 85, 247, 0.08)",
+    border: "1px solid rgba(168, 85, 247, 0.25)",
+    borderRadius: "8px",
+    padding: "12px 16px",
+    gap: "12px",
+    flexWrap: "wrap",
+    marginTop: "8px",
+  },
+  variationActionLeft: {
+    display: "flex",
+    alignItems: "center",
+    gap: "8px",
+    flex: 1,
+  },
+  variationActionTitle: {
+    fontSize: "12px",
+    color: "#E2E8F0",
+  },
+  generateVarBtn: {
+    display: "inline-flex",
+    alignItems: "center",
+    gap: "6px",
+    backgroundColor: "#9333EA",
+    color: "#FFFFFF",
+    border: "none",
+    borderRadius: "6px",
+    padding: "8px 14px",
+    fontSize: "12px",
+    fontWeight: 600,
+    cursor: "pointer",
+    transition: "background-color 0.15s",
+  },
+  varModalOverlay: {
+    position: "fixed",
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: "rgba(0, 0, 0, 0.75)",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    zIndex: 1000,
+    backdropFilter: "blur(4px)",
+    padding: "20px",
+  },
+  varModalContent: {
+    backgroundColor: "#1E293B",
+    borderRadius: "12px",
+    maxWidth: "760px",
+    width: "100%",
+    maxHeight: "90vh",
+    display: "flex",
+    flexDirection: "column",
+    border: "1px solid rgba(255, 255, 255, 0.1)",
+    boxShadow: "0 25px 50px -12px rgba(0, 0, 0, 0.5)",
+    overflow: "hidden",
+  },
+  varModalHeader: {
+    padding: "16px 20px",
+    borderBottom: "1px solid rgba(255, 255, 255, 0.08)",
+    display: "flex",
+    justifyContent: "space-between",
+    alignItems: "center",
+  },
+  varModalTitleGroup: {
+    display: "flex",
+    alignItems: "center",
+    gap: "8px",
+  },
+  varModalTitle: {
+    fontSize: "16px",
+    fontWeight: 700,
+    color: "#F8FAFC",
+    margin: 0,
+  },
+  varModalBody: {
+    padding: "20px",
+    overflowY: "auto",
+    display: "flex",
+    flexDirection: "column",
+    gap: "16px",
+  },
+  varSourceBox: {
+    backgroundColor: "#0F172A",
+    borderRadius: "8px",
+    padding: "12px 14px",
+    border: "1px solid rgba(255, 255, 255, 0.06)",
+  },
+  varSourceHeader: {
+    display: "flex",
+    gap: "8px",
+    alignItems: "center",
+    marginBottom: "6px",
+  },
+  varSourceId: {
+    fontSize: "12px",
+    fontWeight: 700,
+    color: "#38BDF8",
+  },
+  varSourceSubject: {
+    fontSize: "11px",
+    backgroundColor: "rgba(56, 189, 248, 0.15)",
+    color: "#38BDF8",
+    padding: "1px 6px",
+    borderRadius: "3px",
+  },
+  varSourceConcept: {
+    fontSize: "11px",
+    backgroundColor: "rgba(168, 85, 247, 0.15)",
+    color: "#C084FC",
+    padding: "1px 6px",
+    borderRadius: "3px",
+  },
+  varSourceText: {
+    fontSize: "13px",
+    color: "#94A3B8",
+    margin: 0,
+    lineHeight: 1.4,
+  },
+  varConfigSection: {
+    display: "flex",
+    flexDirection: "column",
+    gap: "14px",
+  },
+  varLabel: {
+    fontSize: "13px",
+    fontWeight: 600,
+    color: "#CBD5E1",
+  },
+  varSelect: {
+    backgroundColor: "#0F172A",
+    color: "#F8FAFC",
+    border: "1px solid rgba(255, 255, 255, 0.15)",
+    borderRadius: "6px",
+    padding: "10px 12px",
+    fontSize: "13px",
+    outline: "none",
+  },
+  varSafetyNotice: {
+    display: "flex",
+    alignItems: "flex-start",
+    gap: "8px",
+    backgroundColor: "rgba(52, 211, 153, 0.08)",
+    border: "1px solid rgba(52, 211, 153, 0.25)",
+    borderRadius: "6px",
+    padding: "10px 12px",
+    fontSize: "12px",
+    color: "#A7F3D0",
+    lineHeight: 1.4,
+  },
+  varResultSection: {
+    display: "flex",
+    flexDirection: "column",
+    gap: "14px",
+  },
+  varResultHeader: {
+    display: "flex",
+    alignItems: "center",
+    gap: "8px",
+  },
+  varResultTitle: {
+    fontSize: "14px",
+    fontWeight: 700,
+    color: "#34D399",
+  },
+  varPreviewBox: {
+    backgroundColor: "#0F172A",
+    borderRadius: "8px",
+    padding: "14px",
+    border: "1px solid rgba(255, 255, 255, 0.08)",
+    display: "flex",
+    flexDirection: "column",
+    gap: "12px",
+  },
+  varMetaRow: {
+    display: "flex",
+    gap: "8px",
+    alignItems: "center",
+    flexWrap: "wrap",
+  },
+  varMetaBadge: {
+    fontSize: "11px",
+    backgroundColor: "rgba(255, 255, 255, 0.06)",
+    color: "#CBD5E1",
+    padding: "2px 8px",
+    borderRadius: "4px",
+  },
+  varStatusBadge: {
+    fontSize: "11px",
+    fontWeight: 700,
+    backgroundColor: "rgba(234, 179, 8, 0.2)",
+    color: "#FACC15",
+    padding: "2px 8px",
+    borderRadius: "4px",
+  },
+  varFieldGroup: {
+    display: "flex",
+    flexDirection: "column",
+    gap: "4px",
+  },
+  varFieldLabel: {
+    fontSize: "11px",
+    fontWeight: 700,
+    color: "#64748B",
+    textTransform: "uppercase",
+  },
+  varFieldContent: {
+    fontSize: "13px",
+    color: "#E2E8F0",
+    margin: 0,
+    lineHeight: 1.4,
+  },
+  varCodeSnippet: {
+    backgroundColor: "#020617",
+    color: "#F8FAFC",
+    padding: "10px",
+    borderRadius: "4px",
+    fontSize: "12px",
+    overflowX: "auto",
+    margin: 0,
+  },
+  varAnswerValue: {
+    fontSize: "13px",
+    fontWeight: 700,
+    color: "#34D399",
+  },
+  varModalFooter: {
+    display: "flex",
+    justifyContent: "flex-end",
+    gap: "10px",
+    marginTop: "8px",
+  },
+  cancelBtn: {
+    backgroundColor: "transparent",
+    color: "#94A3B8",
+    border: "1px solid rgba(255, 255, 255, 0.15)",
+    borderRadius: "6px",
+    padding: "8px 16px",
+    fontSize: "13px",
+    cursor: "pointer",
+  },
+  executeVarBtn: {
+    backgroundColor: "#9333EA",
+    color: "#FFFFFF",
+    border: "none",
+    borderRadius: "6px",
+    padding: "8px 18px",
+    fontSize: "13px",
+    fontWeight: 600,
+    cursor: "pointer",
+  },
+  openImportBtn: {
+    backgroundColor: "#2563EB",
+    color: "#FFFFFF",
+    border: "none",
+    borderRadius: "6px",
+    padding: "8px 16px",
+    fontSize: "13px",
+    fontWeight: 600,
+    cursor: "pointer",
   },
 };

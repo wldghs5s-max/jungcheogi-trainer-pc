@@ -4,6 +4,7 @@ import {
   DailySessionRequest,
   DrillSessionRequest,
   VariationType,
+  GeneratedVariation,
 } from '@jungcheogi/shared';
 import { ConceptRepository } from '../db/repositories/conceptRepository';
 import { ReviewRepository } from '../db/repositories/reviewRepository';
@@ -11,6 +12,7 @@ import { QuestionRepository } from '../db/repositories/questionRepository';
 import { AttemptRepository } from '../db/repositories/attemptRepository';
 import { RecommendationEngine } from '../engine/recommendationEngine';
 import { MockQuestionVariationGenerator } from '../engine/variationGenerator';
+import { VariationValidator } from '../engine/variationValidator';
 
 interface RecommendationsQuery {
   limit?: string;
@@ -242,7 +244,8 @@ export async function learningRoutes(fastify: FastifyInstance): Promise<void> {
       request: FastifyRequest<{ Body: DrillSessionRequest }>,
       reply: FastifyReply
     ) => {
-      const { conceptId, count, title } = request.body || {};
+      const body = (request.body || {}) as DrillSessionRequest;
+      const { conceptId, count, title } = body;
       if (!conceptId) {
         return reply.status(400).send({
           error: 'Bad Request',
@@ -266,7 +269,7 @@ export async function learningRoutes(fastify: FastifyInstance): Promise<void> {
     }
   );
 
-  // 11. AI 변형 문제 Mock 생성 및 Staging 검수 등록 (Live DB 절대 직접 커밋 금지)
+  // 11. AI 변형 문제 Mock 생성 및 Staging 검수 등록 (Live DB 절대 직접 커밋 금지 - 하위 호환성 유지)
   fastify.post(
     '/api/learning/variations/generate-mock',
     async (
@@ -311,4 +314,81 @@ export async function learningRoutes(fastify: FastifyInstance): Promise<void> {
       });
     }
   );
+
+  // 12. Phase 7: AI 변형 문제 생성 및 프리뷰/Staging 통합 엔드포인트
+  fastify.post(
+    '/api/learning/variations/generate',
+    async (
+      request: FastifyRequest<{
+        Body: {
+          questionId: string;
+          variationType?: VariationType;
+          autoStage?: boolean;
+        };
+      }>,
+      reply: FastifyReply
+    ) => {
+      const { questionId, variationType, autoStage = false } = request.body || {};
+      if (!questionId) {
+        return reply.status(400).send({
+          error: 'Bad Request',
+          message: '변형 문제를 생성할 questionId가 필요합니다.',
+        });
+      }
+
+      const question = questionRepo.findById(questionId);
+      if (!question) {
+        return reply.status(404).send({
+          error: 'Not Found',
+          message: `문제 '${questionId}'을(를) 찾을 수 없습니다.`,
+        });
+      }
+
+      const variation = await variationGenerator.generateVariation(question, {
+        variationType,
+      });
+
+      let stageResult: any = null;
+      if (autoStage) {
+        stageResult = await variationGenerator.stageVariation(variation);
+      }
+
+      return reply.status(201).send({
+        variation,
+        validationResult: variation.validationResult,
+        batchId: stageResult?.batchId,
+        stagedQuestion: stageResult?.stagedQuestion,
+      });
+    }
+  );
+
+  // 13. Phase 7: AI 변형 문제 3단계 무결성 검증 (Schema, Domain, Ground Truth)
+  fastify.post(
+    '/api/learning/variations/validate',
+    async (
+      request: FastifyRequest<{
+        Body: {
+          variation: GeneratedVariation;
+        };
+      }>,
+      reply: FastifyReply
+    ) => {
+      const { variation } = request.body || {};
+      if (!variation) {
+        return reply.status(400).send({
+          error: 'Bad Request',
+          message: '검증할 variation 객체가 필요합니다.',
+        });
+      }
+
+      let parentQuestion = null;
+      if (variation.parentQuestionId) {
+        parentQuestion = questionRepo.findById(variation.parentQuestionId);
+      }
+
+      const validationResult = VariationValidator.validate(variation, parentQuestion);
+      return reply.status(200).send(validationResult);
+    }
+  );
 }
+

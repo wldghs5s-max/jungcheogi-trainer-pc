@@ -81,11 +81,11 @@ export class QuestionValidator {
 
     // 6. 실제 기출(REAL_EXAM) 메타데이터 검증
     if (raw.sourceType === "REAL_EXAM") {
-      if (!raw.examYear || !raw.examRound) {
+      if (!raw.examYear || !raw.examRound || !raw.questionNumber) {
         issues.push({
           field: "sourceType",
           message:
-            "실제 기출(REAL_EXAM)로 등록하려면 출제 연도와 회차 정보가 필요합니다.",
+            "실제 기출(REAL_EXAM)로 등록하려면 출제 연도, 회차, 문항 번호(questionNumber)가 필요합니다.",
           severity: "WARNING",
         });
       }
@@ -98,6 +98,20 @@ export class QuestionValidator {
         message:
           "AI 변형 문제(AI_VARIATION)는 부모 기출 ID(parentQuestionId)가 지정되어야 계보가 형성됩니다.",
         severity: "WARNING",
+      });
+    }
+
+    // 8. 지문과 정답 완전 동일 오류 방지
+    if (
+      raw.questionText &&
+      raw.extractedAnswer &&
+      typeof raw.extractedAnswer === "string" &&
+      raw.questionText.trim().toLowerCase() === raw.extractedAnswer.trim().toLowerCase()
+    ) {
+      issues.push({
+        field: "groundTruthAnswer",
+        message: "문제 지문과 정답이 동일할 수 없습니다.",
+        severity: "ERROR",
       });
     }
 

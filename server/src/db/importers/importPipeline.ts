@@ -23,6 +23,7 @@ export interface ParseAndStageInput {
   format: ImportFormat;
   sourceName: string;
   sourceType?: QuestionSourceType;
+  conceptId?: string;
   content: string;
 }
 
@@ -84,6 +85,10 @@ export class QuestionImportPipeline {
           subject: raw.subject || "소프트웨어설계",
           fingerprint,
           parentQuestionId: raw.parentQuestionId,
+          sourceType: raw.sourceType || defaultSource,
+          examYear: raw.examYear,
+          examRound: raw.examRound,
+          questionNumber: raw.questionNumber,
         },
         existing,
       );
@@ -103,6 +108,7 @@ export class QuestionImportPipeline {
           (dupAnalysis.status === "AI_VARIATION_CANDIDATE"
             ? dupAnalysis.duplicateQuestionId
             : undefined),
+        conceptId: raw.conceptId || input.conceptId,
         subject: (raw.subject as Subject) || "소프트웨어설계",
         category: raw.category || "일반",
         subCategory: raw.subCategory,

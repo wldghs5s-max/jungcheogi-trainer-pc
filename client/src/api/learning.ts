@@ -233,6 +233,31 @@ export async function generateMockVariation(params: {
 }
 
 /**
+ * Phase 7: AI 변형 문제 생성 (프리뷰 및 Staging 연계)
+ */
+export async function generateVariationApi(params: {
+  questionId: string;
+  variationType?: string;
+  autoStage?: boolean;
+}): Promise<{ data: any | null; error?: string }> {
+  try {
+    const res = await fetch('/api/learning/variations/generate', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(params),
+    });
+    if (!res.ok) {
+      const errBody = await res.json().catch(() => ({}));
+      return { data: null, error: errBody.message || `HTTP ${res.status}: 변형 문제 생성 실패` };
+    }
+    const data = await res.json();
+    return { data };
+  } catch (err) {
+    return { data: null, error: err instanceof Error ? err.message : '네트워크 오류' };
+  }
+}
+
+/**
  * 전체 개념 목록 조회
  */
 export async function fetchConcepts(

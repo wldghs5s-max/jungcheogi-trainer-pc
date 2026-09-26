@@ -327,6 +327,7 @@ export const ImportModal: React.FC<ImportModalProps> = ({
       examYear: q.examYear,
       examRound: q.examRound,
       questionNumber: q.questionNumber,
+      conceptId: q.conceptId || "",
       reviewerNotes: q.reviewerNotes,
     });
   };
@@ -721,6 +722,11 @@ export const ImportModal: React.FC<ImportModalProps> = ({
                               번
                             </span>
                           )}
+                          {q.conceptId && (
+                            <span style={styles.qExamBadge}>
+                              개념: {q.conceptId}
+                            </span>
+                          )}
                         </div>
 
                         <div style={styles.qHeaderRight}>
@@ -990,6 +996,21 @@ export const ImportModal: React.FC<ImportModalProps> = ({
                           category: e.target.value,
                         })
                       }
+                      style={styles.textInput}
+                    />
+                  </div>
+                  <div style={styles.formField}>
+                    <label style={styles.label}>개념 ID (conceptId)</label>
+                    <input
+                      type="text"
+                      value={editFormData.conceptId || ""}
+                      onChange={(e) =>
+                        setEditFormData({
+                          ...editFormData,
+                          conceptId: e.target.value,
+                        })
+                      }
+                      placeholder="예: concept_c_pointer"
                       style={styles.textInput}
                     />
                   </div>

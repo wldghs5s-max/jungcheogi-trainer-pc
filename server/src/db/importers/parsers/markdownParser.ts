@@ -77,6 +77,7 @@ function parseSingleMarkdownSection(
   let examRound: number | undefined;
   let questionNumber: number | undefined;
   let parentQuestionId: string | undefined;
+  let conceptId: string | undefined;
 
   let extractedAnswer: string | string[] = "";
   let extractedExplanation: string | undefined;
@@ -177,6 +178,10 @@ function parseSingleMarkdownSection(
         sourceType = "AI_VARIATION";
         continue;
       }
+      if (/개념|concept/i.test(key)) {
+        conceptId = val;
+        continue;
+      }
     }
 
     // 정답 행 처리 (**정답**: ...)
@@ -268,6 +273,7 @@ function parseSingleMarkdownSection(
     examRound,
     questionNumber,
     parentQuestionId,
+    conceptId,
     subject: subject || "소프트웨어설계",
     category: category || "일반",
     subCategory,

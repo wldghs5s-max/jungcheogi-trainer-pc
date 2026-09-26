@@ -23,7 +23,7 @@ export async function importRoutes(fastify: FastifyInstance) {
       request: FastifyRequest<{ Body: ParseImportRequest }>,
       reply: FastifyReply,
     ) => {
-      const { format, sourceName, sourceType, content } = request.body;
+      const { format, sourceName, sourceType, conceptId, content } = request.body;
 
       if (!format || !content) {
         return reply.status(400).send({
@@ -38,6 +38,7 @@ export async function importRoutes(fastify: FastifyInstance) {
           format,
           sourceName: sourceName || `import_${Date.now()}`,
           sourceType,
+          conceptId,
           content,
         });
 
@@ -129,6 +130,7 @@ export async function importRoutes(fastify: FastifyInstance) {
         examRound: updated.examRound,
         questionNumber: updated.questionNumber,
         parentQuestionId: updated.parentQuestionId,
+        conceptId: updated.conceptId,
       });
 
       const reValidated = batchRepo.updateStagedQuestion(stagedId, {

@@ -70,10 +70,65 @@ export interface DailySessionRequest {
 }
 
 export type VariationType =
+  // 기존 Phase 6 타입 (하위 호환성 100% 유지)
   | 'PARAMETER_CHANGE'
   | 'CODE_CHANGE'
   | 'CONTEXT_CHANGE'
-  | 'CONCEPT_REFRAME';
+  | 'CONCEPT_REFRAME'
+  // Phase 7 Canonical 타입
+  | 'PARAMETER_VARIATION'
+  | 'CONCEPT_VARIATION'
+  | 'CODE_VARIATION'
+  | 'SCENARIO_VARIATION'
+  | 'DIFFICULTY_VARIATION';
+
+export function normalizeVariationType(type?: VariationType): VariationType {
+  switch (type) {
+    case 'PARAMETER_CHANGE':
+    case 'PARAMETER_VARIATION':
+      return 'PARAMETER_VARIATION';
+    case 'CODE_CHANGE':
+    case 'CODE_VARIATION':
+      return 'CODE_VARIATION';
+    case 'CONTEXT_CHANGE':
+    case 'SCENARIO_VARIATION':
+      return 'SCENARIO_VARIATION';
+    case 'CONCEPT_REFRAME':
+    case 'CONCEPT_VARIATION':
+      return 'CONCEPT_VARIATION';
+    case 'DIFFICULTY_VARIATION':
+      return 'DIFFICULTY_VARIATION';
+    default:
+      return 'PARAMETER_VARIATION';
+  }
+}
+
+export interface VariationValidationIssue {
+  field: string;
+  message: string;
+  severity: 'ERROR' | 'WARNING';
+}
+
+export interface VariationValidationResult {
+  isValid: boolean;
+  issues: VariationValidationIssue[];
+  checks: {
+    schemaValid: boolean;
+    domainValid: boolean;
+    groundTruthValid: boolean;
+    codeSyntaxValid: boolean;
+  };
+}
+
+export interface GenerateVariationRequest {
+  questionId: string;
+  variationType?: VariationType;
+  autoStage?: boolean;
+}
+
+export interface ValidateVariationRequest {
+  variation: GeneratedVariation;
+}
 
 export interface GeneratedVariation {
   sourceQuestionId: string;
@@ -91,6 +146,7 @@ export interface GeneratedVariation {
   aiExplanation?: string;
   aiVariationNotes?: string;
   variationType: VariationType;
+  validationResult?: VariationValidationResult;
   generationMetadata: {
     generator: string;
     model?: string;
@@ -103,3 +159,4 @@ export interface VariationOptions {
   variationType?: VariationType;
   focusArea?: string;
 }
+

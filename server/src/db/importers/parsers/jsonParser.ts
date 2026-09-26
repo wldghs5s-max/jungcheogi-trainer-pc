@@ -63,6 +63,9 @@ export function parseJsonQuestions(
     const parentQuestionId = raw.parentQuestionId
       ? String(raw.parentQuestionId)
       : undefined;
+    const conceptId = (raw.conceptId || raw.concept_id)
+      ? String(raw.conceptId || raw.concept_id)
+      : undefined;
 
     results.push({
       rawId: raw.id ? String(raw.id) : undefined,
@@ -71,6 +74,7 @@ export function parseJsonQuestions(
       examRound,
       questionNumber,
       parentQuestionId,
+      conceptId,
       subject,
       category,
       subCategory,
