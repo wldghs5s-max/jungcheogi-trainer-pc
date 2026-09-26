@@ -6,6 +6,7 @@ export * from "./types/review.js";
 export * from "./types/concept.js";
 export * from "./types/importer.js";
 export * from "./types/health.js";
+export * from "./types/recommendation.js";
 export * from "./constants/subjects.js";
 export * from "./constants/sources.js";
 export * from "./utils/grading.js";

@@ -58,6 +58,7 @@ export interface StagedQuestion {
   examRound?: number;
   questionNumber?: number;
   parentQuestionId?: string;
+  conceptId?: string;
   subject: Subject;
   category: string;
   subCategory?: string;

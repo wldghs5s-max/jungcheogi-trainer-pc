@@ -16,6 +16,9 @@ import {
   Target,
   RotateCcw,
   CheckCircle,
+  Zap,
+  Crosshair,
+  TrendingUp,
 } from "lucide-react";
 import { Header } from "./components/Header";
 import { StudySessionModal } from "./components/study/StudySessionModal";
@@ -26,6 +29,10 @@ import {
   fetchLearningDashboard,
   fetchWeakConcepts,
   fetchDueReviews,
+  fetchDailyQueueSummary,
+  fetchRecommendations,
+  createDailySession,
+  createConceptDrillSession,
 } from "./api/learning";
 import {
   HealthCheckResponse,
@@ -41,6 +48,9 @@ import {
   LearningDashboardSummary,
   WeakConceptSummary,
   DueReviewItem,
+  DailyLearningQueueSummary,
+  RecommendedQuestionItem,
+  StudySession,
 } from "@jungcheogi/shared";
 
 export const App: React.FC = () => {
@@ -65,7 +75,9 @@ export const App: React.FC = () => {
   >("");
   const [selectedType, setSelectedType] = useState<QuestionType | "">("");
   const [searchTerm, setSearchTerm] = useState<string>("");
-  const [selectedConceptFilter, setSelectedConceptFilter] = useState<string | null>(null);
+  const [selectedConceptFilter, setSelectedConceptFilter] = useState<
+    string | null
+  >(null);
 
   // Phase 3 Study Session State
   const [isStudySessionOpen, setIsStudySessionOpen] = useState<boolean>(false);
@@ -77,10 +89,28 @@ export const App: React.FC = () => {
   const [isImportModalOpen, setIsImportModalOpen] = useState<boolean>(false);
 
   // Phase 5 Learning Engine & Weak Concept State
-  const [dashboardSummary, setDashboardSummary] = useState<LearningDashboardSummary | null>(null);
+  const [dashboardSummary, setDashboardSummary] =
+    useState<LearningDashboardSummary | null>(null);
   const [weakConcepts, setWeakConcepts] = useState<WeakConceptSummary[]>([]);
   const [dueReviews, setDueReviews] = useState<DueReviewItem[]>([]);
-  const [excludeTestFixtures, setExcludeTestFixtures] = useState<boolean>(false);
+  const [excludeTestFixtures, setExcludeTestFixtures] =
+    useState<boolean>(false);
+
+  // Phase 6 Recommendation & Daily Queue State
+  const [dailyQueue, setDailyQueue] =
+    useState<DailyLearningQueueSummary | null>(null);
+  const [recommendations, setRecommendations] = useState<
+    RecommendedQuestionItem[]
+  >([]);
+  const [initialSessionData, setInitialSessionData] = useState<{
+    session: StudySession;
+    firstQuestion: Question;
+  } | null>(null);
+  const [isStartingDailySession, setIsStartingDailySession] =
+    useState<boolean>(false);
+  const [drillLoadingConceptId, setDrillLoadingConceptId] = useState<
+    string | null
+  >(null);
 
   const loadHealth = useCallback(async () => {
     setHealthLoading(true);
@@ -124,15 +154,50 @@ export const App: React.FC = () => {
   ]);
 
   const loadLearningData = useCallback(async () => {
-    const [dashRes, weakRes, dueRes] = await Promise.all([
+    const [dashRes, weakRes, dueRes, queueRes, recsRes] = await Promise.all([
       fetchLearningDashboard(excludeTestFixtures),
       fetchWeakConcepts(5),
       fetchDueReviews(20),
+      fetchDailyQueueSummary(excludeTestFixtures),
+      fetchRecommendations({ limit: 6, excludeTestFixtures }),
     ]);
     if (dashRes.data) setDashboardSummary(dashRes.data);
     if (weakRes.data) setWeakConcepts(weakRes.data);
     if (dueRes.data) setDueReviews(dueRes.data);
+    if (queueRes.data) setDailyQueue(queueRes.data);
+    if (recsRes.data) setRecommendations(recsRes.data.items);
   }, [excludeTestFixtures]);
+
+  const handleStartDailySession = async () => {
+    setIsStartingDailySession(true);
+    const res = await createDailySession({
+      count: 10,
+      subject: selectedSubject ? selectedSubject : undefined,
+      excludeTestFixtures,
+    });
+    setIsStartingDailySession(false);
+    if (res.data) {
+      setInitialSessionData(res.data);
+      setIsStudySessionOpen(true);
+    } else {
+      alert(res.error || "오늘의 학습 세션 생성에 실패했습니다.");
+    }
+  };
+
+  const handleStartConceptDrill = async (conceptId: string) => {
+    setDrillLoadingConceptId(conceptId);
+    const res = await createConceptDrillSession({
+      conceptId,
+      count: 5,
+    });
+    setDrillLoadingConceptId(null);
+    if (res.data) {
+      setInitialSessionData(res.data);
+      setIsStudySessionOpen(true);
+    } else {
+      alert(res.error || "개념 드릴 세션 생성에 실패했습니다.");
+    }
+  };
 
   useEffect(() => {
     loadLearningData();
@@ -363,7 +428,7 @@ export const App: React.FC = () => {
               </button>
               <button
                 onClick={() => {
-                  setStudySessionSubject('');
+                  setStudySessionSubject("");
                   setIsStudySessionOpen(true);
                 }}
                 style={styles.reviewQueueBannerBtn}
@@ -383,14 +448,222 @@ export const App: React.FC = () => {
         </section>
 
         {/* ============================================================== */}
+        {/* PHASE 6: 오늘의 학습 큐 & 개인화 추천 엔진 대시보드 */}
+        {/* ============================================================== */}
+        <section style={styles.dailyQueueSection}>
+          <div style={styles.dailyQueueHeader}>
+            <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+              <div style={styles.dailyQueueIconBox}>
+                <Zap size={22} color="#F59E0B" />
+              </div>
+              <div>
+                <div
+                  style={{ display: "flex", alignItems: "center", gap: "8px" }}
+                >
+                  <h3 style={styles.dailyQueueTitle}>
+                    오늘의 개인화 학습 큐 (Phase 6)
+                  </h3>
+                  <span style={styles.dailyQueueBadge}>
+                    Adaptive Drill Engine
+                  </span>
+                </div>
+                <p style={styles.dailyQueueSubtitle}>
+                  학습자의 복습 주기(Due), 취약 개념(Weakness), 최근 오답,
+                  Unknown 및 미도전 문항을 종합 분석하여 최적의 10문제를 자동
+                  구성합니다.
+                </p>
+              </div>
+            </div>
+
+            <button
+              onClick={handleStartDailySession}
+              disabled={isStartingDailySession}
+              style={styles.dailyQueueStartBtn}
+            >
+              <Zap size={18} />
+              <span>
+                {isStartingDailySession
+                  ? "학습 큐 구성 중..."
+                  : "오늘의 학습 시작"}
+              </span>
+            </button>
+          </div>
+
+          {/* 4분할 통계 수치 */}
+          <div style={styles.dailyQueueStatsGrid}>
+            <div style={styles.dailyStatCard}>
+              <span style={styles.dailyStatLabel}>복습 예정</span>
+              <span style={{ ...styles.dailyStatValue, color: "#EF4444" }}>
+                {dailyQueue?.dueCount ?? dueReviews.length}제
+              </span>
+              <span style={styles.dailyStatHint}>망각 곡선 도래 문항</span>
+            </div>
+            <div style={styles.dailyStatCard}>
+              <span style={styles.dailyStatLabel}>취약 개념</span>
+              <span style={{ ...styles.dailyStatValue, color: "#F59E0B" }}>
+                {dailyQueue?.weakConceptCount ?? weakConcepts.length}개
+              </span>
+              <span style={styles.dailyStatHint}>오답/Unknown 누적 영역</span>
+            </div>
+            <div style={styles.dailyStatCard}>
+              <span style={styles.dailyStatLabel}>최근 오답</span>
+              <span style={{ ...styles.dailyStatValue, color: "#A855F7" }}>
+                {dailyQueue?.recentFailedCount ?? 0}제
+              </span>
+              <span style={styles.dailyStatHint}>오답 & 정답확인 문항</span>
+            </div>
+            <div style={styles.dailyStatCard}>
+              <span style={styles.dailyStatLabel}>신규 문항</span>
+              <span style={{ ...styles.dailyStatValue, color: "#10B981" }}>
+                {dailyQueue?.newQuestionsCount ?? 0}제
+              </span>
+              <span style={styles.dailyStatHint}>
+                아직 풀지 않은 미도전 문제
+              </span>
+            </div>
+          </div>
+
+          {/* 콜드 스타트 안내 배너 (데이터 0건일 때) */}
+          {dailyQueue?.isColdStart && (
+            <div style={styles.coldStartBanner}>
+              <Sparkles size={18} color="#FBBF24" />
+              <span>
+                아직 풀이 이력이 없습니다. [오늘의 학습 시작]을 누르면 미풀이
+                기출 문항으로 첫 세션이 자동 구성되며, 풀이 이력이 쌓일수록
+                나만을 위한 복습 주기와 취약 개념 드릴링이 정교해집니다.
+              </span>
+            </div>
+          )}
+
+          {/* 추천 문항 Top N 및 사유 배지 (Reason Codes) */}
+          {recommendations.length > 0 && (
+            <div style={styles.recommendationsContainer}>
+              <div style={styles.recommendationsHeader}>
+                <div
+                  style={{ display: "flex", alignItems: "center", gap: "8px" }}
+                >
+                  <TrendingUp size={16} color="#60A5FA" />
+                  <span style={styles.recommendationsTitle}>
+                    엔진이 선별한 우선 추천 문항 및 추천 사유
+                  </span>
+                </div>
+                <span style={styles.recommendationsSubtitle}>
+                  가중치: 복습주기(35) + 취약개념(25) + Unknown(24) +
+                  정답확인(20) + 오답(18)
+                </span>
+              </div>
+
+              <div style={styles.recommendationsGrid}>
+                {recommendations.map((rec) => (
+                  <div
+                    key={rec.question.id}
+                    style={styles.recItemCard}
+                    onClick={() => {
+                      setSelectedQuestionId(rec.question.id);
+                      const el = document.getElementById(
+                        "question-detail-view",
+                      );
+                      el?.scrollIntoView({ behavior: "smooth" });
+                    }}
+                  >
+                    <div style={styles.recItemTop}>
+                      <span style={styles.recSubjectBadge}>
+                        {rec.question.subject}
+                      </span>
+                      <span style={styles.recScoreBadge}>
+                        {rec.score.totalScore}점
+                      </span>
+                    </div>
+
+                    <p style={styles.recPromptText}>
+                      {rec.question.question.length > 65
+                        ? `${rec.question.question.slice(0, 65)}...`
+                        : rec.question.question}
+                    </p>
+
+                    <div style={styles.recReasonsRow}>
+                      {rec.score.reasonCodes.map((code: string) => {
+                        const BADGE_MAP: Record<
+                          string,
+                          { label: string; bg: string; color: string }
+                        > = {
+                          DUE_REVIEW: {
+                            label: "복습 예정",
+                            bg: "rgba(239, 68, 68, 0.15)",
+                            color: "#F87171",
+                          },
+                          WEAK_CONCEPT: {
+                            label: "취약 개념",
+                            bg: "rgba(244, 63, 94, 0.15)",
+                            color: "#FB7185",
+                          },
+                          RECENT_FAILURE: {
+                            label: "최근 오답",
+                            bg: "rgba(245, 158, 11, 0.15)",
+                            color: "#FBBF24",
+                          },
+                          RECENT_UNKNOWN: {
+                            label: "Unknown 발생",
+                            bg: "rgba(168, 85, 247, 0.15)",
+                            color: "#C084FC",
+                          },
+                          SOLUTION_REVEALED: {
+                            label: "정답 확인",
+                            bg: "rgba(99, 102, 241, 0.15)",
+                            color: "#818CF8",
+                          },
+                          HINT_DEPENDENCY: {
+                            label: "힌트 의존",
+                            bg: "rgba(234, 179, 8, 0.15)",
+                            color: "#FACC15",
+                          },
+                          LONG_INACTIVE: {
+                            label: "장기 미복습",
+                            bg: "rgba(6, 182, 212, 0.15)",
+                            color: "#22D3EE",
+                          },
+                          NEW_UNSTUDIED: {
+                            label: "새 문제",
+                            bg: "rgba(16, 185, 129, 0.15)",
+                            color: "#34D399",
+                          },
+                        };
+                        const badge = BADGE_MAP[code] || {
+                          label: code,
+                          bg: "rgba(255,255,255,0.1)",
+                          color: "#94A3B8",
+                        };
+                        return (
+                          <span
+                            key={code}
+                            style={{
+                              ...styles.reasonBadge,
+                              backgroundColor: badge.bg,
+                              color: badge.color,
+                            }}
+                          >
+                            {badge.label}
+                          </span>
+                        );
+                      })}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </section>
+
+        {/* ============================================================== */}
         {/* PHASE 5: 학습 엔진 & 취약 개념 추적 대시보드 */}
         {/* ============================================================== */}
         <section style={styles.learningSection}>
           <div style={styles.learningHeaderRow}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
               <Brain size={22} color="#818CF8" />
               <h3 style={styles.learningSectionHeading}>
-                Phase 5 : 개념(Concept) 기반 취약점 추적 & 능동 복습 (Active Recall)
+                Phase 5 : 개념(Concept) 기반 취약점 추적 & 능동 복습 (Active
+                Recall)
               </h3>
             </div>
 
@@ -402,7 +675,7 @@ export const App: React.FC = () => {
                 onChange={(e) => setExcludeTestFixtures(e.target.checked)}
                 style={styles.fixtureCheckbox}
               />
-              <span style={{ fontSize: '12px', color: '#94A3B8' }}>
+              <span style={{ fontSize: "12px", color: "#94A3B8" }}>
                 테스트 Fixture 제외 (실제 수험생 데이터만 통계 산출)
               </span>
             </label>
@@ -412,9 +685,13 @@ export const App: React.FC = () => {
             {/* CARD 1: 취약 개념 Top 5 */}
             <div style={styles.learningCard}>
               <div style={styles.learningCardHeader}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <div
+                  style={{ display: "flex", alignItems: "center", gap: "8px" }}
+                >
                   <Target size={18} color="#EF4444" />
-                  <h4 style={styles.learningCardTitle}>집중 극복 취약 개념 Top 5</h4>
+                  <h4 style={styles.learningCardTitle}>
+                    집중 극복 취약 개념 Top 5
+                  </h4>
                 </div>
                 {selectedConceptFilter && (
                   <button
@@ -428,8 +705,9 @@ export const App: React.FC = () => {
 
               {weakConcepts.length === 0 ? (
                 <div style={styles.emptyConceptBox}>
-                  <p style={{ margin: 0, color: '#94A3B8', fontSize: '13px' }}>
-                    아직 집계된 취약 개념이 없습니다. 집중 학습 세션을 진행하면 오답·모르겠음·힌트 사용 데이터가 개념별로 자동 집계됩니다.
+                  <p style={{ margin: 0, color: "#94A3B8", fontSize: "13px" }}>
+                    아직 집계된 취약 개념이 없습니다. 집중 학습 세션을 진행하면
+                    오답·모르겠음·힌트 사용 데이터가 개념별로 자동 집계됩니다.
                   </p>
                 </div>
               ) : (
@@ -439,28 +717,38 @@ export const App: React.FC = () => {
                       key={wc.conceptId}
                       style={{
                         ...styles.conceptItem,
-                        borderColor: selectedConceptFilter === wc.conceptId ? '#3B82F6' : 'rgba(255, 255, 255, 0.08)',
-                        backgroundColor: selectedConceptFilter === wc.conceptId ? 'rgba(59, 130, 246, 0.08)' : '#1E293B',
+                        borderColor:
+                          selectedConceptFilter === wc.conceptId
+                            ? "#3B82F6"
+                            : "rgba(255, 255, 255, 0.08)",
+                        backgroundColor:
+                          selectedConceptFilter === wc.conceptId
+                            ? "rgba(59, 130, 246, 0.08)"
+                            : "#1E293B",
                       }}
                     >
                       <div style={styles.conceptItemTop}>
-                        <span style={styles.conceptSubjectBadge}>{wc.subject}</span>
-                        <span style={styles.conceptCategoryText}>{wc.category}</span>
+                        <span style={styles.conceptSubjectBadge}>
+                          {wc.subject}
+                        </span>
+                        <span style={styles.conceptCategoryText}>
+                          {wc.category}
+                        </span>
                         <span
                           style={{
                             ...styles.conceptWeaknessBadge,
                             backgroundColor:
                               wc.weaknessScore >= 0.7
-                                ? 'rgba(239, 68, 68, 0.2)'
+                                ? "rgba(239, 68, 68, 0.2)"
                                 : wc.weaknessScore >= 0.4
-                                ? 'rgba(245, 158, 11, 0.2)'
-                                : 'rgba(16, 185, 129, 0.2)',
+                                  ? "rgba(245, 158, 11, 0.2)"
+                                  : "rgba(16, 185, 129, 0.2)",
                             color:
                               wc.weaknessScore >= 0.7
-                                ? '#F87171'
+                                ? "#F87171"
                                 : wc.weaknessScore >= 0.4
-                                ? '#FBBF24'
-                                : '#34D399',
+                                  ? "#FBBF24"
+                                  : "#34D399",
                           }}
                         >
                           취약도 {Math.round(wc.weaknessScore * 100)}%
@@ -468,17 +756,40 @@ export const App: React.FC = () => {
                       </div>
 
                       <div style={styles.conceptTitleRow}>
-                        <span style={styles.conceptTitle}>{wc.conceptTitle}</span>
-                        <button
-                          onClick={() =>
-                            setSelectedConceptFilter(
-                              selectedConceptFilter === wc.conceptId ? null : wc.conceptId
-                            )
-                          }
-                          style={styles.filterByConceptBtn}
-                        >
-                          {selectedConceptFilter === wc.conceptId ? '선택됨 ✓' : '문제 모아보기'}
-                        </button>
+                        <span style={styles.conceptTitle}>
+                          {wc.conceptTitle}
+                        </span>
+                        <div style={{ display: "flex", gap: "6px" }}>
+                          <button
+                            onClick={() =>
+                              handleStartConceptDrill(wc.conceptId)
+                            }
+                            disabled={drillLoadingConceptId === wc.conceptId}
+                            style={styles.drillStartBtn}
+                            title="이 개념에 속한 문제로 집중 드릴 세션을 시작합니다"
+                          >
+                            <Crosshair size={13} />
+                            <span>
+                              {drillLoadingConceptId === wc.conceptId
+                                ? "생성 중..."
+                                : "집중 드릴"}
+                            </span>
+                          </button>
+                          <button
+                            onClick={() =>
+                              setSelectedConceptFilter(
+                                selectedConceptFilter === wc.conceptId
+                                  ? null
+                                  : wc.conceptId,
+                              )
+                            }
+                            style={styles.filterByConceptBtn}
+                          >
+                            {selectedConceptFilter === wc.conceptId
+                              ? "선택됨 ✓"
+                              : "모아보기"}
+                          </button>
+                        </div>
                       </div>
 
                       {/* Weakness Progress Bar */}
@@ -489,20 +800,30 @@ export const App: React.FC = () => {
                             width: `${Math.round(wc.weaknessScore * 100)}%`,
                             backgroundColor:
                               wc.weaknessScore >= 0.7
-                                ? '#EF4444'
+                                ? "#EF4444"
                                 : wc.weaknessScore >= 0.4
-                                ? '#F59E0B'
-                                : '#10B981',
+                                  ? "#F59E0B"
+                                  : "#10B981",
                           }}
                         />
                       </div>
 
                       <div style={styles.conceptStatsRow}>
-                        <span>시도: <strong>{wc.totalAttempts}회</strong></span>
-                        <span style={{ color: '#F87171' }}>오답: <strong>{wc.wrongCount}회</strong></span>
-                        <span style={{ color: '#FBBF24' }}>모르겠음: <strong>{wc.unknownCount}회</strong></span>
-                        <span style={{ color: '#60A5FA' }}>힌트: <strong>{wc.hintCount}회</strong></span>
-                        <span>평균: <strong>{wc.avgScore}점</strong></span>
+                        <span>
+                          시도: <strong>{wc.totalAttempts}회</strong>
+                        </span>
+                        <span style={{ color: "#F87171" }}>
+                          오답: <strong>{wc.wrongCount}회</strong>
+                        </span>
+                        <span style={{ color: "#FBBF24" }}>
+                          모르겠음: <strong>{wc.unknownCount}회</strong>
+                        </span>
+                        <span style={{ color: "#60A5FA" }}>
+                          힌트: <strong>{wc.hintCount}회</strong>
+                        </span>
+                        <span>
+                          평균: <strong>{wc.avgScore}점</strong>
+                        </span>
                       </div>
                     </div>
                   ))}
@@ -513,11 +834,17 @@ export const App: React.FC = () => {
             {/* CARD 2: 오늘의 복습 큐 & Leitner Box */}
             <div style={styles.learningCard}>
               <div style={styles.learningCardHeader}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <div
+                  style={{ display: "flex", alignItems: "center", gap: "8px" }}
+                >
                   <Brain size={18} color="#818CF8" />
-                  <h4 style={styles.learningCardTitle}>능동 복습 큐 & 라이트너 5단계 분포</h4>
+                  <h4 style={styles.learningCardTitle}>
+                    능동 복습 큐 & 라이트너 5단계 분포
+                  </h4>
                 </div>
-                <span style={styles.dueBadge}>오늘 대기: {dueReviews.length}문항</span>
+                <span style={styles.dueBadge}>
+                  오늘 대기: {dueReviews.length}문항
+                </span>
               </div>
 
               {/* Learning Dashboard 4-Stats Grid */}
@@ -526,22 +853,34 @@ export const App: React.FC = () => {
                   <div style={styles.leitnerBoxCol}>
                     <span style={styles.leitnerBoxName}>학습 문항</span>
                     <span style={styles.leitnerBoxInterval}>누적 풀이</span>
-                    <span style={styles.leitnerBoxCount}>{dashboardSummary.totalStudiedQuestions}</span>
+                    <span style={styles.leitnerBoxCount}>
+                      {dashboardSummary.totalStudiedQuestions}
+                    </span>
                   </div>
                   <div style={styles.leitnerBoxCol}>
                     <span style={styles.leitnerBoxName}>복습 대기</span>
                     <span style={styles.leitnerBoxInterval}>오늘 대상</span>
-                    <span style={{ ...styles.leitnerBoxCount, color: '#EF4444' }}>{dashboardSummary.dueReviewCount}</span>
+                    <span
+                      style={{ ...styles.leitnerBoxCount, color: "#EF4444" }}
+                    >
+                      {dashboardSummary.dueReviewCount}
+                    </span>
                   </div>
                   <div style={styles.leitnerBoxCol}>
                     <span style={styles.leitnerBoxName}>마스터</span>
                     <span style={styles.leitnerBoxInterval}>숙련 완료</span>
-                    <span style={{ ...styles.leitnerBoxCount, color: '#10B981' }}>{dashboardSummary.masteredCount}</span>
+                    <span
+                      style={{ ...styles.leitnerBoxCount, color: "#10B981" }}
+                    >
+                      {dashboardSummary.masteredCount}
+                    </span>
                   </div>
                   <div style={styles.leitnerBoxCol}>
                     <span style={styles.leitnerBoxName}>정답률</span>
                     <span style={styles.leitnerBoxInterval}>누적 비율</span>
-                    <span style={{ ...styles.leitnerBoxCount, color: '#38BDF8' }}>
+                    <span
+                      style={{ ...styles.leitnerBoxCount, color: "#38BDF8" }}
+                    >
                       {dashboardSummary.overallAccuracy}%
                     </span>
                   </div>
@@ -549,18 +888,38 @@ export const App: React.FC = () => {
               )}
 
               {/* DUE REVIEWS LIST PREVIEW */}
-              <div style={{ marginTop: '14px', flex: 1, display: 'flex', flexDirection: 'column' }}>
-                <span style={{ fontSize: '13px', fontWeight: 600, color: '#94A3B8', marginBottom: '8px' }}>
+              <div
+                style={{
+                  marginTop: "14px",
+                  flex: 1,
+                  display: "flex",
+                  flexDirection: "column",
+                }}
+              >
+                <span
+                  style={{
+                    fontSize: "13px",
+                    fontWeight: 600,
+                    color: "#94A3B8",
+                    marginBottom: "8px",
+                  }}
+                >
                   오늘 복습 권장 문항 ({dueReviews.length}개 대기 중)
                 </span>
 
                 {dueReviews.length === 0 ? (
                   <div style={styles.emptyDueBox}>
                     <CheckCircle size={24} color="#10B981" />
-                    <span style={{ fontSize: '13px', color: '#10B981', fontWeight: 600 }}>
+                    <span
+                      style={{
+                        fontSize: "13px",
+                        color: "#10B981",
+                        fontWeight: 600,
+                      }}
+                    >
                       오늘 복습 대기 문항이 없습니다. 완벽합니다!
                     </span>
-                    <span style={{ fontSize: '12px', color: '#64748B' }}>
+                    <span style={{ fontSize: "12px", color: "#64748B" }}>
                       새로운 문제를 풀이하거나 전체 학습 세션을 진행해보세요.
                     </span>
                   </div>
@@ -568,14 +927,28 @@ export const App: React.FC = () => {
                   <div style={styles.dueList}>
                     {dueReviews.slice(0, 4).map((d) => (
                       <div key={d.question.id} style={styles.dueItem}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                          <span style={styles.dueBoxBadge}>Box {d.reviewState.boxLevel}</span>
-                          <span style={styles.dueQuestionSubject}>{d.question.subject}</span>
+                        <div
+                          style={{
+                            display: "flex",
+                            alignItems: "center",
+                            gap: "8px",
+                          }}
+                        >
+                          <span style={styles.dueBoxBadge}>
+                            Box {d.reviewState.boxLevel}
+                          </span>
+                          <span style={styles.dueQuestionSubject}>
+                            {d.question.subject}
+                          </span>
                           <span style={styles.dueConceptTitle}>
-                            {d.question.keywords?.[0] ? `#${d.question.keywords[0]}` : d.question.type}
+                            {d.question.keywords?.[0]
+                              ? `#${d.question.keywords[0]}`
+                              : d.question.type}
                           </span>
                         </div>
-                        <span style={styles.dueIntervalText}>주기 {d.reviewState.intervalDays}일 뒤</span>
+                        <span style={styles.dueIntervalText}>
+                          주기 {d.reviewState.intervalDays}일 뒤
+                        </span>
                       </div>
                     ))}
                   </div>
@@ -583,7 +956,7 @@ export const App: React.FC = () => {
 
                 <button
                   onClick={() => {
-                    setStudySessionSubject('');
+                    setStudySessionSubject("");
                     setIsStudySessionOpen(true);
                   }}
                   style={styles.startReviewSessionBtn}
@@ -999,21 +1372,24 @@ export const App: React.FC = () => {
       <footer style={styles.footer}>
         <div style={styles.footerContent}>
           <span>
-            jungcheogi-trainer-pc &bull; Phase 3 Practice & Smart Grading Engine
+            jungcheogi-trainer-pc &bull; Phase 6 Adaptive Recommendation &
+            Learning Engine
           </span>
           <span>Node.js Fastify (:8765) + SQLite + React Vite</span>
         </div>
       </footer>
 
-      {/* Phase 3 & 5 집중 문제 풀이 및 복습 모달 */}
+      {/* Phase 3, 5 & 6 집중 문제 풀이 및 복습 모달 */}
       <StudySessionModal
         isOpen={isStudySessionOpen}
         onClose={() => {
           setIsStudySessionOpen(false);
+          setInitialSessionData(null);
           loadQuestions();
           loadLearningData();
         }}
         initialSubject={studySessionSubject}
+        initialSessionData={initialSessionData}
       />
 
       {/* Phase 4 문제 데이터 검수 및 Import 모달 */}
@@ -1980,5 +2356,191 @@ const styles: Record<string, React.CSSProperties> = {
     cursor: "pointer",
     transition: "background-color 0.15s",
     marginTop: "auto",
+  },
+  dailyQueueSection: {
+    backgroundColor: "#1E293B",
+    borderRadius: "12px",
+    border: "1px solid rgba(245, 158, 11, 0.25)",
+    padding: "24px",
+    marginBottom: "28px",
+    boxShadow: "0 4px 20px rgba(0, 0, 0, 0.2)",
+  },
+  dailyQueueHeader: {
+    display: "flex",
+    justifyContent: "space-between",
+    alignItems: "center",
+    flexWrap: "wrap",
+    gap: "16px",
+    marginBottom: "20px",
+  },
+  dailyQueueIconBox: {
+    width: "44px",
+    height: "44px",
+    borderRadius: "10px",
+    backgroundColor: "rgba(245, 158, 11, 0.15)",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  dailyQueueTitle: {
+    fontSize: "20px",
+    fontWeight: 700,
+    color: "#F8FAFC",
+    margin: 0,
+  },
+  dailyQueueBadge: {
+    fontSize: "11px",
+    fontWeight: 700,
+    color: "#F59E0B",
+    backgroundColor: "rgba(245, 158, 11, 0.15)",
+    padding: "2px 8px",
+    borderRadius: "12px",
+    border: "1px solid rgba(245, 158, 11, 0.3)",
+  },
+  dailyQueueSubtitle: {
+    fontSize: "13px",
+    color: "#94A3B8",
+    margin: "4px 0 0 0",
+  },
+  dailyQueueStartBtn: {
+    display: "flex",
+    alignItems: "center",
+    gap: "8px",
+    padding: "12px 24px",
+    backgroundColor: "#F59E0B",
+    color: "#0F172A",
+    borderRadius: "8px",
+    border: "none",
+    fontSize: "15px",
+    fontWeight: 700,
+    cursor: "pointer",
+    transition: "all 0.15s ease",
+    boxShadow: "0 2px 10px rgba(245, 158, 11, 0.3)",
+  },
+  dailyQueueStatsGrid: {
+    display: "grid",
+    gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))",
+    gap: "14px",
+    marginBottom: "20px",
+  },
+  dailyStatCard: {
+    backgroundColor: "#0F172A",
+    borderRadius: "8px",
+    padding: "16px",
+    border: "1px solid rgba(255, 255, 255, 0.06)",
+    display: "flex",
+    flexDirection: "column",
+    gap: "4px",
+  },
+  dailyStatLabel: {
+    fontSize: "12px",
+    fontWeight: 600,
+    color: "#94A3B8",
+  },
+  dailyStatValue: {
+    fontSize: "24px",
+    fontWeight: 800,
+  },
+  dailyStatHint: {
+    fontSize: "11px",
+    color: "#64748B",
+  },
+  coldStartBanner: {
+    display: "flex",
+    alignItems: "center",
+    gap: "10px",
+    backgroundColor: "rgba(245, 158, 11, 0.1)",
+    border: "1px dashed rgba(245, 158, 11, 0.3)",
+    borderRadius: "8px",
+    padding: "14px 16px",
+    color: "#FDE68A",
+    fontSize: "13px",
+    lineHeight: 1.5,
+    marginBottom: "20px",
+  },
+  recommendationsContainer: {
+    marginTop: "16px",
+    borderTop: "1px solid rgba(255, 255, 255, 0.08)",
+    paddingTop: "18px",
+  },
+  recommendationsHeader: {
+    display: "flex",
+    justifyContent: "space-between",
+    alignItems: "center",
+    flexWrap: "wrap",
+    gap: "8px",
+    marginBottom: "14px",
+  },
+  recommendationsTitle: {
+    fontSize: "14px",
+    fontWeight: 600,
+    color: "#E2E8F0",
+  },
+  recommendationsSubtitle: {
+    fontSize: "11px",
+    color: "#64748B",
+  },
+  recommendationsGrid: {
+    display: "grid",
+    gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))",
+    gap: "12px",
+  },
+  recItemCard: {
+    backgroundColor: "#0F172A",
+    borderRadius: "8px",
+    padding: "14px",
+    border: "1px solid rgba(255, 255, 255, 0.06)",
+    cursor: "pointer",
+    transition: "transform 0.15s, border-color 0.15s",
+  },
+  recItemTop: {
+    display: "flex",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: "8px",
+  },
+  recSubjectBadge: {
+    fontSize: "11px",
+    fontWeight: 600,
+    color: "#38BDF8",
+    backgroundColor: "rgba(56, 189, 248, 0.15)",
+    padding: "2px 6px",
+    borderRadius: "4px",
+  },
+  recScoreBadge: {
+    fontSize: "11px",
+    fontWeight: 700,
+    color: "#F59E0B",
+  },
+  recPromptText: {
+    fontSize: "13px",
+    color: "#CBD5E1",
+    lineHeight: 1.4,
+    margin: "0 0 10px 0",
+  },
+  recReasonsRow: {
+    display: "flex",
+    flexWrap: "wrap",
+    gap: "6px",
+  },
+  reasonBadge: {
+    fontSize: "10px",
+    fontWeight: 600,
+    padding: "2px 6px",
+    borderRadius: "3px",
+  },
+  drillStartBtn: {
+    display: "inline-flex",
+    alignItems: "center",
+    gap: "4px",
+    padding: "4px 8px",
+    backgroundColor: "#DC2626",
+    color: "#FFFFFF",
+    border: "none",
+    borderRadius: "4px",
+    fontSize: "11px",
+    fontWeight: 600,
+    cursor: "pointer",
+    transition: "background-color 0.15s",
   },
 };

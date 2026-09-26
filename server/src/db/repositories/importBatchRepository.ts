@@ -23,6 +23,7 @@ interface StagedRow {
   exam_round: number | null;
   question_number: number | null;
   parent_question_id: string | null;
+  concept_id: string | null;
   subject: string;
   category: string;
   sub_category: string | null;
@@ -87,6 +88,7 @@ function mapRowToStaged(row: StagedRow): StagedQuestion {
     examRound: row.exam_round ?? undefined,
     questionNumber: row.question_number ?? undefined,
     parentQuestionId: row.parent_question_id ?? undefined,
+    conceptId: row.concept_id ?? undefined,
     subject: row.subject as Subject,
     category: row.category,
     subCategory: row.sub_category ?? undefined,
@@ -154,13 +156,13 @@ export class ImportBatchRepository {
     const insertStaged = this.db.prepare(`
       INSERT INTO staged_questions (
         id, batch_id, index_in_batch, source_type, exam_year, exam_round,
-        question_number, parent_question_id, subject, category, sub_category,
+        question_number, parent_question_id, concept_id, subject, category, sub_category,
         type, question_text, code_snippet, language, options_json,
         ground_truth_answer, official_explanation, ai_explanation,
         ai_variation_notes, difficulty, keywords_json, structural_fingerprint,
         duplicate_status, duplicate_question_id, duplicate_similarity,
         validation_issues_json, review_status, created_at
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `);
 
     const tx = this.db.transaction(() => {
@@ -188,6 +190,7 @@ export class ImportBatchRepository {
           s.examRound ?? null,
           s.questionNumber ?? null,
           s.parentQuestionId ?? null,
+          s.conceptId ?? null,
           s.subject,
           s.category,
           s.subCategory ?? null,
@@ -343,7 +346,7 @@ export class ImportBatchRepository {
     this.syncBatchCounts(batchId);
   }
 
-  private syncBatchCounts(batchId: string): void {
+  public syncBatchCounts(batchId: string): void {
     const counts = this.db
       .prepare(
         `SELECT
@@ -432,6 +435,7 @@ export class ImportBatchRepository {
           examRound: staged.examRound,
           questionNumber: staged.questionNumber,
           parentQuestionId: staged.parentQuestionId,
+          conceptId: staged.conceptId,
           subject: staged.subject,
           category: staged.category,
           subCategory: staged.subCategory,

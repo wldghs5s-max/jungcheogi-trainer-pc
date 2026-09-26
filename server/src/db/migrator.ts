@@ -117,6 +117,17 @@ export function runMigrations(): { appliedCount: number; totalMigrations: number
     // review_states table might not exist yet
   }
 
+  // Post-migration safety check: synchronize staged_questions.concept_id if needed
+  try {
+    const stagedInfo = db.prepare('PRAGMA table_info(staged_questions)').all() as Array<{ name: string }>;
+    const stagedCols = new Set(stagedInfo.map((c) => c.name));
+    if (stagedCols.size > 0 && !stagedCols.has('concept_id')) {
+      db.exec('ALTER TABLE staged_questions ADD COLUMN concept_id TEXT REFERENCES concepts(id) ON DELETE SET NULL');
+    }
+  } catch {
+    // staged_questions table might not exist yet
+  }
+
   const countStmt = db.prepare('SELECT COUNT(*) as count FROM schema_migrations');
   const total = (countStmt.get() as { count: number }).count;
 

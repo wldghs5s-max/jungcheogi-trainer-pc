@@ -43,12 +43,14 @@ interface StudySessionModalProps {
   isOpen: boolean;
   onClose: () => void;
   initialSubject?: Subject | '';
+  initialSessionData?: { session: StudySession; firstQuestion: Question } | null;
 }
 
 export const StudySessionModal: React.FC<StudySessionModalProps> = ({
   isOpen,
   onClose,
   initialSubject = '',
+  initialSessionData = null,
 }) => {
   // Session Lifecycle: 'CONFIG' | 'PRACTICE' | 'SUMMARY'
   const [phase, setPhase] = useState<'CONFIG' | 'PRACTICE' | 'SUMMARY'>('CONFIG');
@@ -86,10 +88,16 @@ export const StudySessionModal: React.FC<StudySessionModalProps> = ({
   // Reset or initialize on open
   useEffect(() => {
     if (isOpen) {
-      setPhase('CONFIG');
-      setSelectedSubject(initialSubject);
-      setSession(null);
-      setCurrentQuestion(null);
+      if (initialSessionData) {
+        setSession(initialSessionData.session);
+        setCurrentQuestion(initialSessionData.firstQuestion);
+        setPhase('PRACTICE');
+      } else {
+        setPhase('CONFIG');
+        setSelectedSubject(initialSubject);
+        setSession(null);
+        setCurrentQuestion(null);
+      }
       setSubmitResult(null);
       setSummary(null);
       setConfigError(null);
@@ -99,7 +107,7 @@ export const StudySessionModal: React.FC<StudySessionModalProps> = ({
     } else {
       if (timerRef.current) clearInterval(timerRef.current);
     }
-  }, [isOpen, initialSubject]);
+  }, [isOpen, initialSubject, initialSessionData]);
 
   // Setup inputs whenever currentQuestion changes
   useEffect(() => {
