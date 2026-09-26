@@ -14,6 +14,15 @@ async function main() {
     console.log(
       `[DB] SQLite 마이그레이션 확인 완료: 신규 적용 ${appliedCount}건, 총 ${totalMigrations}건`
     );
+
+    // Phase 2: 검증용 시드 데이터 자동 적재 (테이블이 비어 있는 경우)
+    const { seedFixtureQuestions } = await import('./db/seeder.js');
+    const { QuestionRepository } = await import('./db/repositories/questionRepository.js');
+    const repo = new QuestionRepository();
+    if (repo.count() === 0) {
+      const seedResult = seedFixtureQuestions();
+      console.log(`[DB] 초기 검증용 Fixture 문항 적재 완료: ${seedResult.insertedCount}건`);
+    }
   } catch (err) {
     console.error('[DB] 마이그레이션 실행 중 치명적 오류 발생:', err);
     process.exit(1);

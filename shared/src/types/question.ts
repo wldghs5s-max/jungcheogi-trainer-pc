@@ -84,3 +84,9 @@ export interface QuestionListResponse {
   limit: number;
   offset: number;
 }
+
+export interface QuestionDetailResponse {
+  question: Question;
+  variations: Question[];
+  parentQuestion?: Question | null;
+}

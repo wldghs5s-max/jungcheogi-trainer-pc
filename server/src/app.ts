@@ -2,6 +2,7 @@ import fastify, { FastifyInstance } from 'fastify';
 import cors from '@fastify/cors';
 import { env } from './config/env';
 import { healthRoutes } from './routes/health';
+import { questionRoutes } from './routes/questions';
 
 export function buildApp(): FastifyInstance {
   const app = fastify({
@@ -34,6 +35,7 @@ export function buildApp(): FastifyInstance {
 
   // Register API routes
   app.register(healthRoutes);
+  app.register(questionRoutes);
 
   return app;
 }
