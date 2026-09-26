@@ -46,6 +46,7 @@ export interface SessionSubmitResponse {
   aiVariationNotes?: string;
   isSessionCompleted: boolean;
   nextQuestionId?: string | null;
+  reviewState?: import('./review.js').ReviewState;
   sessionProgress: {
     currentIndex: number;
     totalQuestions: number;

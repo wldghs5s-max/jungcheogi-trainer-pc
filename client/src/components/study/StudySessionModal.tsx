@@ -16,6 +16,11 @@ import {
   Check,
   Copy,
   Flame,
+  Eye,
+  Brain,
+  Layers,
+  ChevronDown,
+  ChevronRight,
 } from 'lucide-react';
 import {
   Question,
@@ -62,6 +67,9 @@ export const StudySessionModal: React.FC<StudySessionModalProps> = ({
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
   const [submitResult, setSubmitResult] = useState<SessionSubmitResponse | null>(null);
   const [showHint, setShowHint] = useState<boolean>(false);
+  const [hintLevel, setHintLevel] = useState<number>(0);
+  const [showCodeAnatomy, setShowCodeAnatomy] = useState<boolean>(false);
+  const [expandedLineIndex, setExpandedLineIndex] = useState<number | null>(null);
   const [codeCopied, setCodeCopied] = useState<boolean>(false);
 
   // Timer State
@@ -85,6 +93,9 @@ export const StudySessionModal: React.FC<StudySessionModalProps> = ({
       setSubmitResult(null);
       setSummary(null);
       setConfigError(null);
+      setHintLevel(0);
+      setShowCodeAnatomy(false);
+      setExpandedLineIndex(null);
     } else {
       if (timerRef.current) clearInterval(timerRef.current);
     }
@@ -95,6 +106,9 @@ export const StudySessionModal: React.FC<StudySessionModalProps> = ({
     if (!currentQuestion) return;
 
     setShowHint(false);
+    setHintLevel(0);
+    setShowCodeAnatomy(false);
+    setExpandedLineIndex(null);
     setSubmitResult(null);
     setCodeCopied(false);
     setElapsedSeconds(0);
@@ -168,7 +182,7 @@ export const StudySessionModal: React.FC<StudySessionModalProps> = ({
       questionId: currentQuestion.id,
       userAnswer: finalAnswer,
       timeSpentMs,
-      hintUsed: showHint,
+      hintUsed: showHint || hintLevel > 0,
     });
 
     setIsSubmitting(false);
@@ -193,13 +207,40 @@ export const StudySessionModal: React.FC<StudySessionModalProps> = ({
     const res = await submitSessionUnknown(session.id, {
       questionId: currentQuestion.id,
       timeSpentMs,
-      hintUsed: showHint,
+      hintUsed: showHint || hintLevel > 0,
     });
 
     setIsSubmitting(false);
 
     if (res.error || !res.data) {
       alert(res.error || '모르겠음 처리 중 오류가 발생했습니다.');
+      return;
+    }
+
+    setSubmitResult(res.data);
+    setSession((prev) => (prev ? { ...prev, ...res.data!.sessionProgress } : null));
+  };
+
+  // Handle "정답 확인" (Active Recall Reveal Solution)
+  const handleRevealSolution = async () => {
+    if (!session || !currentQuestion || isSubmitting) return;
+
+    if (timerRef.current) clearInterval(timerRef.current);
+    setIsSubmitting(true);
+
+    const timeSpentMs = Math.max(elapsedSeconds * 1000, 1000);
+    const res = await submitSessionAnswer(session.id, {
+      questionId: currentQuestion.id,
+      userAnswer: '(정답확인)',
+      timeSpentMs,
+      hintUsed: showHint || hintLevel > 0,
+      solutionRevealed: true,
+    });
+
+    setIsSubmitting(false);
+
+    if (res.error || !res.data) {
+      alert(res.error || '정답 확인 처리 중 오류가 발생했습니다.');
       return;
     }
 
@@ -532,30 +573,128 @@ export const StudySessionModal: React.FC<StudySessionModalProps> = ({
                   <pre style={styles.codePre}>
                     <code>{currentQuestion.code}</code>
                   </pre>
+
+                  {/* LINE-BY-LINE ANATOMY ACCORDION */}
+                  {currentQuestion.codeLineExplanations && currentQuestion.codeLineExplanations.length > 0 && (
+                    <div style={styles.codeAnatomyBox}>
+                      <button
+                        type="button"
+                        onClick={() => setShowCodeAnatomy(!showCodeAnatomy)}
+                        style={styles.codeAnatomyToggleBtn}
+                      >
+                        <Layers size={15} color="#38BDF8" />
+                        <span>코드 라인별 심층 분석 ({currentQuestion.codeLineExplanations.length}개 라인)</span>
+                        <span style={{ marginLeft: 'auto' }}>
+                          {showCodeAnatomy ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
+                        </span>
+                      </button>
+
+                      {showCodeAnatomy && (
+                        <div style={styles.codeAnatomyList}>
+                          {currentQuestion.codeLineExplanations.map((exp, idx) => (
+                            <div
+                              key={idx}
+                              style={{
+                                ...styles.codeAnatomyItem,
+                                backgroundColor: expandedLineIndex === idx ? 'rgba(56, 189, 248, 0.08)' : 'rgba(255, 255, 255, 0.02)',
+                                borderColor: expandedLineIndex === idx ? 'rgba(56, 189, 248, 0.3)' : 'rgba(255, 255, 255, 0.06)',
+                              }}
+                              onClick={() => setExpandedLineIndex(expandedLineIndex === idx ? null : idx)}
+                            >
+                              <div style={styles.codeAnatomyItemHeader}>
+                                <span style={styles.codeLineBadge}>L{exp.line}</span>
+                                <code style={styles.codeLineText}>{exp.code}</code>
+                              </div>
+                              <p style={styles.codeExplanationText}>{exp.explanation}</p>
+                              {exp.tokens && exp.tokens.length > 0 && (
+                                <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', marginTop: '6px' }}>
+                                  {exp.tokens.map((tk, tIdx) => (
+                                    <span key={tIdx} style={styles.traceTag}>
+                                      <span style={styles.traceLabel}>{tk.token}:</span> {tk.desc}
+                                    </span>
+                                  ))}
+                                </div>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </div>
               )}
 
-              {/* HINT TOGGLE BOX */}
-              {currentQuestion.keywords && currentQuestion.keywords.length > 0 && (
+              {/* PROGRESSIVE HINTS BOX (Phase 5 Active Recall) */}
+              {((currentQuestion.hints && currentQuestion.hints.length > 0) ||
+                (currentQuestion.keywords && currentQuestion.keywords.length > 0)) && (
                 <div style={styles.hintContainer}>
-                  <button
-                    type="button"
-                    onClick={() => setShowHint(!showHint)}
-                    style={styles.hintToggleBtn}
-                  >
-                    <Lightbulb size={16} color="#F59E0B" />
-                    <span>{showHint ? '힌트 접기' : '힌트 보기 (핵심 키워드 힌트)'}</span>
-                  </button>
-                  {showHint && (
-                    <div style={styles.hintBox}>
-                      <span style={styles.hintLabel}>💡 힌트 키워드:</span>
-                      <div style={styles.hintKeywords}>
-                        {currentQuestion.keywords.slice(0, 3).map((kw, i) => (
-                          <span key={i} style={styles.hintKeywordTag}>
-                            #{kw}
+                  {currentQuestion.hints && currentQuestion.hints.length > 0 ? (
+                    <div>
+                      <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setShowHint(true);
+                            setHintLevel((prev) => Math.min(prev + 1, currentQuestion.hints!.length));
+                          }}
+                          style={styles.hintToggleBtn}
+                          disabled={hintLevel >= currentQuestion.hints.length}
+                        >
+                          <Lightbulb size={16} color="#F59E0B" />
+                          <span>
+                            {hintLevel === 0
+                              ? `💡 단계별 힌트 보기 (1/${currentQuestion.hints.length}단계)`
+                              : hintLevel < currentQuestion.hints.length
+                              ? `💡 다음 힌트 추가 확인 (${hintLevel + 1}/${currentQuestion.hints.length}단계)`
+                              : `💡 모든 힌트 확인 완료 (${currentQuestion.hints.length}/${currentQuestion.hints.length})`}
                           </span>
-                        ))}
+                        </button>
+                        {hintLevel > 0 && (
+                          <button
+                            type="button"
+                            onClick={() => setShowHint(!showHint)}
+                            style={{ ...styles.hintToggleBtn, backgroundColor: 'transparent', border: 'none' }}
+                          >
+                            <span>{showHint ? '접기' : '펼치기'}</span>
+                          </button>
+                        )}
                       </div>
+
+                      {showHint && hintLevel > 0 && (
+                        <div style={styles.hintBox}>
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                            {currentQuestion.hints.slice(0, hintLevel).map((h, i) => (
+                              <div key={i} style={styles.progressiveHintItem}>
+                                <span style={styles.hintBadge}>힌트 {i + 1}</span>
+                                <span style={styles.hintContentText}>{h}</span>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  ) : (
+                    <div>
+                      <button
+                        type="button"
+                        onClick={() => setShowHint(!showHint)}
+                        style={styles.hintToggleBtn}
+                      >
+                        <Lightbulb size={16} color="#F59E0B" />
+                        <span>{showHint ? '힌트 접기' : '힌트 보기 (핵심 키워드 힌트)'}</span>
+                      </button>
+                      {showHint && (
+                        <div style={styles.hintBox}>
+                          <span style={styles.hintLabel}>💡 힌트 키워드:</span>
+                          <div style={styles.hintKeywords}>
+                            {currentQuestion.keywords.slice(0, 3).map((kw, i) => (
+                              <span key={i} style={styles.hintKeywordTag}>
+                                #{kw}
+                              </span>
+                            ))}
+                          </div>
+                        </div>
+                      )}
                     </div>
                   )}
                 </div>
@@ -612,6 +751,17 @@ export const StudySessionModal: React.FC<StudySessionModalProps> = ({
                     >
                       <HelpCircle size={18} />
                       <span>모르겠음</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={handleRevealSolution}
+                      style={styles.revealBtn}
+                      disabled={isSubmitting}
+                      title="정답과 해설을 먼저 확인하고 학습을 진행합니다 (복습 큐 등록)"
+                    >
+                      <Eye size={18} />
+                      <span>정답 확인</span>
                     </button>
 
                     <button
@@ -742,6 +892,47 @@ export const StudySessionModal: React.FC<StudySessionModalProps> = ({
                           {currentQuestion.aiVariationNotes}
                         </div>
                       )}
+                    </div>
+                  )}
+
+                  {/* ACTIVE RECALL REVIEW STATE CARD (Phase 5) */}
+                  {submitResult.reviewState && (
+                    <div style={styles.reviewStateCard}>
+                      <div style={styles.reviewStateHeader}>
+                        <Brain size={18} color="#818CF8" />
+                        <span style={styles.reviewStateTitle}>복습 엔진(Active Recall) 업데이트</span>
+                        <span style={styles.reviewStateBadge}>{submitResult.reviewState.reviewState}</span>
+                      </div>
+                      <div style={styles.reviewStateGrid}>
+                        <div style={styles.reviewStateItem}>
+                          <span style={styles.reviewStateItemLabel}>라이트너 상자</span>
+                          <span style={styles.reviewStateItemValue}>
+                            Box {submitResult.reviewState.boxLevel}단계 (총 5단계)
+                          </span>
+                        </div>
+                        <div style={styles.reviewStateItem}>
+                          <span style={styles.reviewStateItemLabel}>다음 권장 복습</span>
+                          <span style={styles.reviewStateItemValue}>
+                            {submitResult.reviewState.intervalDays}일 뒤
+                          </span>
+                        </div>
+                        <div style={styles.reviewStateItem}>
+                          <span style={styles.reviewStateItemLabel}>개념 취약도 지수</span>
+                          <span
+                            style={{
+                              ...styles.reviewStateItemValue,
+                              color:
+                                submitResult.reviewState.weaknessScore >= 0.7
+                                  ? '#EF4444'
+                                  : submitResult.reviewState.weaknessScore >= 0.4
+                                  ? '#F59E0B'
+                                  : '#10B981',
+                            }}
+                          >
+                            {Math.round(submitResult.reviewState.weaknessScore * 100)}%
+                          </span>
+                        </div>
+                      </div>
                     </div>
                   )}
 
@@ -1246,6 +1437,79 @@ const styles: Record<string, React.CSSProperties> = {
     lineHeight: 1.6,
     overflowX: 'auto',
   },
+  codeAnatomyBox: {
+    marginTop: '12px',
+    borderRadius: '8px',
+    backgroundColor: '#0F172A',
+    border: '1px solid #1E293B',
+    overflow: 'hidden',
+  },
+  codeAnatomyToggleBtn: {
+    width: '100%',
+    display: 'flex',
+    alignItems: 'center',
+    gap: '8px',
+    padding: '12px 16px',
+    backgroundColor: 'rgba(255, 255, 255, 0.02)',
+    border: 'none',
+    color: '#93C5FD',
+    fontSize: '13px',
+    fontWeight: 600,
+    cursor: 'pointer',
+    textAlign: 'left',
+  },
+  codeAnatomyList: {
+    padding: '12px 16px',
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '8px',
+    borderTop: '1px solid #1E293B',
+  },
+  codeAnatomyItem: {
+    padding: '10px 12px',
+    borderRadius: '6px',
+    border: '1px solid',
+    cursor: 'pointer',
+    transition: 'background-color 0.15s',
+  },
+  codeAnatomyItemHeader: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '10px',
+    marginBottom: '6px',
+  },
+  codeLineBadge: {
+    fontSize: '11px',
+    fontWeight: 700,
+    padding: '2px 6px',
+    borderRadius: '4px',
+    backgroundColor: '#1E293B',
+    color: '#38BDF8',
+    fontFamily: 'monospace',
+  },
+  codeLineText: {
+    fontSize: '13px',
+    color: '#E2E8F0',
+    fontFamily: 'Consolas, Monaco, monospace',
+  },
+  codeExplanationText: {
+    fontSize: '13px',
+    color: '#94A3B8',
+    margin: '0 0 6px 0',
+    lineHeight: 1.5,
+  },
+  traceTag: {
+    fontSize: '12px',
+    padding: '4px 8px',
+    borderRadius: '4px',
+    backgroundColor: 'rgba(56, 189, 248, 0.1)',
+    color: '#38BDF8',
+    marginTop: '4px',
+    display: 'inline-block',
+  },
+  traceLabel: {
+    fontWeight: 700,
+  },
   hintContainer: {
     display: 'flex',
     flexDirection: 'column',
@@ -1272,6 +1536,29 @@ const styles: Record<string, React.CSSProperties> = {
     alignItems: 'center',
     gap: '12px',
     fontSize: '13px',
+  },
+  progressiveHintItem: {
+    display: 'flex',
+    alignItems: 'flex-start',
+    gap: '10px',
+    padding: '8px 12px',
+    backgroundColor: 'rgba(245, 158, 11, 0.08)',
+    borderRadius: '6px',
+    border: '1px solid rgba(245, 158, 11, 0.2)',
+  },
+  hintBadge: {
+    fontSize: '11px',
+    fontWeight: 700,
+    padding: '2px 6px',
+    borderRadius: '4px',
+    backgroundColor: '#F59E0B',
+    color: '#000000',
+    flexShrink: 0,
+  },
+  hintContentText: {
+    fontSize: '13px',
+    color: '#F8FAFC',
+    lineHeight: 1.5,
   },
   hintLabel: {
     color: '#F59E0B',
@@ -1360,6 +1647,20 @@ const styles: Record<string, React.CSSProperties> = {
     cursor: 'pointer',
     transition: 'all 0.15s ease',
   },
+  revealBtn: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '8px',
+    padding: '12px 20px',
+    borderRadius: '8px',
+    backgroundColor: 'rgba(99, 102, 241, 0.15)',
+    border: '1px solid rgba(99, 102, 241, 0.3)',
+    color: '#818CF8',
+    fontSize: '15px',
+    fontWeight: 600,
+    cursor: 'pointer',
+    transition: 'all 0.15s ease',
+  },
   submitBtn: {
     display: 'flex',
     alignItems: 'center',
@@ -1372,6 +1673,59 @@ const styles: Record<string, React.CSSProperties> = {
     fontWeight: 600,
     cursor: 'pointer',
     transition: 'all 0.15s ease',
+  },
+
+  // ACTIVE RECALL REVIEW STATE CARD
+  reviewStateCard: {
+    backgroundColor: 'rgba(99, 102, 241, 0.08)',
+    border: '1px solid rgba(99, 102, 241, 0.25)',
+    borderRadius: '10px',
+    padding: '16px 20px',
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '12px',
+  },
+  reviewStateHeader: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '10px',
+  },
+  reviewStateTitle: {
+    fontSize: '14px',
+    fontWeight: 700,
+    color: '#A5B4FC',
+  },
+  reviewStateBadge: {
+    fontSize: '11px',
+    fontWeight: 700,
+    padding: '2px 8px',
+    borderRadius: '4px',
+    backgroundColor: 'rgba(99, 102, 241, 0.2)',
+    color: '#C7D2FE',
+    marginLeft: 'auto',
+  },
+  reviewStateGrid: {
+    display: 'grid',
+    gridTemplateColumns: 'repeat(3, 1fr)',
+    gap: '12px',
+  },
+  reviewStateItem: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '4px',
+    backgroundColor: 'rgba(15, 23, 42, 0.4)',
+    padding: '10px 12px',
+    borderRadius: '8px',
+    border: '1px solid rgba(255, 255, 255, 0.05)',
+  },
+  reviewStateItemLabel: {
+    fontSize: '11px',
+    color: '#94A3B8',
+  },
+  reviewStateItemValue: {
+    fontSize: '14px',
+    fontWeight: 700,
+    color: '#F8FAFC',
   },
 
   // FEEDBACK SECTION

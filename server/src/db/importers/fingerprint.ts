@@ -1,5 +1,5 @@
-import crypto from 'crypto';
-import { Question, DuplicateStatus } from '@jungcheogi/shared';
+import crypto from "crypto";
+import { Question, DuplicateStatus } from "@jungcheogi/shared";
 
 /**
  * 지문과 코드 스니펫의 핵심 구조를 추출하여 핑거프린트 문자열을 생성합니다.
@@ -7,19 +7,19 @@ import { Question, DuplicateStatus } from '@jungcheogi/shared';
 export function generateStructuralFingerprint(
   questionText: string,
   codeSnippet?: string,
-  subject?: string
+  subject?: string,
 ): string {
-  const normText = (questionText || '')
+  const normText = (questionText || "")
     .toLowerCase()
-    .replace(/[()[\]{}.,·\-_/'":;?`~!@#$%^&*+=<>\s]/g, '');
+    .replace(/[()[\]{}.,·\-_/'":;?`~!@#$%^&*+=<>\s]/g, "");
 
-  const normCode = (codeSnippet || '')
-    .replace(/\/\*[\s\S]*?\*\/|\/\/.*/g, '') // 주석 제거
-    .replace(/\s+/g, '')
+  const normCode = (codeSnippet || "")
+    .replace(/\/\*[\s\S]*?\*\/|\/\/.*/g, "") // 주석 제거
+    .replace(/\s+/g, "")
     .toLowerCase();
 
-  const raw = `${subject || ''}|${normText}|${normCode}`;
-  return crypto.createHash('sha256').update(raw).digest('hex').slice(0, 16);
+  const raw = `${subject || ""}|${normText}|${normCode}`;
+  return crypto.createHash("sha256").update(raw).digest("hex").slice(0, 16);
 }
 
 /**
@@ -33,9 +33,9 @@ export function calculateTextSimilarity(a: string, b: string): number {
     return new Set(
       str
         .toLowerCase()
-        .replace(/[()[\]{}.,·\-_/'":;?`~!@#$%^&*+=<>]/g, ' ')
+        .replace(/[()[\]{}.,·\-_/'":;?`~!@#$%^&*+=<>]/g, " ")
         .split(/\s+/)
-        .filter((s) => s.length >= 2)
+        .filter((s) => s.length >= 2),
     );
   };
 
@@ -73,15 +73,15 @@ export function analyzeDuplicates(
     fingerprint: string;
     parentQuestionId?: string;
   },
-  existingQuestions: Question[]
+  existingQuestions: Question[],
 ): DuplicateAnalysisResult {
   // 1. 완전 일치 핑거프린트 검사
   const exactMatch = existingQuestions.find(
-    (q) => q.structuralFingerprint === staged.fingerprint
+    (q) => q.structuralFingerprint === staged.fingerprint,
   );
   if (exactMatch) {
     return {
-      status: 'DUPLICATE_WARNING',
+      status: "DUPLICATE_WARNING",
       duplicateQuestionId: exactMatch.id,
       similarity: 1.0,
       reason: `동일한 구조의 문항(${exactMatch.id})이 이미 존재합니다 (핑거프린트 완전 일치).`,
@@ -91,7 +91,7 @@ export function analyzeDuplicates(
   // 2. 이미 parentQuestionId가 명시된 경우 변형 문제로 인정
   if (staged.parentQuestionId) {
     return {
-      status: 'AI_VARIATION_CANDIDATE',
+      status: "AI_VARIATION_CANDIDATE",
       duplicateQuestionId: staged.parentQuestionId,
       similarity: 0.75,
       reason: `명시된 원본 기출(${staged.parentQuestionId})의 파생 변형 문항입니다.`,
@@ -103,14 +103,16 @@ export function analyzeDuplicates(
   let candidateQuestion: Question | null = null;
   let isCodeMatch = false;
 
-  const stagedNormCode = (staged.codeSnippet || '')
-    .replace(/\/\*[\s\S]*?\*\/|\/\/.*/g, '')
-    .replace(/\s+/g, '');
+  const stagedNormCode = (staged.codeSnippet || "")
+    .replace(/\/\*[\s\S]*?\*\/|\/\/.*/g, "")
+    .replace(/\s+/g, "");
 
   for (const q of existingQuestions) {
     // 코드 문제인 경우: 코드 스니펫의 유사도가 핵심 실질 내용임
     if (stagedNormCode && q.code) {
-      const qNormCode = q.code.replace(/\/\*[\s\S]*?\*\/|\/\/.*/g, '').replace(/\s+/g, '');
+      const qNormCode = q.code
+        .replace(/\/\*[\s\S]*?\*\/|\/\/.*/g, "")
+        .replace(/\s+/g, "");
       const codeSim = calculateTextSimilarity(stagedNormCode, qNormCode);
       const textSim = calculateTextSimilarity(staged.questionText, q.question);
 
@@ -141,7 +143,7 @@ export function analyzeDuplicates(
   // 유사도 판정 임계치
   if (isCodeMatch && candidateQuestion) {
     return {
-      status: 'AI_VARIATION_CANDIDATE',
+      status: "AI_VARIATION_CANDIDATE",
       duplicateQuestionId: candidateQuestion.id,
       similarity: highestSim,
       reason: `기존 문항(${candidateQuestion.id})과 동일한 코드를 공유하여 AI 변형 문항 후보로 분류됩니다.`,
@@ -150,7 +152,7 @@ export function analyzeDuplicates(
 
   if (highestSim >= 0.85 && candidateQuestion) {
     return {
-      status: 'DUPLICATE_WARNING',
+      status: "DUPLICATE_WARNING",
       duplicateQuestionId: candidateQuestion.id,
       similarity: highestSim,
       reason: `기존 문항(${candidateQuestion.id})과 지문 유사도가 ${Math.round(highestSim * 100)}%로 중복 가능성이 높습니다.`,
@@ -159,7 +161,7 @@ export function analyzeDuplicates(
 
   if (highestSim >= 0.65 && candidateQuestion) {
     return {
-      status: 'AI_VARIATION_CANDIDATE',
+      status: "AI_VARIATION_CANDIDATE",
       duplicateQuestionId: candidateQuestion.id,
       similarity: highestSim,
       reason: `기존 문항(${candidateQuestion.id})과 유사한 개념(${Math.round(highestSim * 100)}%)을 다루고 있어 변형 후보로 검토 가능합니다.`,
@@ -167,8 +169,8 @@ export function analyzeDuplicates(
   }
 
   return {
-    status: 'NEW',
+    status: "NEW",
     similarity: highestSim,
-    reason: '신규 고유 문항입니다.',
+    reason: "신규 고유 문항입니다.",
   };
 }

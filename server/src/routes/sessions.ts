@@ -13,6 +13,7 @@ import {
 import { SessionRepository } from '../db/repositories/sessionRepository';
 import { AttemptRepository } from '../db/repositories/attemptRepository';
 import { QuestionRepository } from '../db/repositories/questionRepository';
+import { ReviewRepository } from '../db/repositories/reviewRepository';
 
 interface SessionParams {
   id: string;
@@ -28,6 +29,7 @@ export async function sessionRoutes(fastify: FastifyInstance): Promise<void> {
   const sessionRepo = new SessionRepository();
   const attemptRepo = new AttemptRepository();
   const questionRepo = new QuestionRepository();
+  const reviewRepo = new ReviewRepository();
 
   // 1. 학습 세션 생성 (지정된 과목/문항 수에 맞춘 문제 선별)
   fastify.post(
@@ -178,6 +180,7 @@ export async function sessionRoutes(fastify: FastifyInstance): Promise<void> {
       };
 
       const savedAttempt = attemptRepo.create(attempt);
+      const reviewState = reviewRepo.recordAttempt(savedAttempt, question);
 
       // 세션 상태 및 카운터 업데이트
       const nextIndex = session.currentIndex + 1;
@@ -211,6 +214,7 @@ export async function sessionRoutes(fastify: FastifyInstance): Promise<void> {
         aiVariationNotes: question.aiVariationNotes,
         isSessionCompleted: isCompleted,
         nextQuestionId,
+        reviewState,
         sessionProgress: {
           currentIndex: nextIndex,
           totalQuestions: session.totalQuestions,

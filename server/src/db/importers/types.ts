@@ -5,15 +5,15 @@ import {
   QuestionType,
   Difficulty,
   CodeLanguage,
-} from '@jungcheogi/shared';
+} from "@jungcheogi/shared";
 
 export type ImportSourceType =
-  | 'PDF_DOCUMENT'
-  | 'OCR_IMAGE'
-  | 'MARKDOWN_TXT'
-  | 'JSON_DATA';
+  | "PDF_DOCUMENT"
+  | "OCR_IMAGE"
+  | "MARKDOWN_TXT"
+  | "JSON_DATA";
 
-export type ImportStage = 'PARSED' | 'DRAFT' | 'VERIFIED' | 'COMMITTED';
+export type ImportStage = "PARSED" | "DRAFT" | "VERIFIED" | "COMMITTED";
 
 /**
  * 외부 소스(PDF, OCR, 마크다운 등)로부터 추출된 원시 문제 데이터 모델
@@ -57,7 +57,7 @@ export interface RawImportQuestion {
 export interface ValidationIssue {
   field: string;
   message: string;
-  severity: 'ERROR' | 'WARNING';
+  severity: "ERROR" | "WARNING";
 }
 
 export interface ImportValidationResult {

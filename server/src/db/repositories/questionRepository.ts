@@ -1,4 +1,4 @@
-import { Database } from 'better-sqlite3';
+import { Database } from "better-sqlite3";
 import {
   Question,
   QuestionFilter,
@@ -8,8 +8,8 @@ import {
   Difficulty,
   CodeLanguage,
   QuestionSourceType,
-} from '@jungcheogi/shared';
-import { getDatabase } from '../database';
+} from "@jungcheogi/shared";
+import { getDatabase } from "../database";
 
 interface QuestionRow {
   id: string;
@@ -18,6 +18,7 @@ interface QuestionRow {
   exam_round: number | null;
   question_number: number | null;
   parent_question_id: string | null;
+  concept_id?: string | null;
   subject: string;
   category: string;
   sub_category: string | null;
@@ -28,6 +29,9 @@ interface QuestionRow {
   options_json: string | null;
   ground_truth_answer: string;
   official_explanation: string | null;
+  hints_json?: string | null;
+  code_line_explanations_json?: string | null;
+  active_recall_meta_json?: string | null;
   ai_explanation: string | null;
   ai_variation_notes: string | null;
   difficulty: string;
@@ -68,6 +72,33 @@ function mapRowToQuestion(row: QuestionRow): Question {
     }
   }
 
+  let hints: string[] = [];
+  if (row.hints_json) {
+    try {
+      hints = JSON.parse(row.hints_json);
+    } catch {
+      hints = [];
+    }
+  }
+
+  let codeLineExplanations: any = undefined;
+  if (row.code_line_explanations_json) {
+    try {
+      codeLineExplanations = JSON.parse(row.code_line_explanations_json);
+    } catch {
+      codeLineExplanations = undefined;
+    }
+  }
+
+  let activeRecallMeta: any = undefined;
+  if (row.active_recall_meta_json) {
+    try {
+      activeRecallMeta = JSON.parse(row.active_recall_meta_json);
+    } catch {
+      activeRecallMeta = undefined;
+    }
+  }
+
   return {
     id: row.id,
     sourceType: row.source_type as QuestionSourceType,
@@ -75,6 +106,7 @@ function mapRowToQuestion(row: QuestionRow): Question {
     examRound: row.exam_round ?? undefined,
     questionNumber: row.question_number ?? undefined,
     parentQuestionId: row.parent_question_id ?? undefined,
+    conceptId: row.concept_id ?? undefined,
     subject: row.subject as Subject,
     category: row.category,
     subCategory: row.sub_category ?? undefined,
@@ -85,9 +117,12 @@ function mapRowToQuestion(row: QuestionRow): Question {
     options,
     groundTruthAnswer,
     officialExplanation: row.official_explanation ?? undefined,
+    hints: hints.length > 0 ? hints : undefined,
+    codeLineExplanations,
+    activeRecallMeta,
     aiExplanation: row.ai_explanation ?? undefined,
     aiVariationNotes: row.ai_variation_notes ?? undefined,
-    difficulty: (row.difficulty as Difficulty) || 'MEDIUM',
+    difficulty: (row.difficulty as Difficulty) || "MEDIUM",
     keywords,
     structuralFingerprint: row.structural_fingerprint ?? undefined,
     createdAt: row.created_at,
@@ -106,14 +141,14 @@ export class QuestionRepository {
     const stmt = this.db.prepare(`
       INSERT INTO questions (
         id, source_type, exam_year, exam_round, question_number, parent_question_id,
-        subject, category, sub_category, type, question_text, code_snippet, language, options_json,
-        ground_truth_answer, official_explanation, ai_explanation, ai_variation_notes,
-        difficulty, keywords_json, structural_fingerprint, created_at, updated_at
+        concept_id, subject, category, sub_category, type, question_text, code_snippet, language, options_json,
+        ground_truth_answer, official_explanation, hints_json, code_line_explanations_json, active_recall_meta_json,
+        ai_explanation, ai_variation_notes, difficulty, keywords_json, structural_fingerprint, created_at, updated_at
       ) VALUES (
         @id, @source_type, @exam_year, @exam_round, @question_number, @parent_question_id,
-        @subject, @category, @sub_category, @type, @question_text, @code_snippet, @language, @options_json,
-        @ground_truth_answer, @official_explanation, @ai_explanation, @ai_variation_notes,
-        @difficulty, @keywords_json, @structural_fingerprint, @created_at, @updated_at
+        @concept_id, @subject, @category, @sub_category, @type, @question_text, @code_snippet, @language, @options_json,
+        @ground_truth_answer, @official_explanation, @hints_json, @code_line_explanations_json, @active_recall_meta_json,
+        @ai_explanation, @ai_variation_notes, @difficulty, @keywords_json, @structural_fingerprint, @created_at, @updated_at
       )
     `);
 
@@ -124,6 +159,7 @@ export class QuestionRepository {
       exam_round: q.examRound ?? null,
       question_number: q.questionNumber ?? null,
       parent_question_id: q.parentQuestionId ?? null,
+      concept_id: q.conceptId ?? null,
       subject: q.subject,
       category: q.category,
       sub_category: q.subCategory ?? null,
@@ -134,6 +170,13 @@ export class QuestionRepository {
       options_json: q.options ? JSON.stringify(q.options) : null,
       ground_truth_answer: JSON.stringify(q.groundTruthAnswer),
       official_explanation: q.officialExplanation ?? null,
+      hints_json: q.hints ? JSON.stringify(q.hints) : null,
+      code_line_explanations_json: q.codeLineExplanations
+        ? JSON.stringify(q.codeLineExplanations)
+        : null,
+      active_recall_meta_json: q.activeRecallMeta
+        ? JSON.stringify(q.activeRecallMeta)
+        : null,
       ai_explanation: q.aiExplanation ?? null,
       ai_variation_notes: q.aiVariationNotes ?? null,
       difficulty: q.difficulty,
@@ -151,7 +194,7 @@ export class QuestionRepository {
   }
 
   public findById(id: string): Question | null {
-    const stmt = this.db.prepare('SELECT * FROM questions WHERE id = ?');
+    const stmt = this.db.prepare("SELECT * FROM questions WHERE id = ?");
     const row = stmt.get(id) as QuestionRow | undefined;
     if (!row) {
       return null;
@@ -161,7 +204,7 @@ export class QuestionRepository {
 
   public findVariations(parentQuestionId: string): Question[] {
     const stmt = this.db.prepare(
-      'SELECT * FROM questions WHERE parent_question_id = ? ORDER BY created_at ASC'
+      "SELECT * FROM questions WHERE parent_question_id = ? ORDER BY created_at ASC",
     );
     const rows = stmt.all(parentQuestionId) as QuestionRow[];
     return rows.map(mapRowToQuestion);
@@ -172,45 +215,55 @@ export class QuestionRepository {
     const params: any[] = [];
 
     if (filter.subject) {
-      conditions.push('subject = ?');
+      conditions.push("subject = ?");
       params.push(filter.subject);
     }
 
     if (filter.type) {
-      conditions.push('type = ?');
+      conditions.push("type = ?");
       params.push(filter.type);
     }
 
     if (filter.difficulty) {
-      conditions.push('difficulty = ?');
+      conditions.push("difficulty = ?");
       params.push(filter.difficulty);
     }
 
     if (filter.sourceType) {
-      conditions.push('source_type = ?');
+      conditions.push("source_type = ?");
       params.push(filter.sourceType);
     }
 
     if (filter.parentQuestionId !== undefined) {
-      if (filter.parentQuestionId === 'null') {
-        conditions.push('parent_question_id IS NULL');
+      if (filter.parentQuestionId === "null") {
+        conditions.push("parent_question_id IS NULL");
       } else {
-        conditions.push('parent_question_id = ?');
+        conditions.push("parent_question_id = ?");
         params.push(filter.parentQuestionId);
       }
     }
 
+    if (filter.conceptId) {
+      conditions.push("concept_id = ?");
+      params.push(filter.conceptId);
+    }
+
     if (filter.search && filter.search.trim()) {
       const term = `%${filter.search.trim()}%`;
-      conditions.push('(question_text LIKE ? OR keywords_json LIKE ? OR category LIKE ? OR code_snippet LIKE ?)');
+      conditions.push(
+        "(question_text LIKE ? OR keywords_json LIKE ? OR category LIKE ? OR code_snippet LIKE ?)",
+      );
       params.push(term, term, term, term);
     }
 
-    const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
+    const whereClause =
+      conditions.length > 0 ? `WHERE ${conditions.join(" AND ")}` : "";
 
     // Total count query
     const countQuery = `SELECT COUNT(*) as total FROM questions ${whereClause}`;
-    const countRow = this.db.prepare(countQuery).get(...params) as { total: number };
+    const countRow = this.db.prepare(countQuery).get(...params) as {
+      total: number;
+    };
     const total = countRow ? countRow.total : 0;
 
     // Items query with pagination
@@ -228,7 +281,9 @@ export class QuestionRepository {
       LIMIT ? OFFSET ?
     `;
 
-    const rows = this.db.prepare(query).all(...params, limit, offset) as QuestionRow[];
+    const rows = this.db
+      .prepare(query)
+      .all(...params, limit, offset) as QuestionRow[];
     const items = rows.map(mapRowToQuestion);
 
     return {
@@ -249,8 +304,10 @@ export class QuestionRepository {
       ...existing,
       ...partial,
       id: existing.id,
-      groundTruthAnswer: partial.groundTruthAnswer ?? existing.groundTruthAnswer,
-      officialExplanation: partial.officialExplanation ?? existing.officialExplanation,
+      groundTruthAnswer:
+        partial.groundTruthAnswer ?? existing.groundTruthAnswer,
+      officialExplanation:
+        partial.officialExplanation ?? existing.officialExplanation,
       updatedAt: new Date().toISOString(),
     };
 
@@ -261,6 +318,7 @@ export class QuestionRepository {
         exam_round = @exam_round,
         question_number = @question_number,
         parent_question_id = @parent_question_id,
+        concept_id = @concept_id,
         subject = @subject,
         category = @category,
         sub_category = @sub_category,
@@ -271,6 +329,9 @@ export class QuestionRepository {
         options_json = @options_json,
         ground_truth_answer = @ground_truth_answer,
         official_explanation = @official_explanation,
+        hints_json = @hints_json,
+        code_line_explanations_json = @code_line_explanations_json,
+        active_recall_meta_json = @active_recall_meta_json,
         ai_explanation = @ai_explanation,
         ai_variation_notes = @ai_variation_notes,
         difficulty = @difficulty,
@@ -287,6 +348,7 @@ export class QuestionRepository {
       exam_round: merged.examRound ?? null,
       question_number: merged.questionNumber ?? null,
       parent_question_id: merged.parentQuestionId ?? null,
+      concept_id: merged.conceptId ?? null,
       subject: merged.subject,
       category: merged.category,
       sub_category: merged.subCategory ?? null,
@@ -297,6 +359,13 @@ export class QuestionRepository {
       options_json: merged.options ? JSON.stringify(merged.options) : null,
       ground_truth_answer: JSON.stringify(merged.groundTruthAnswer),
       official_explanation: merged.officialExplanation ?? null,
+      hints_json: merged.hints ? JSON.stringify(merged.hints) : null,
+      code_line_explanations_json: merged.codeLineExplanations
+        ? JSON.stringify(merged.codeLineExplanations)
+        : null,
+      active_recall_meta_json: merged.activeRecallMeta
+        ? JSON.stringify(merged.activeRecallMeta)
+        : null,
       ai_explanation: merged.aiExplanation ?? null,
       ai_variation_notes: merged.aiVariationNotes ?? null,
       difficulty: merged.difficulty,
@@ -309,13 +378,13 @@ export class QuestionRepository {
   }
 
   public delete(id: string): boolean {
-    const stmt = this.db.prepare('DELETE FROM questions WHERE id = ?');
+    const stmt = this.db.prepare("DELETE FROM questions WHERE id = ?");
     const result = stmt.run(id);
     return result.changes > 0;
   }
 
   public count(): number {
-    const stmt = this.db.prepare('SELECT COUNT(*) as count FROM questions');
+    const stmt = this.db.prepare("SELECT COUNT(*) as count FROM questions");
     const row = stmt.get() as { count: number };
     return row.count;
   }
@@ -324,14 +393,14 @@ export class QuestionRepository {
     const stmt = this.db.prepare(`
       INSERT OR REPLACE INTO questions (
         id, source_type, exam_year, exam_round, question_number, parent_question_id,
-        subject, category, sub_category, type, question_text, code_snippet, language, options_json,
-        ground_truth_answer, official_explanation, ai_explanation, ai_variation_notes,
-        difficulty, keywords_json, structural_fingerprint, created_at, updated_at
+        concept_id, subject, category, sub_category, type, question_text, code_snippet, language, options_json,
+        ground_truth_answer, official_explanation, hints_json, code_line_explanations_json, active_recall_meta_json,
+        ai_explanation, ai_variation_notes, difficulty, keywords_json, structural_fingerprint, created_at, updated_at
       ) VALUES (
         @id, @source_type, @exam_year, @exam_round, @question_number, @parent_question_id,
-        @subject, @category, @sub_category, @type, @question_text, @code_snippet, @language, @options_json,
-        @ground_truth_answer, @official_explanation, @ai_explanation, @ai_variation_notes,
-        @difficulty, @keywords_json, @structural_fingerprint, @created_at, @updated_at
+        @concept_id, @subject, @category, @sub_category, @type, @question_text, @code_snippet, @language, @options_json,
+        @ground_truth_answer, @official_explanation, @hints_json, @code_line_explanations_json, @active_recall_meta_json,
+        @ai_explanation, @ai_variation_notes, @difficulty, @keywords_json, @structural_fingerprint, @created_at, @updated_at
       )
     `);
 
@@ -345,6 +414,7 @@ export class QuestionRepository {
           exam_round: q.examRound ?? null,
           question_number: q.questionNumber ?? null,
           parent_question_id: q.parentQuestionId ?? null,
+          concept_id: q.conceptId ?? null,
           subject: q.subject,
           category: q.category,
           sub_category: q.subCategory ?? null,
@@ -355,6 +425,13 @@ export class QuestionRepository {
           options_json: q.options ? JSON.stringify(q.options) : null,
           ground_truth_answer: JSON.stringify(q.groundTruthAnswer),
           official_explanation: q.officialExplanation ?? null,
+          hints_json: q.hints ? JSON.stringify(q.hints) : null,
+          code_line_explanations_json: q.codeLineExplanations
+            ? JSON.stringify(q.codeLineExplanations)
+            : null,
+          active_recall_meta_json: q.activeRecallMeta
+            ? JSON.stringify(q.activeRecallMeta)
+            : null,
           ai_explanation: q.aiExplanation ?? null,
           ai_variation_notes: q.aiVariationNotes ?? null,
           difficulty: q.difficulty,

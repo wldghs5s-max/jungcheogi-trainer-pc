@@ -39,6 +39,27 @@ export type QuestionSourceType =
   | 'AI_GENERATED'
   | 'AI_VARIATION';
 
+/**
+ * 코드 문제 라인별 해부 설명 데이터 구조
+ */
+export interface CodeLineExplanation {
+  line: number;
+  code: string;
+  explanation: string;
+  tokens?: Array<{ token: string; desc: string }>;
+}
+
+/**
+ * 능동 회상(Active Recall) 문제 메타데이터
+ */
+export interface ActiveRecallMeta {
+  promptType: 'BLANK' | 'KEYWORD' | 'ORDER' | 'EXPLANATION';
+  blankTarget?: string;
+  targetKeywords?: string[];
+  orderingItems?: string[];
+  recallPrompt?: string;
+}
+
 export interface Question {
   id: string;
   sourceType: QuestionSourceType;
@@ -50,6 +71,9 @@ export interface Question {
 
   // 기출 -> AI 변형 문제 관계 (Parent-Child)
   parentQuestionId?: string;
+
+  // 핵심 개념 분류 연동 (Phase 5)
+  conceptId?: string;
 
   subject: Subject;
   category: string;
@@ -64,6 +88,15 @@ export interface Question {
   groundTruthAnswer: string | string[];
   answerVerificationStatus?: AnswerVerificationStatus;
   officialExplanation?: string;
+
+  // 힌트 목록 (Phase 5 Active Recall 지원)
+  hints?: string[];
+
+  // 코드 라인별 설명 (Phase 5 코드 해부 학습)
+  codeLineExplanations?: CodeLineExplanation[];
+
+  // 능동 회상 세부 메타데이터
+  activeRecallMeta?: ActiveRecallMeta;
 
   // AI 보조 해석 및 변형 노트 (Ground Truth와 명확히 분리)
   aiExplanation?: string;
@@ -82,6 +115,7 @@ export interface QuestionFilter {
   difficulty?: Difficulty;
   sourceType?: QuestionSourceType;
   parentQuestionId?: string;
+  conceptId?: string;
   search?: string;
   limit?: number;
   offset?: number;

@@ -7,17 +7,17 @@ import {
   QuestionType,
   Difficulty,
   CodeLanguage,
-} from '@jungcheogi/shared';
-import { parseJsonQuestions } from './parsers/jsonParser';
-import { parseMarkdownQuestions } from './parsers/markdownParser';
-import { QuestionValidator } from './validator';
+} from "@jungcheogi/shared";
+import { parseJsonQuestions } from "./parsers/jsonParser";
+import { parseMarkdownQuestions } from "./parsers/markdownParser";
+import { QuestionValidator } from "./validator";
 import {
   generateStructuralFingerprint,
   analyzeDuplicates,
-} from './fingerprint';
-import { ImportBatchRepository } from '../repositories/importBatchRepository';
-import { QuestionRepository } from '../repositories/questionRepository';
-import { getDatabase } from '../database';
+} from "./fingerprint";
+import { ImportBatchRepository } from "../repositories/importBatchRepository";
+import { QuestionRepository } from "../repositories/questionRepository";
+import { getDatabase } from "../database";
 
 export interface ParseAndStageInput {
   format: ImportFormat;
@@ -40,18 +40,19 @@ export class QuestionImportPipeline {
    * 1단계: Parse -> Validate -> Fingerprint/Duplicate -> Stage 저장
    */
   public async parseAndStage(
-    input: ParseAndStageInput
+    input: ParseAndStageInput,
   ): Promise<{ batch: ImportBatch; stagedQuestions: StagedQuestion[] }> {
-    const defaultSource: QuestionSourceType = input.sourceType || 'USER_IMPORTED';
+    const defaultSource: QuestionSourceType =
+      input.sourceType || "USER_IMPORTED";
 
     // 1. 파싱 (Markdown 또는 JSON)
     const rawList =
-      input.format === 'MARKDOWN'
+      input.format === "MARKDOWN"
         ? parseMarkdownQuestions(input.content, defaultSource)
         : parseJsonQuestions(input.content, defaultSource);
 
     if (rawList.length === 0) {
-      throw new Error('문항을 추출할 수 없습니다. 입력 형식을 확인해주세요.');
+      throw new Error("문항을 추출할 수 없습니다. 입력 형식을 확인해주세요.");
     }
 
     // 기존 라이브 DB 문항 전체 로드 (중복 판별용)
@@ -72,7 +73,7 @@ export class QuestionImportPipeline {
       const fingerprint = generateStructuralFingerprint(
         raw.questionText,
         raw.codeSnippet,
-        raw.subject
+        raw.subject,
       );
 
       // 4. 중복 및 AI_VARIATION 계보 분석
@@ -80,11 +81,11 @@ export class QuestionImportPipeline {
         {
           questionText: raw.questionText,
           codeSnippet: raw.codeSnippet,
-          subject: raw.subject || '소프트웨어설계',
+          subject: raw.subject || "소프트웨어설계",
           fingerprint,
           parentQuestionId: raw.parentQuestionId,
         },
-        existing
+        existing,
       );
 
       const stagedId = `staged_${batchId}_${i + 1}`;
@@ -97,11 +98,17 @@ export class QuestionImportPipeline {
         examYear: raw.examYear,
         examRound: raw.examRound,
         questionNumber: raw.questionNumber,
-        parentQuestionId: raw.parentQuestionId || (dupAnalysis.status === 'AI_VARIATION_CANDIDATE' ? dupAnalysis.duplicateQuestionId : undefined),
-        subject: (raw.subject as Subject) || '소프트웨어설계',
-        category: raw.category || '일반',
+        parentQuestionId:
+          raw.parentQuestionId ||
+          (dupAnalysis.status === "AI_VARIATION_CANDIDATE"
+            ? dupAnalysis.duplicateQuestionId
+            : undefined),
+        subject: (raw.subject as Subject) || "소프트웨어설계",
+        category: raw.category || "일반",
         subCategory: raw.subCategory,
-        type: (raw.type as QuestionType) || (raw.codeSnippet ? 'CODE_TRACE' : 'SHORT_ANSWER'),
+        type:
+          (raw.type as QuestionType) ||
+          (raw.codeSnippet ? "CODE_TRACE" : "SHORT_ANSWER"),
         questionText: raw.questionText,
         codeSnippet: raw.codeSnippet,
         language: raw.codeLanguage as CodeLanguage,
@@ -110,14 +117,14 @@ export class QuestionImportPipeline {
         officialExplanation: raw.extractedExplanation,
         aiExplanation: raw.aiExplanation,
         aiVariationNotes: raw.aiVariationNotes,
-        difficulty: (raw.difficulty as Difficulty) || 'MEDIUM',
+        difficulty: (raw.difficulty as Difficulty) || "MEDIUM",
         keywords: raw.keywords || [],
         structuralFingerprint: fingerprint,
         duplicateStatus: dupAnalysis.status,
         duplicateQuestionId: dupAnalysis.duplicateQuestionId,
         duplicateSimilarity: dupAnalysis.similarity,
         validationIssues: validation.issues,
-        reviewStatus: 'PENDING',
+        reviewStatus: "PENDING",
         reviewerNotes: dupAnalysis.reason,
         createdAt: now,
       });
@@ -133,7 +140,7 @@ export class QuestionImportPipeline {
       approvedCount: 0,
       rejectedCount: 0,
       committedCount: 0,
-      status: 'PENDING_REVIEW',
+      status: "PENDING_REVIEW",
       createdAt: now,
     };
 
@@ -149,7 +156,10 @@ export class QuestionImportPipeline {
   /**
    * 2단계: 승인(APPROVED)된 문항들을 live DB로 원자적 Commit
    */
-  public commit(batchId: string): { committedCount: number; committedQuestionIds: string[] } {
+  public commit(batchId: string): {
+    committedCount: number;
+    committedQuestionIds: string[];
+  } {
     return this.batchRepo.commitApprovedQuestions(batchId);
   }
 }

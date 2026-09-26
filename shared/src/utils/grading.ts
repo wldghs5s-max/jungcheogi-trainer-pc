@@ -1,7 +1,7 @@
 /**
  * 정처기 실기 주관식 채점 및 문자열 정규화 모듈
  * (기존 검증된 모바일 앱 로직을 PC 도메인 구조에 맞게 이식 및 확장)
- * 
+ *
  * [주의 사항 및 채점 원칙]:
  * 1. Levenshtein 퍼지 매칭(편집 거리 1 이하 허용)은 실제 자격증 시험의 공식 기준이 아니라,
  *    학습자가 사소한 오탈자로 인해 불필요한 좌절을 겪지 않도록 지원하는 "플랫폼 자동 채점 보조 규칙"입니다.
@@ -20,11 +20,11 @@
  * 4. 영문 대문자화
  */
 export function normalizeAnswer(ans: string): string {
-  if (!ans) return '';
+  if (!ans) return "";
   return ans
     .trim()
-    .replace(/[()[\]{}.,·\-_/'":;?`~!@#$%^&*+=<>]/g, '')
-    .replace(/\s+/g, '')
+    .replace(/[()[\]{}.,·\-_/'":;?`~!@#$%^&*+=<>]/g, "")
+    .replace(/\s+/g, "")
     .toUpperCase();
 }
 
@@ -45,52 +45,63 @@ export function isShortAcronym(word: string): boolean {
  */
 export const SYNONYM_GROUPS: string[][] = [
   // SQL 및 DB
-  ['GROUPBY', '그룹바이', '그룹별'],
-  ['SELECT', '셀렉트', '셀렉'],
-  ['INSERT', '인서트'],
-  ['UPDATE', '업데이트', '갱신'],
-  ['DELETE', '딜리트', '삭제'],
-  ['HAVING', '해빙'],
-  ['ORDERBY', '오더바이', '정렬'],
-  ['PRIMARYKEY', 'PK', '기본키', '프라이머리키'],
-  ['FOREIGNKEY', 'FK', '외래키'],
-  ['CANDIDATEKEY', '후보키'],
-  ['INNERJOIN', '내부조인', '이너조인', 'EQUIJOIN', '등가조인'],
-  ['INDEX', '인덱스', '색인'],
-  ['VIEW', '뷰'],
-  ['TRANSACTION', '트랜잭션'],
-  ['NORMALIZATION', '정규화'],
+  ["GROUPBY", "그룹바이", "그룹별"],
+  ["SELECT", "셀렉트", "셀렉"],
+  ["INSERT", "인서트"],
+  ["UPDATE", "업데이트", "갱신"],
+  ["DELETE", "딜리트", "삭제"],
+  ["HAVING", "해빙"],
+  ["ORDERBY", "오더바이", "정렬"],
+  ["PRIMARYKEY", "PK", "기본키", "프라이머리키"],
+  ["FOREIGNKEY", "FK", "외래키"],
+  ["CANDIDATEKEY", "후보키"],
+  ["INNERJOIN", "내부조인", "이너조인", "EQUIJOIN", "등가조인"],
+  ["INDEX", "인덱스", "색인"],
+  ["VIEW", "뷰"],
+  ["TRANSACTION", "트랜잭션"],
+  ["NORMALIZATION", "정규화"],
 
   // 트랜잭션 ACID
-  ['ATOMICITY', '원자성'],
-  ['CONSISTENCY', '일관성'],
-  ['ISOLATION', '고립성', '격리성'],
-  ['DURABILITY', '지속성', '영속성'],
-  ['INTEGRITY', '무결성', '완전성'],
-  ['DEADLOCK', '교착상태', '데드락'],
+  ["ATOMICITY", "원자성"],
+  ["CONSISTENCY", "일관성"],
+  ["ISOLATION", "고립성", "격리성"],
+  ["DURABILITY", "지속성", "영속성"],
+  ["INTEGRITY", "무결성", "완전성"],
+  ["DEADLOCK", "교착상태", "데드락"],
 
   // 디자인 패턴
-  ['BUILDER', '빌더', '빌더패턴'],
-  ['SINGLETON', '싱글톤', '싱글톤패턴'],
-  ['OBSERVER', '옵서버', '옵저버', '옵서버패턴'],
-  ['STRATEGY', '전략', '전략패턴'],
-  ['ADAPTER', '어댑터', '어댑터패턴'],
-  ['FACTORYMETHOD', '팩토리메서드', '팩토리메소드', '공장메서드'],
+  ["BUILDER", "빌더", "빌더패턴"],
+  ["SINGLETON", "싱글톤", "싱글톤패턴"],
+  ["OBSERVER", "옵서버", "옵저버", "옵서버패턴"],
+  ["STRATEGY", "전략", "전략패턴"],
+  ["ADAPTER", "어댑터", "어댑터패턴"],
+  ["FACTORYMETHOD", "팩토리메서드", "팩토리메소드", "공장메서드"],
 
   // 모듈 독립성 (응집도 & 결합도)
-  ['SEQUENTIALCOHESION', '순차적응집도', '순차응집도'],
-  ['FUNCTIONALCOHESION', '기능적응집도', '기능응집도'],
-  ['COMMUNICATIONALCOHESION', '교환적응집도', '통신적응집도'],
-  ['COMMONCOUPLING', '공통결합도'],
-  ['CONTENTCOUPLING', '내용결합도'],
-  ['DATACOUPLING', '자료결합도'],
+  ["SEQUENTIALCOHESION", "순차적응집도", "순차응집도"],
+  ["FUNCTIONALCOHESION", "기능적응집도", "기능응집도"],
+  ["COMMUNICATIONALCOHESION", "교환적응집도", "통신적응집도"],
+  ["COMMONCOUPLING", "공통결합도"],
+  ["CONTENTCOUPLING", "내용결합도"],
+  ["DATACOUPLING", "자료결합도"],
 
   // 보안 및 네트워크 신기술
-  ['BUFFER_OVERFLOW', 'BUFFER_OVERFLOW', '버퍼오버플로우', '버퍼오버플로', '스택버퍼오버플로우'],
-  ['SDN', 'SOFTWAREDEFINEDNETWORKING', '소프트웨어정의네트워크', '소프트웨어정의네트워킹'],
-  ['XSS', '크로스사이트스크립팅'],
-  ['CSRF', 'XSRF'],
-  ['SQLINJECTION', 'SQL인젝션', 'SQLI'],
+  [
+    "BUFFER_OVERFLOW",
+    "BUFFER_OVERFLOW",
+    "버퍼오버플로우",
+    "버퍼오버플로",
+    "스택버퍼오버플로우",
+  ],
+  [
+    "SDN",
+    "SOFTWAREDEFINEDNETWORKING",
+    "소프트웨어정의네트워크",
+    "소프트웨어정의네트워킹",
+  ],
+  ["XSS", "크로스사이트스크립팅"],
+  ["CSRF", "XSRF"],
+  ["SQLINJECTION", "SQL인젝션", "SQLI"],
 ];
 
 function expandForms(ans: string): string[] {
@@ -117,7 +128,9 @@ export function canonicalForm(ans: string): string {
 export function levenshtein(a: string, b: string): number {
   const rows = a.length + 1;
   const cols = b.length + 1;
-  const dp: number[][] = Array.from({ length: rows }, () => Array(cols).fill(0));
+  const dp: number[][] = Array.from({ length: rows }, () =>
+    Array(cols).fill(0),
+  );
 
   for (let i = 0; i < rows; i++) dp[i][0] = i;
   for (let j = 0; j < cols; j++) dp[0][j] = j;
@@ -128,7 +141,7 @@ export function levenshtein(a: string, b: string): number {
       dp[i][j] = Math.min(
         dp[i - 1][j] + 1,
         dp[i][j - 1] + 1,
-        dp[i - 1][j - 1] + cost
+        dp[i - 1][j - 1] + cost,
       );
     }
   }
@@ -155,7 +168,7 @@ export function isFuzzyMatch(left: string, right: string): boolean {
   return levenshtein(left, right) <= 1;
 }
 
-export type MatchType = 'EXACT' | 'SYNONYM' | 'FUZZY_TYPO' | 'NONE';
+export type MatchType = "EXACT" | "SYNONYM" | "FUZZY_TYPO" | "NONE";
 
 export interface SingleMatchDetail {
   isMatch: boolean;
@@ -169,17 +182,20 @@ export interface SingleMatchDetail {
 /**
  * 단일 답안 일치 여부 및 매칭 세부 정보(정확/동의어/오탈자/불일치) 분석
  */
-export function checkMatchDetails(user: string, correct: string): SingleMatchDetail {
+export function checkMatchDetails(
+  user: string,
+  correct: string,
+): SingleMatchDetail {
   const normUser = normalizeAnswer(user);
   const normCorrect = normalizeAnswer(correct);
 
   if (!normUser || !normCorrect) {
     return {
       isMatch: false,
-      matchType: 'NONE',
+      matchType: "NONE",
       needsReview: false,
       normalizedUser: normUser,
-      feedback: '답안이 비어있습니다.',
+      feedback: "답안이 비어있습니다.",
     };
   }
 
@@ -187,11 +203,11 @@ export function checkMatchDetails(user: string, correct: string): SingleMatchDet
   if (normUser === normCorrect) {
     return {
       isMatch: true,
-      matchType: 'EXACT',
+      matchType: "EXACT",
       needsReview: false,
       normalizedUser: normUser,
       matchedTarget: normCorrect,
-      feedback: '정답입니다!',
+      feedback: "정답입니다!",
     };
   }
 
@@ -203,11 +219,11 @@ export function checkMatchDetails(user: string, correct: string): SingleMatchDet
     if (correctForms.includes(uForm)) {
       return {
         isMatch: true,
-        matchType: 'SYNONYM',
+        matchType: "SYNONYM",
         needsReview: false,
         normalizedUser: normUser,
         matchedTarget: uForm,
-        feedback: '동의어 사전 일치로 정답 처리되었습니다.',
+        feedback: "동의어 사전 일치로 정답 처리되었습니다.",
       };
     }
   }
@@ -218,21 +234,22 @@ export function checkMatchDetails(user: string, correct: string): SingleMatchDet
     if (isFuzzyMatch(normUser, cForm)) {
       return {
         isMatch: true,
-        matchType: 'FUZZY_TYPO',
+        matchType: "FUZZY_TYPO",
         needsReview: true, // 자동 채점 보조 규칙이므로 검토 대상 권장
         normalizedUser: normUser,
         matchedTarget: cForm,
-        feedback: '1글자 오탈자 허용 보조 규칙으로 정답 처리되었습니다 (수동 검토 권장).',
+        feedback:
+          "1글자 오탈자 허용 보조 규칙으로 정답 처리되었습니다 (수동 검토 권장).",
       };
     }
   }
 
   return {
     isMatch: false,
-    matchType: 'NONE',
+    matchType: "NONE",
     needsReview: false,
     normalizedUser: normUser,
-    feedback: '오답입니다.',
+    feedback: "오답입니다.",
   };
 }
 
@@ -267,7 +284,7 @@ export interface GradingResult {
 export function gradeAnswer(
   userAnswer: string | string[],
   groundTruthAnswer: string | string[],
-  isUnknown = false
+  isUnknown = false,
 ): GradingResult {
   // 1. "모르겠음" 선택 시 즉시 오답 처리 (당일 복습 대상 플래그)
   if (isUnknown) {
@@ -275,9 +292,9 @@ export function gradeAnswer(
       isCorrect: false,
       score: 0,
       isUnknown: true,
-      matchType: 'NONE',
+      matchType: "NONE",
       needsReview: false,
-      feedback: '모르는 문제로 표시되었습니다. 해설을 확인하고 복습하세요.',
+      feedback: "모르는 문제로 표시되었습니다. 해설을 확인하고 복습하세요.",
     };
   }
 
@@ -285,16 +302,16 @@ export function gradeAnswer(
   if (
     userAnswer === undefined ||
     userAnswer === null ||
-    (typeof userAnswer === 'string' && !userAnswer.trim()) ||
+    (typeof userAnswer === "string" && !userAnswer.trim()) ||
     (Array.isArray(userAnswer) && userAnswer.every((a) => !a.trim()))
   ) {
     return {
       isCorrect: false,
       score: 0,
       isUnknown: false,
-      matchType: 'NONE',
+      matchType: "NONE",
       needsReview: false,
-      feedback: '답안이 입력되지 않았습니다.',
+      feedback: "답안이 입력되지 않았습니다.",
     };
   }
 
@@ -322,7 +339,7 @@ export function gradeAnswer(
             isUnknown: false,
             matchType: detail.matchType,
             needsReview: detail.needsReview,
-            feedback: detail.feedback || '정답입니다!',
+            feedback: detail.feedback || "정답입니다!",
           };
         }
       }
@@ -335,7 +352,7 @@ export function gradeAnswer(
 
     for (let i = 0; i < groundTruthAnswer.length; i++) {
       const expected = groundTruthAnswer[i];
-      const provided = userArr[i] || '';
+      const provided = userArr[i] || "";
       const detail = checkMatchDetails(provided, expected);
 
       itemResults.push({
@@ -364,18 +381,18 @@ export function gradeAnswer(
       isUnknown: false,
       needsReview: hasReviewItem,
       feedback: isCorrect
-        ? (hasReviewItem
-            ? '모든 정답 키워드가 일치합니다 (일부 오탈자 허용 포함).'
-            : '모든 정답 키워드가 일치합니다!')
+        ? hasReviewItem
+          ? "모든 정답 키워드가 일치합니다 (일부 오탈자 허용 포함)."
+          : "모든 정답 키워드가 일치합니다!"
         : matchCount > 0
-        ? `부분 정답입니다 (${matchCount}/${totalItems}개 일치).`
-        : '오답입니다.',
+          ? `부분 정답입니다 (${matchCount}/${totalItems}개 일치).`
+          : "오답입니다.",
       itemResults,
     };
   }
 
   // 3. Ground Truth가 단일 정답인 경우
-  const userStr = Array.isArray(userAnswer) ? userAnswer.join('') : userAnswer;
+  const userStr = Array.isArray(userAnswer) ? userAnswer.join("") : userAnswer;
   const detail = checkMatchDetails(userStr, groundTruthAnswer);
 
   return {
@@ -384,7 +401,8 @@ export function gradeAnswer(
     isUnknown: false,
     matchType: detail.matchType,
     needsReview: detail.needsReview,
-    feedback: detail.feedback || (detail.isMatch ? '정답입니다!' : '오답입니다.'),
+    feedback:
+      detail.feedback || (detail.isMatch ? "정답입니다!" : "오답입니다."),
   };
 }
 
@@ -393,7 +411,7 @@ export function gradeAnswer(
  */
 export function formatAnswerDisplay(answer: string | string[]): string {
   if (Array.isArray(answer)) {
-    return answer.map((ans, i) => `(${i + 1}) ${ans}`).join('  |  ');
+    return answer.map((ans, i) => `(${i + 1}) ${ans}`).join("  |  ");
   }
   return answer;
 }

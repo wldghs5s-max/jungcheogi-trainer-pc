@@ -46,22 +46,38 @@ function mapRowToAttempt(row: AttemptRow): QuizAttempt {
 
 export class AttemptRepository {
   private db: Database;
+  private timestampCol: string = 'created_at';
 
   constructor(customDb?: Database) {
     this.db = customDb || getDatabase();
+    try {
+      const info = this.db.pragma('table_info(attempts)') as Array<{ name: string }>;
+      const cols = new Set(info.map((c) => c.name));
+      if (!cols.has('created_at') && cols.has('answered_at')) {
+        this.timestampCol = 'answered_at';
+      }
+    } catch {
+      // Table may not exist during early bootstrap
+    }
   }
 
   public create(attempt: QuizAttempt): QuizAttempt {
+    const timestamp = attempt.createdAt || new Date().toISOString();
+    const info = this.db.pragma('table_info(attempts)') as Array<{ name: string }>;
+    const cols = new Set(info.map((c) => c.name));
+
+    const insertCols = [
+      'id', 'session_id', 'question_id', 'user_answer', 'is_correct', 'score',
+      'miss_type', 'time_spent_ms', 'is_unknown', 'hint_used', 'solution_revealed', 'feedback'
+    ];
+    if (cols.has('created_at')) insertCols.push('created_at');
+    if (cols.has('answered_at')) insertCols.push('answered_at');
+
+    const colNames = insertCols.join(', ');
+    const placeholders = insertCols.map((c) => `@${c}`).join(', ');
+
     const stmt = this.db.prepare(`
-      INSERT INTO attempts (
-        id, session_id, question_id, user_answer, is_correct, score,
-        miss_type, time_spent_ms, is_unknown, hint_used, solution_revealed,
-        feedback, answered_at
-      ) VALUES (
-        @id, @session_id, @question_id, @user_answer, @is_correct, @score,
-        @miss_type, @time_spent_ms, @is_unknown, @hint_used, @solution_revealed,
-        @feedback, @answered_at
-      )
+      INSERT INTO attempts (${colNames}) VALUES (${placeholders})
     `);
 
     stmt.run({
@@ -77,7 +93,8 @@ export class AttemptRepository {
       hint_used: attempt.hintUsed ? 1 : 0,
       solution_revealed: attempt.solutionRevealed ? 1 : 0,
       feedback: attempt.feedback ?? null,
-      answered_at: attempt.createdAt || new Date().toISOString(),
+      created_at: timestamp,
+      answered_at: timestamp,
     });
 
     const created = this.findById(attempt.id);
@@ -96,7 +113,7 @@ export class AttemptRepository {
 
   public findBySessionId(sessionId: string): QuizAttempt[] {
     const stmt = this.db.prepare(
-      'SELECT * FROM attempts WHERE session_id = ? ORDER BY answered_at ASC, rowid ASC'
+      `SELECT * FROM attempts WHERE session_id = ? ORDER BY ${this.timestampCol} ASC, rowid ASC`
     );
     const rows = stmt.all(sessionId) as AttemptRow[];
     return rows.map(mapRowToAttempt);
@@ -104,7 +121,7 @@ export class AttemptRepository {
 
   public findByQuestionId(questionId: string): QuizAttempt[] {
     const stmt = this.db.prepare(
-      'SELECT * FROM attempts WHERE question_id = ? ORDER BY answered_at DESC'
+      `SELECT * FROM attempts WHERE question_id = ? ORDER BY ${this.timestampCol} DESC`
     );
     const rows = stmt.all(questionId) as AttemptRow[];
     return rows.map(mapRowToAttempt);
@@ -112,7 +129,7 @@ export class AttemptRepository {
 
   public getRecentAttempts(limit = 20): QuizAttempt[] {
     const stmt = this.db.prepare(
-      'SELECT * FROM attempts ORDER BY answered_at DESC LIMIT ?'
+      `SELECT * FROM attempts ORDER BY ${this.timestampCol} DESC LIMIT ?`
     );
     const rows = stmt.all(limit) as AttemptRow[];
     return rows.map(mapRowToAttempt);

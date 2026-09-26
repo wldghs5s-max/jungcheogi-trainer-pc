@@ -4,25 +4,29 @@ import {
   QuestionType,
   Difficulty,
   CodeLanguage,
-} from './question.js';
+} from "./question.js";
 
-export type ImportFormat = 'MARKDOWN' | 'JSON';
+export type ImportFormat = "MARKDOWN" | "JSON";
 
 export type ImportBatchStatus =
-  | 'PENDING_REVIEW'
-  | 'PARTIALLY_APPROVED'
-  | 'APPROVED'
-  | 'COMMITTED'
-  | 'REJECTED';
+  | "PENDING_REVIEW"
+  | "PARTIALLY_APPROVED"
+  | "APPROVED"
+  | "COMMITTED"
+  | "REJECTED";
 
-export type StagedReviewStatus = 'PENDING' | 'APPROVED' | 'REJECTED' | 'COMMITTED';
+export type StagedReviewStatus =
+  | "PENDING"
+  | "APPROVED"
+  | "REJECTED"
+  | "COMMITTED";
 
 export type DuplicateStatus =
-  | 'NEW'
-  | 'DUPLICATE_WARNING'
-  | 'AI_VARIATION_CANDIDATE';
+  | "NEW"
+  | "DUPLICATE_WARNING"
+  | "AI_VARIATION_CANDIDATE";
 
-export type ValidationSeverity = 'ERROR' | 'WARNING';
+export type ValidationSeverity = "ERROR" | "WARNING";
 
 export interface ValidationIssue {
   field: string;

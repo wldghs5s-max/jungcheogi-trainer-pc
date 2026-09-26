@@ -1,4 +1,4 @@
-import { Database } from 'better-sqlite3';
+import { Database } from "better-sqlite3";
 import {
   ImportBatch,
   StagedQuestion,
@@ -10,9 +10,9 @@ import {
   QuestionType,
   Difficulty,
   CodeLanguage,
-} from '@jungcheogi/shared';
-import { getDatabase } from '../database';
-import { QuestionRepository } from './questionRepository';
+} from "@jungcheogi/shared";
+import { getDatabase } from "../database";
+import { QuestionRepository } from "./questionRepository";
 
 interface StagedRow {
   id: string;
@@ -105,7 +105,9 @@ function mapRowToStaged(row: StagedRow): StagedQuestion {
     duplicateStatus: row.duplicate_status as any,
     duplicateQuestionId: row.duplicate_question_id ?? undefined,
     duplicateSimilarity: row.duplicate_similarity,
-    validationIssues: row.validation_issues_json ? JSON.parse(row.validation_issues_json) : [],
+    validationIssues: row.validation_issues_json
+      ? JSON.parse(row.validation_issues_json)
+      : [],
     reviewStatus: row.review_status as StagedReviewStatus,
     reviewerNotes: row.reviewer_notes ?? undefined,
     reviewedAt: row.reviewed_at ?? undefined,
@@ -173,7 +175,7 @@ export class ImportBatchRepository {
         batch.rejectedCount,
         batch.committedCount,
         batch.status,
-        batch.createdAt
+        batch.createdAt,
       );
 
       for (const s of stagedList) {
@@ -206,7 +208,7 @@ export class ImportBatchRepository {
           s.duplicateSimilarity ?? 0,
           JSON.stringify(s.validationIssues || []),
           s.reviewStatus,
-          s.createdAt
+          s.createdAt,
         );
       }
     });
@@ -215,15 +217,17 @@ export class ImportBatchRepository {
   }
 
   public findBatchById(
-    batchId: string
+    batchId: string,
   ): { batch: ImportBatch; stagedQuestions: StagedQuestion[] } | null {
     const bRow = this.db
-      .prepare('SELECT * FROM import_batches WHERE id = ?')
+      .prepare("SELECT * FROM import_batches WHERE id = ?")
       .get(batchId) as BatchRow | undefined;
     if (!bRow) return null;
 
     const qRows = this.db
-      .prepare('SELECT * FROM staged_questions WHERE batch_id = ? ORDER BY index_in_batch ASC')
+      .prepare(
+        "SELECT * FROM staged_questions WHERE batch_id = ? ORDER BY index_in_batch ASC",
+      )
       .all(batchId) as StagedRow[];
 
     return {
@@ -234,26 +238,30 @@ export class ImportBatchRepository {
 
   public findAllBatches(): ImportBatch[] {
     const rows = this.db
-      .prepare('SELECT * FROM import_batches ORDER BY created_at DESC')
+      .prepare("SELECT * FROM import_batches ORDER BY created_at DESC")
       .all() as BatchRow[];
     return rows.map(mapRowToBatch);
   }
 
   public findStagedById(stagedId: string): StagedQuestion | null {
     const row = this.db
-      .prepare('SELECT * FROM staged_questions WHERE id = ?')
+      .prepare("SELECT * FROM staged_questions WHERE id = ?")
       .get(stagedId) as StagedRow | undefined;
     return row ? mapRowToStaged(row) : null;
   }
 
   public updateStagedQuestion(
     stagedId: string,
-    updates: Partial<StagedQuestion>
+    updates: Partial<StagedQuestion>,
   ): StagedQuestion | null {
     const current = this.findStagedById(stagedId);
     if (!current) return null;
 
-    const merged = { ...current, ...updates, updatedAt: new Date().toISOString() };
+    const merged = {
+      ...current,
+      ...updates,
+      updatedAt: new Date().toISOString(),
+    };
 
     this.db
       .prepare(
@@ -264,7 +272,7 @@ export class ImportBatchRepository {
           options_json = ?, ground_truth_answer = ?, official_explanation = ?,
           ai_explanation = ?, ai_variation_notes = ?, difficulty = ?,
           keywords_json = ?, validation_issues_json = ?, reviewer_notes = ?, updated_at = ?
-        WHERE id = ?`
+        WHERE id = ?`,
       )
       .run(
         merged.sourceType,
@@ -289,7 +297,7 @@ export class ImportBatchRepository {
         JSON.stringify(merged.validationIssues || []),
         merged.reviewerNotes ?? null,
         merged.updatedAt,
-        stagedId
+        stagedId,
       );
 
     return this.findStagedById(stagedId);
@@ -298,7 +306,7 @@ export class ImportBatchRepository {
   public setStagedReviewStatus(
     stagedId: string,
     reviewStatus: StagedReviewStatus,
-    reviewerNotes?: string
+    reviewerNotes?: string,
   ): StagedQuestion | null {
     const staged = this.findStagedById(stagedId);
     if (!staged) return null;
@@ -309,7 +317,7 @@ export class ImportBatchRepository {
         `UPDATE staged_questions SET
           review_status = ?, reviewer_notes = COALESCE(?, reviewer_notes),
           reviewed_at = ?, updated_at = ?
-        WHERE id = ?`
+        WHERE id = ?`,
       )
       .run(reviewStatus, reviewerNotes ?? null, now, now, stagedId);
 
@@ -321,14 +329,14 @@ export class ImportBatchRepository {
 
   public bulkSetReviewStatus(
     batchId: string,
-    targetStatus: StagedReviewStatus
+    targetStatus: StagedReviewStatus,
   ): void {
     const now = new Date().toISOString();
     this.db
       .prepare(
         `UPDATE staged_questions SET
           review_status = ?, reviewed_at = ?, updated_at = ?
-        WHERE batch_id = ? AND review_status != 'COMMITTED'`
+        WHERE batch_id = ? AND review_status != 'COMMITTED'`,
       )
       .run(targetStatus, now, now, batchId);
 
@@ -344,7 +352,7 @@ export class ImportBatchRepository {
           SUM(CASE WHEN review_status = 'APPROVED' THEN 1 ELSE 0 END) as approved,
           SUM(CASE WHEN review_status = 'REJECTED' THEN 1 ELSE 0 END) as rejected,
           SUM(CASE WHEN review_status = 'COMMITTED' THEN 1 ELSE 0 END) as committed
-        FROM staged_questions WHERE batch_id = ?`
+        FROM staged_questions WHERE batch_id = ?`,
       )
       .get(batchId) as {
       total: number;
@@ -354,17 +362,17 @@ export class ImportBatchRepository {
       committed: number;
     };
 
-    let status: ImportBatchStatus = 'PENDING_REVIEW';
+    let status: ImportBatchStatus = "PENDING_REVIEW";
     if (counts.committed > 0 && counts.pending === 0 && counts.approved === 0) {
-      status = 'COMMITTED';
+      status = "COMMITTED";
     } else if (counts.committed === counts.total && counts.total > 0) {
-      status = 'COMMITTED';
+      status = "COMMITTED";
     } else if (counts.approved === counts.total && counts.total > 0) {
-      status = 'APPROVED';
+      status = "APPROVED";
     } else if (counts.approved > 0 || counts.committed > 0) {
-      status = 'PARTIALLY_APPROVED';
+      status = "PARTIALLY_APPROVED";
     } else if (counts.rejected === counts.total && counts.total > 0) {
-      status = 'REJECTED';
+      status = "REJECTED";
     }
 
     this.db
@@ -372,7 +380,7 @@ export class ImportBatchRepository {
         `UPDATE import_batches SET
           pending_count = ?, approved_count = ?, rejected_count = ?,
           committed_count = ?, status = ?
-        WHERE id = ?`
+        WHERE id = ?`,
       )
       .run(
         counts.pending,
@@ -380,27 +388,30 @@ export class ImportBatchRepository {
         counts.rejected,
         counts.committed,
         status,
-        batchId
+        batchId,
       );
   }
 
   /**
    * APPROVED 상태의 문항들만 실 서비스 questions 테이블로 원자적 Commit
    */
-  public commitApprovedQuestions(
-    batchId: string
-  ): { committedCount: number; committedQuestionIds: string[] } {
+  public commitApprovedQuestions(batchId: string): {
+    committedCount: number;
+    committedQuestionIds: string[];
+  } {
     const batchInfo = this.findBatchById(batchId);
     if (!batchInfo) {
       throw new Error(`배치 ID '${batchId}'를 찾을 수 없습니다.`);
     }
 
     const approvedList = batchInfo.stagedQuestions.filter(
-      (s) => s.reviewStatus === 'APPROVED'
+      (s) => s.reviewStatus === "APPROVED",
     );
 
     if (approvedList.length === 0) {
-      throw new Error('승인(APPROVED)된 문항이 없습니다. 검수 후 승인된 문항만 커밋할 수 있습니다.');
+      throw new Error(
+        "승인(APPROVED)된 문항이 없습니다. 검수 후 승인된 문항만 커밋할 수 있습니다.",
+      );
     }
 
     const committedQuestionIds: string[] = [];
@@ -411,7 +422,7 @@ export class ImportBatchRepository {
         // 실제 Question 엔티티 생성
         const liveQuestionId =
           staged.examYear && staged.examRound && staged.questionNumber
-            ? `q_${staged.examYear}_0${staged.examRound}_${String(staged.questionNumber).padStart(2, '0')}`
+            ? `q_${staged.examYear}_0${staged.examRound}_${String(staged.questionNumber).padStart(2, "0")}`
             : `q_imp_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`;
 
         const question: Question = {
@@ -449,7 +460,7 @@ export class ImportBatchRepository {
             `UPDATE staged_questions SET
               review_status = 'COMMITTED', committed_question_id = ?,
               updated_at = ?
-            WHERE id = ?`
+            WHERE id = ?`,
           )
           .run(liveQuestionId, now, staged.id);
       }
@@ -457,7 +468,7 @@ export class ImportBatchRepository {
       // 배치 상태 갱신
       this.syncBatchCounts(batchId);
       this.db
-        .prepare('UPDATE import_batches SET committed_at = ? WHERE id = ?')
+        .prepare("UPDATE import_batches SET committed_at = ? WHERE id = ?")
         .run(now, batchId);
     });
 
@@ -470,6 +481,6 @@ export class ImportBatchRepository {
   }
 
   public deleteBatch(batchId: string): void {
-    this.db.prepare('DELETE FROM import_batches WHERE id = ?').run(batchId);
+    this.db.prepare("DELETE FROM import_batches WHERE id = ?").run(batchId);
   }
 }

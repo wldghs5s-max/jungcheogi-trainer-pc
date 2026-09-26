@@ -23,6 +23,7 @@ export const SEED_QUESTIONS: Question[] = [
     examYear: 2020,
     examRound: 1,
     questionNumber: 1,
+    conceptId: 'concept_gof_builder',
     subject: '소프트웨어설계',
     category: '디자인 패턴',
     subCategory: '생성 패턴',
@@ -32,6 +33,10 @@ export const SEED_QUESTIONS: Question[] = [
     groundTruthAnswer: '빌더',
     officialExplanation:
       'GoF 디자인 패턴 중 생성 패턴에 해당하는 빌더(Builder) 패턴은 복합 객체의 생성 과정과 표현 방법을 분리하여 동일한 생성 절차에서 서로 다른 표현을 생성할 수 있게 해준다.',
+    hints: [
+      'GoF 디자인 패턴 중 생성(Creational) 패턴에 해당합니다.',
+      '복합 객체를 건축하듯이 단계별로 조립하여 생성합니다.',
+    ],
     aiExplanation:
       '빌더 패턴은 많은 인자를 가진 생성자 호출의 가독성을 높이고 불변 객체를 생성할 때 널리 쓰입니다.',
     difficulty: 'MEDIUM',
@@ -46,6 +51,7 @@ export const SEED_QUESTIONS: Question[] = [
     examYear: 2020,
     examRound: 2,
     questionNumber: 2,
+    conceptId: 'concept_db_acid',
     subject: '데이터베이스구축',
     category: '트랜잭션',
     subCategory: 'ACID 특성',
@@ -55,6 +61,10 @@ export const SEED_QUESTIONS: Question[] = [
     groundTruthAnswer: ['원자성', '영속성'],
     officialExplanation:
       '(1)은 완전히 수행되거나 전혀 수행되지 않아야 함을 의미하는 원자성(Atomicity)이고, (2)는 완료된 트랜잭션의 결과가 영구 보존되어야 함을 뜻하는 영속성(Durability)이다.',
+    hints: [
+      '(1)은 완전히 실행되거나 전혀 실행되지 않아야 함을 의미하는 All or Nothing 특성입니다.',
+      '(2)는 성공 시 시스템 고장에도 결과가 사라지지 않고 영구 보존됨을 뜻합니다.',
+    ],
     aiExplanation:
       'ACID의 A(Atomicity)와 D(Durability)에 대한 정의입니다. C는 일관성(Consistency), I는 고립성(Isolation)입니다.',
     difficulty: 'EASY',
@@ -69,6 +79,7 @@ export const SEED_QUESTIONS: Question[] = [
     examYear: 2021,
     examRound: 1,
     questionNumber: 3,
+    conceptId: 'concept_c_pointer',
     subject: '프로그래밍언어활용',
     category: 'C 프로그래밍',
     subCategory: '포인터와 배열',
@@ -86,6 +97,37 @@ int main() {
     groundTruthAnswer: '40',
     officialExplanation:
       '배열 이름 a는 시작 주소(&a[0])를 나타내므로 a + 2는 a[2](값 30)의 주소입니다. 포인터 p가 a[2]를 가리킬 때, *(p + 1)은 한 칸 뒤인 a[3]의 값인 40을 참조하여 출력합니다.',
+    hints: [
+      '배열 이름 a는 배열의 시작 주소 &a[0]을 의미합니다.',
+      'a + 2는 a[2]의 주소이며, p는 a[2]를 가리킵니다.',
+      'p + 1은 a[2]에서 한 칸 뒤인 a[3]의 주소를 가리킵니다.',
+    ],
+    codeLineExplanations: [
+      {
+        line: 4,
+        code: 'int a[5] = {10, 20, 30, 40, 50};',
+        explanation: '크기 5의 int 배열 a를 선언하고 인덱스 0~4에 10부터 50까지 연속 배치합니다.',
+        tokens: [{ token: 'a[5]', desc: '5개 int 공간 연속 할당' }],
+      },
+      {
+        line: 5,
+        code: 'int *p = a + 2;',
+        explanation: '배열명 a는 &a[0] 주소이며, 여기에 2를 더하면 a[2](값 30)의 주소가 포인터 변수 p에 저장됩니다.',
+        tokens: [
+          { token: 'int *p', desc: 'int 주소를 저장할 포인터 변수' },
+          { token: 'a + 2', desc: '&a[2] 주소' },
+        ],
+      },
+      {
+        line: 6,
+        code: 'printf("%d\\n", *(p + 1));',
+        explanation: 'p가 &a[2]를 가리키므로 p + 1은 &a[3] 주소이고, 역참조 연산자 *에 의해 a[3]의 실제 값 40이 출력됩니다.',
+        tokens: [
+          { token: 'p + 1', desc: '&a[3] 주소' },
+          { token: '*(p + 1)', desc: '역참조하여 값 40 반환' },
+        ],
+      },
+    ],
     aiExplanation:
       '포인터 연산에서 p = a + 2이므로 p는 인덱스 2를 가리킵니다. *(p + 1)은 인덱스 2 + 1 = 3의 원소값 40입니다.',
     difficulty: 'MEDIUM',
@@ -258,6 +300,7 @@ FROM EMPLOYEE
     id: 'q_var_c_2d_01',
     sourceType: 'AI_VARIATION',
     parentQuestionId: 'q_2021_01_03',
+    conceptId: 'concept_c_pointer',
     subject: '프로그래밍언어활용',
     category: 'C 프로그래밍',
     subCategory: '포인터와 2차원 배열',
@@ -275,6 +318,10 @@ int main() {
     language: 'C',
     groundTruthAnswer: '50',
     officialExplanation: undefined, // 변형 문제이므로 원본 공식 해설은 없으며, AI Explanation 및 Variation Notes로 기술됨
+    hints: [
+      '2차원 배열은 메모리상에 행 우선(Row-major) 방식으로 일렬로 연속 배치됩니다.',
+      'p가 &a[0][0]을 가리키므로 p + 4는 인덱스 4 위치의 원소를 가리킵니다.',
+    ],
     aiExplanation:
       '2차원 배열 a[2][3]은 메모리상에 연속으로 [10, 20, 30, 40, 50, 60] 순서로 배치됩니다. p가 0번째 원소(10)를 가리키므로 *(p + 4)는 4번째 인덱스 위치인 a[1][1]의 값 50을 참조합니다.',
     aiVariationNotes:
@@ -289,6 +336,7 @@ int main() {
     id: 'q_var_acid_02',
     sourceType: 'AI_VARIATION',
     parentQuestionId: 'q_2020_02_02',
+    conceptId: 'concept_db_acid',
     subject: '데이터베이스구축',
     category: '트랜잭션',
     subCategory: 'ACID 특성',
