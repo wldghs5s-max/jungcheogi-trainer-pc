@@ -309,7 +309,15 @@ export class LightweightExecutionEngine implements ICodeExecutionEngine {
           env: this.executionEnv(cwd),
         },
         (error, stdout, stderr) => {
-          if (error && (error as NodeJS.ErrnoException).code === "ENOENT") {
+          const stderrStr = stderr ? stderr.toString() : "";
+          const isNotFound =
+            (error as NodeJS.ErrnoException)?.code === "ENOENT" ||
+            error?.code === 9009 ||
+            (typeof (error as any)?.code === "number" && (error as any).code === 9009) ||
+            stderrStr.includes("is not recognized as an internal or external command") ||
+            stderrStr.includes("Python was not found");
+
+          if (error && isNotFound) {
             const err = new Error(`Command not found: ${cmd}`) as Error & {
               code: string;
             };
@@ -321,7 +329,7 @@ export class LightweightExecutionEngine implements ICodeExecutionEngine {
           }
           resolve({
             stdout: stdout ? stdout.toString() : "",
-            stderr: stderr ? stderr.toString() : "",
+            stderr: stderrStr,
             exitCode: error
               ? typeof error.code === "number"
                 ? error.code
