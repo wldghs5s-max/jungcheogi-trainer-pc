@@ -23,6 +23,7 @@ import {
 import { Header } from "./components/Header";
 import { StudySessionModal } from "./components/study/StudySessionModal";
 import { ImportModal } from "./components/importer/ImportModal";
+import { GenerateQuestionModal } from "./components/generator/GenerateQuestionModal";
 import { VariationModal } from "./components/VariationModal";
 import { checkBackendHealth } from "./api/health";
 import { fetchQuestions, fetchQuestionDetail } from "./api/questions";
@@ -91,6 +92,29 @@ export const App: React.FC = () => {
 
   // Phase 4 Import & Review Modal State
   const [isImportModalOpen, setIsImportModalOpen] = useState<boolean>(false);
+  const [importModalInitialQuestion, setImportModalInitialQuestion] =
+    useState<Question | null>(null);
+  const [importModalInitialTab, setImportModalInitialTab] = useState<
+    "NEW_IMPORT" | "REVIEW_STAGING"
+  >("NEW_IMPORT");
+  const [importModalInitialBatchId, setImportModalInitialBatchId] = useState<
+    string | null
+  >(null);
+
+  // AI Question Generation Modal State
+  const [isGenerateModalOpen, setIsGenerateModalOpen] =
+    useState<boolean>(false);
+
+  const openImportModal = (
+    tab: "NEW_IMPORT" | "REVIEW_STAGING" = "NEW_IMPORT",
+    question: Question | null = null,
+    batchId: string | null = null,
+  ) => {
+    setImportModalInitialTab(tab);
+    setImportModalInitialQuestion(question);
+    setImportModalInitialBatchId(batchId);
+    setIsImportModalOpen(true);
+  };
 
   // Phase 5 Learning Engine & Weak Concept State
   const [dashboardSummary, setDashboardSummary] =
@@ -315,6 +339,7 @@ export const App: React.FC = () => {
           loadHealth();
           loadQuestions();
         }}
+        onOpenReviewQueue={() => openImportModal("REVIEW_STAGING")}
       />
 
       <main style={styles.mainContent}>
@@ -492,7 +517,19 @@ export const App: React.FC = () => {
                 </span>
               </button>
               <button
-                onClick={() => setIsImportModalOpen(true)}
+                onClick={() => setIsGenerateModalOpen(true)}
+                style={{
+                  ...styles.importBannerBtn,
+                  backgroundColor: "rgba(168, 85, 247, 0.15)",
+                  borderColor: "rgba(168, 85, 247, 0.4)",
+                  color: "#C084FC",
+                }}
+              >
+                <Sparkles size={18} color="#C084FC" />
+                <span>AI 문제 생성</span>
+              </button>
+              <button
+                onClick={() => openImportModal("NEW_IMPORT")}
                 style={styles.importBannerBtn}
               >
                 <UploadCloud size={18} color="#60A5FA" />
@@ -1071,6 +1108,7 @@ export const App: React.FC = () => {
                   기초 연습 문제 (FIXTURE)
                 </option>
                 <option value="REAL_EXAM">실제 기출 (REAL_EXAM)</option>
+                <option value="AI_GENERATED">AI 신규 생성 (AI_GENERATED)</option>
                 <option value="AI_VARIATION">기출 변형 (AI_VARIATION)</option>
                 <option value="TEXTBOOK">공인 교재 (TEXTBOOK)</option>
               </select>
@@ -1128,13 +1166,15 @@ export const App: React.FC = () => {
                           backgroundColor:
                             q.sourceType === "REAL_EXAM"
                               ? "rgba(16, 185, 129, 0.2)"
-                              : q.sourceType === "AI_VARIATION"
+                              : q.sourceType === "AI_VARIATION" ||
+                                  q.sourceType === "AI_GENERATED"
                                 ? "rgba(168, 85, 247, 0.2)"
                                 : "rgba(59, 130, 246, 0.2)",
                           color:
                             q.sourceType === "REAL_EXAM"
                               ? "#34D399"
-                              : q.sourceType === "AI_VARIATION"
+                              : q.sourceType === "AI_VARIATION" ||
+                                  q.sourceType === "AI_GENERATED"
                                 ? "#C084FC"
                                 : "#60A5FA",
                         }}
@@ -1165,7 +1205,20 @@ export const App: React.FC = () => {
                     </div>
 
                     <div style={styles.itemFooterRow}>
-                      <span style={styles.itemIdText}>{q.id}</span>
+                      <span
+                        style={{
+                          fontFamily: "monospace",
+                          fontSize: "11px",
+                          fontWeight: 700,
+                          color: "#60A5FA",
+                          backgroundColor: "rgba(59, 130, 246, 0.12)",
+                          border: "1px solid rgba(59, 130, 246, 0.25)",
+                          padding: "1px 6px",
+                          borderRadius: "4px",
+                        }}
+                      >
+                        {q.questionCode || q.id}
+                      </span>
                       {q.language && (
                         <span style={styles.langTag}>{q.language}</span>
                       )}
@@ -1188,9 +1241,54 @@ export const App: React.FC = () => {
                   {/* 상세 상단 메타데이터 */}
                   <div style={styles.detailHeader}>
                     <div style={styles.detailIdRow}>
-                      <h4 style={styles.detailIdTitle}>
-                        {questionDetail.question.id}
-                      </h4>
+                      <span
+                        onClick={() => {
+                          const code =
+                            questionDetail.question.questionCode ||
+                            questionDetail.question.id;
+                          navigator.clipboard.writeText(code);
+                          alert(
+                            `문항 식별 코드 '${code}'가 클립보드에 복사되었습니다.`,
+                          );
+                        }}
+                        style={{
+                          cursor: "pointer",
+                          fontFamily: "monospace",
+                          fontSize: "13px",
+                          fontWeight: 700,
+                          color: "#60A5FA",
+                          backgroundColor: "rgba(59, 130, 246, 0.15)",
+                          border: "1px solid rgba(59, 130, 246, 0.4)",
+                          borderRadius: "6px",
+                          padding: "3px 8px",
+                          display: "inline-flex",
+                          alignItems: "center",
+                          gap: "4px",
+                        }}
+                        title="클릭하여 문항 식별 코드 복사"
+                      >
+                        <span>
+                          {questionDetail.question.questionCode ||
+                            questionDetail.question.id}
+                        </span>
+                        <span style={{ fontSize: "11px", opacity: 0.8 }}>📋</span>
+                      </span>
+
+                      <button
+                        onClick={() =>
+                          openImportModal("NEW_IMPORT", questionDetail.question)
+                        }
+                        style={{
+                          ...styles.solveDetailBtn,
+                          backgroundColor: "rgba(148, 163, 184, 0.12)",
+                          borderColor: "rgba(148, 163, 184, 0.3)",
+                          color: "#CBD5E1",
+                        }}
+                        title="이 문제의 원문을 마크다운 규격으로 Import 입력창에 채웁니다"
+                      >
+                        <UploadCloud size={13} />
+                        <span>선택한 문제 원문 불러오기</span>
+                      </button>
                       <span
                         style={{
                           ...styles.sourceBadge,
@@ -1198,14 +1296,18 @@ export const App: React.FC = () => {
                             questionDetail.question.sourceType === "REAL_EXAM"
                               ? "rgba(16, 185, 129, 0.2)"
                               : questionDetail.question.sourceType ===
-                                  "AI_VARIATION"
+                                    "AI_VARIATION" ||
+                                  questionDetail.question.sourceType ===
+                                    "AI_GENERATED"
                                 ? "rgba(168, 85, 247, 0.2)"
                                 : "rgba(59, 130, 246, 0.2)",
                           color:
                             questionDetail.question.sourceType === "REAL_EXAM"
                               ? "#34D399"
                               : questionDetail.question.sourceType ===
-                                  "AI_VARIATION"
+                                    "AI_VARIATION" ||
+                                  questionDetail.question.sourceType ===
+                                    "AI_GENERATED"
                                 ? "#C084FC"
                                 : "#60A5FA",
                         }}
@@ -1216,6 +1318,23 @@ export const App: React.FC = () => {
                           ]
                         }
                       </span>
+                      {(questionDetail.question.sourceType === "AI_GENERATED" ||
+                        questionDetail.question.sourceType === "AI_VARIATION") && (
+                        <span
+                          style={{
+                            fontSize: "11px",
+                            color: "#FBBF24",
+                            backgroundColor: "rgba(245, 158, 11, 0.15)",
+                            border: "1px solid rgba(245, 158, 11, 0.3)",
+                            padding: "2px 6px",
+                            borderRadius: "4px",
+                            fontWeight: 600,
+                          }}
+                          title="현재 환경에 C 컴파일러가 없어 정적 정합성 검증만 통과한 상태입니다."
+                        >
+                          실제 C 실행 미검증 (정적 검증)
+                        </span>
+                      )}
                       <span style={styles.subjectTag}>
                         {questionDetail.question.subject}
                       </span>
@@ -1476,10 +1595,27 @@ export const App: React.FC = () => {
       {/* Phase 4 문제 데이터 검수 및 Import 모달 */}
       <ImportModal
         isOpen={isImportModalOpen}
-        onClose={() => setIsImportModalOpen(false)}
+        onClose={() => {
+          setIsImportModalOpen(false);
+          setImportModalInitialQuestion(null);
+          setImportModalInitialBatchId(null);
+        }}
+        initialQuestion={importModalInitialQuestion}
+        initialTab={importModalInitialTab}
+        initialBatchId={importModalInitialBatchId}
         onQuestionsUpdated={() => {
           loadQuestions();
           loadLearningData();
+        }}
+      />
+
+      {/* AI 문제 생성 모달 */}
+      <GenerateQuestionModal
+        isOpen={isGenerateModalOpen}
+        onClose={() => setIsGenerateModalOpen(false)}
+        onOpenReviewStaging={(batchId) => {
+          setIsGenerateModalOpen(false);
+          openImportModal("REVIEW_STAGING", null, batchId || null);
         }}
       />
 

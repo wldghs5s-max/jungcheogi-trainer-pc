@@ -8,6 +8,7 @@ import {
   Difficulty,
   CodeLanguage,
   QuestionSourceType,
+  stripSubItemPrefix,
 } from "@jungcheogi/shared";
 import { getDatabase } from "../database";
 
@@ -32,6 +33,7 @@ export function pickRandomIds(
 
 interface QuestionRow {
   id: string;
+  question_code?: string | null;
   source_type: string;
   exam_year: number | null;
   exam_round: number | null;
@@ -71,6 +73,20 @@ function mapRowToQuestion(row: QuestionRow): Question {
     }
   } catch {
     groundTruthAnswer = row.ground_truth_answer;
+  }
+
+  if (
+    typeof groundTruthAnswer === "string" &&
+    !groundTruthAnswer.includes("->") &&
+    /[①-⑳]/.test(groundTruthAnswer)
+  ) {
+    const parts = groundTruthAnswer
+      .split(/[,;\n]+/)
+      .map((p) => stripSubItemPrefix(p))
+      .filter(Boolean);
+    if (parts.length > 1) {
+      groundTruthAnswer = parts;
+    }
   }
 
   let options: string[] | undefined;
@@ -120,6 +136,7 @@ function mapRowToQuestion(row: QuestionRow): Question {
 
   return {
     id: row.id,
+    questionCode: row.question_code ?? undefined,
     sourceType: row.source_type as QuestionSourceType,
     examYear: row.exam_year ?? undefined,
     examRound: row.exam_round ?? undefined,
@@ -156,15 +173,67 @@ export class QuestionRepository {
     this.db = customDb || getDatabase();
   }
 
+  public generateNextCode(
+    sourceType?: string | null,
+    examYear?: number | null,
+    examRound?: number | null,
+    questionNumber?: number | null,
+  ): string {
+    if (sourceType === "REAL_EXAM" && examYear && examRound && questionNumber) {
+      const year = String(examYear);
+      const round = String(examRound).padStart(2, "0");
+      const num = String(questionNumber).padStart(2, "0");
+      return `Q-${year}-${round}-${num}`;
+    }
+    const prefix =
+      sourceType === "AI_VARIATION" || sourceType === "AI_GENERATED"
+        ? "AI"
+        : "IMP";
+    try {
+      const rows = this.db
+        .prepare(
+          `SELECT question_code FROM questions WHERE question_code LIKE ?
+           UNION ALL
+           SELECT question_code FROM staged_questions WHERE question_code LIKE ?`,
+        )
+        .all(`${prefix}-%`, `${prefix}-%`) as Array<{ question_code: string | null }>;
+
+      let maxSeq = 0;
+      for (const row of rows) {
+        if (!row.question_code) continue;
+        const match = row.question_code.match(new RegExp(`^${prefix}-(\\d+)`));
+        if (match) {
+          const num = parseInt(match[1], 10);
+          if (!isNaN(num) && num > maxSeq) {
+            maxSeq = num;
+          }
+        }
+      }
+      const nextSeq = maxSeq + 1;
+      return `${prefix}-${String(nextSeq).padStart(6, "0")}`;
+    } catch {
+      return `${prefix}-${Date.now().toString().slice(-6)}`;
+    }
+  }
+
   public create(q: Question): Question {
+    const questionCode =
+      q.questionCode ||
+      this.generateNextCode(
+        q.sourceType,
+        q.examYear,
+        q.examRound,
+        q.questionNumber,
+      );
+
     const stmt = this.db.prepare(`
       INSERT INTO questions (
-        id, source_type, exam_year, exam_round, question_number, parent_question_id,
+        id, question_code, source_type, exam_year, exam_round, question_number, parent_question_id,
         concept_id, subject, category, sub_category, type, question_text, code_snippet, language, options_json,
         ground_truth_answer, official_explanation, hints_json, code_line_explanations_json, active_recall_meta_json,
         ai_explanation, ai_variation_notes, difficulty, keywords_json, structural_fingerprint, created_at, updated_at
       ) VALUES (
-        @id, @source_type, @exam_year, @exam_round, @question_number, @parent_question_id,
+        @id, @question_code, @source_type, @exam_year, @exam_round, @question_number, @parent_question_id,
         @concept_id, @subject, @category, @sub_category, @type, @question_text, @code_snippet, @language, @options_json,
         @ground_truth_answer, @official_explanation, @hints_json, @code_line_explanations_json, @active_recall_meta_json,
         @ai_explanation, @ai_variation_notes, @difficulty, @keywords_json, @structural_fingerprint, @created_at, @updated_at
@@ -173,6 +242,7 @@ export class QuestionRepository {
 
     stmt.run({
       id: q.id,
+      question_code: questionCode,
       source_type: q.sourceType,
       exam_year: q.examYear ?? null,
       exam_round: q.examRound ?? null,
@@ -382,6 +452,7 @@ export class QuestionRepository {
 
     const stmt = this.db.prepare(`
       UPDATE questions SET
+        question_code = @question_code,
         source_type = @source_type,
         exam_year = @exam_year,
         exam_round = @exam_round,
@@ -412,6 +483,7 @@ export class QuestionRepository {
 
     stmt.run({
       id,
+      question_code: merged.questionCode ?? null,
       source_type: merged.sourceType,
       exam_year: merged.examYear ?? null,
       exam_round: merged.examRound ?? null,
@@ -461,12 +533,12 @@ export class QuestionRepository {
   public bulkInsert(questions: Question[]): { insertedCount: number } {
     const stmt = this.db.prepare(`
       INSERT OR REPLACE INTO questions (
-        id, source_type, exam_year, exam_round, question_number, parent_question_id,
+        id, question_code, source_type, exam_year, exam_round, question_number, parent_question_id,
         concept_id, subject, category, sub_category, type, question_text, code_snippet, language, options_json,
         ground_truth_answer, official_explanation, hints_json, code_line_explanations_json, active_recall_meta_json,
         ai_explanation, ai_variation_notes, difficulty, keywords_json, structural_fingerprint, created_at, updated_at
       ) VALUES (
-        @id, @source_type, @exam_year, @exam_round, @question_number, @parent_question_id,
+        @id, @question_code, @source_type, @exam_year, @exam_round, @question_number, @parent_question_id,
         @concept_id, @subject, @category, @sub_category, @type, @question_text, @code_snippet, @language, @options_json,
         @ground_truth_answer, @official_explanation, @hints_json, @code_line_explanations_json, @active_recall_meta_json,
         @ai_explanation, @ai_variation_notes, @difficulty, @keywords_json, @structural_fingerprint, @created_at, @updated_at
@@ -476,8 +548,17 @@ export class QuestionRepository {
     let count = 0;
     const runTransaction = this.db.transaction((items: Question[]) => {
       for (const q of items) {
+        const questionCode =
+          q.questionCode ||
+          this.generateNextCode(
+            q.sourceType,
+            q.examYear,
+            q.examRound,
+            q.questionNumber,
+          );
         stmt.run({
           id: q.id,
+          question_code: questionCode,
           source_type: q.sourceType,
           exam_year: q.examYear ?? null,
           exam_round: q.examRound ?? null,

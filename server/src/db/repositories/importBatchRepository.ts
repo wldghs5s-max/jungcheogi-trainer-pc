@@ -10,12 +10,14 @@ import {
   QuestionType,
   Difficulty,
   CodeLanguage,
+  stripSubItemPrefix,
 } from "@jungcheogi/shared";
 import { getDatabase } from "../database";
 import { QuestionRepository } from "./questionRepository";
 
 interface StagedRow {
   id: string;
+  question_code: string | null;
   batch_id: string;
   index_in_batch: number;
   source_type: string;
@@ -79,8 +81,23 @@ function mapRowToStaged(row: StagedRow): StagedQuestion {
     groundTruthAnswer = row.ground_truth_answer;
   }
 
+  if (
+    typeof groundTruthAnswer === "string" &&
+    !groundTruthAnswer.includes("->") &&
+    /[①-⑳]/.test(groundTruthAnswer)
+  ) {
+    const parts = groundTruthAnswer
+      .split(/[,;\n]+/)
+      .map((p) => stripSubItemPrefix(p))
+      .filter(Boolean);
+    if (parts.length > 1) {
+      groundTruthAnswer = parts;
+    }
+  }
+
   return {
     id: row.id,
+    questionCode: row.question_code ?? undefined,
     batchId: row.batch_id,
     indexInBatch: row.index_in_batch,
     sourceType: row.source_type as QuestionSourceType,
@@ -155,14 +172,14 @@ export class ImportBatchRepository {
 
     const insertStaged = this.db.prepare(`
       INSERT INTO staged_questions (
-        id, batch_id, index_in_batch, source_type, exam_year, exam_round,
+        id, question_code, batch_id, index_in_batch, source_type, exam_year, exam_round,
         question_number, parent_question_id, concept_id, subject, category, sub_category,
         type, question_text, code_snippet, language, options_json,
         ground_truth_answer, official_explanation, ai_explanation,
         ai_variation_notes, difficulty, keywords_json, structural_fingerprint,
         duplicate_status, duplicate_question_id, duplicate_similarity,
         validation_issues_json, review_status, created_at
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `);
 
     const tx = this.db.transaction(() => {
@@ -181,8 +198,18 @@ export class ImportBatchRepository {
       );
 
       for (const s of stagedList) {
+        const questionCode =
+          s.questionCode ||
+          this.questionRepo.generateNextCode(
+            s.sourceType,
+            s.examYear,
+            s.examRound,
+            s.questionNumber,
+          );
+
         insertStaged.run(
           s.id,
+          questionCode,
           s.batchId,
           s.indexInBatch,
           s.sourceType,
@@ -253,6 +280,130 @@ export class ImportBatchRepository {
     return row ? mapRowToStaged(row) : null;
   }
 
+  public findStagedQuestions(filter?: {
+    batchId?: string;
+    sourceType?: string;
+    reviewStatus?: StagedReviewStatus;
+    limit?: number;
+    offset?: number;
+  }): { items: StagedQuestion[]; total: number } {
+    const conditions: string[] = [];
+    const params: any[] = [];
+
+    if (filter?.batchId) {
+      conditions.push("batch_id = ?");
+      params.push(filter.batchId);
+    }
+    if (filter?.sourceType) {
+      conditions.push("source_type = ?");
+      params.push(filter.sourceType);
+    }
+    if (filter?.reviewStatus) {
+      conditions.push("review_status = ?");
+      params.push(filter.reviewStatus);
+    }
+
+    const whereClause =
+      conditions.length > 0 ? `WHERE ${conditions.join(" AND ")}` : "";
+    const countRow = this.db
+      .prepare(`SELECT COUNT(*) as total FROM staged_questions ${whereClause}`)
+      .get(...params) as { total: number };
+
+    const limit = filter?.limit ?? 100;
+    const offset = filter?.offset ?? 0;
+
+    const rows = this.db
+      .prepare(
+        `SELECT * FROM staged_questions ${whereClause} ORDER BY created_at DESC LIMIT ? OFFSET ?`,
+      )
+      .all(...params, limit, offset) as StagedRow[];
+
+    return {
+      items: rows.map(mapRowToStaged),
+      total: countRow.total,
+    };
+  }
+
+  public commitSingleApprovedQuestion(stagedId: string): Question {
+    const staged = this.findStagedById(stagedId);
+    if (!staged) {
+      throw new Error(`Staged 문항 ID '${stagedId}'를 찾을 수 없습니다.`);
+    }
+
+    if (staged.reviewStatus === "COMMITTED" && staged.committedQuestionId) {
+      const existing = this.questionRepo.findById(staged.committedQuestionId);
+      if (existing) return existing;
+    }
+
+    const hasError = (staged.validationIssues || []).some(
+      (issue) => issue.severity === "ERROR",
+    );
+    if (hasError) {
+      throw new Error("검증 오류(ERROR)가 있는 문항은 승인/커밋할 수 없습니다.");
+    }
+
+    const now = new Date().toISOString();
+    const liveQuestionId =
+      staged.sourceType === "AI_GENERATED"
+        ? `q_ai_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`
+        : staged.examYear && staged.examRound && staged.questionNumber
+        ? `q_${staged.examYear}_0${staged.examRound}_${String(staged.questionNumber).padStart(2, "0")}`
+        : `q_imp_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`;
+
+    const questionCode =
+      staged.questionCode ||
+      this.questionRepo.generateNextCode(
+        staged.sourceType,
+        staged.examYear,
+        staged.examRound,
+        staged.questionNumber,
+      );
+
+    const question: Question = {
+      id: liveQuestionId,
+      questionCode,
+      sourceType: staged.sourceType,
+      examYear: staged.examYear,
+      examRound: staged.examRound,
+      questionNumber: staged.questionNumber,
+      parentQuestionId: staged.parentQuestionId,
+      conceptId: staged.conceptId,
+      subject: staged.subject,
+      category: staged.category,
+      subCategory: staged.subCategory,
+      type: staged.type,
+      question: staged.questionText,
+      code: staged.codeSnippet,
+      language: staged.language,
+      options: staged.options,
+      groundTruthAnswer: staged.groundTruthAnswer,
+      officialExplanation: staged.officialExplanation,
+      aiExplanation: staged.aiExplanation,
+      aiVariationNotes: staged.aiVariationNotes,
+      difficulty: staged.difficulty,
+      keywords: staged.keywords,
+      structuralFingerprint: staged.structuralFingerprint,
+      createdAt: now,
+    };
+
+    const tx = this.db.transaction(() => {
+      this.questionRepo.create(question);
+      this.db
+        .prepare(
+          `UPDATE staged_questions SET
+            review_status = 'COMMITTED', committed_question_id = ?,
+            reviewed_at = ?, updated_at = ?
+          WHERE id = ?`,
+        )
+        .run(liveQuestionId, now, now, stagedId);
+
+      this.syncBatchCounts(staged.batchId);
+    });
+
+    tx();
+    return question;
+  }
+
   public updateStagedQuestion(
     stagedId: string,
     updates: Partial<StagedQuestion>,
@@ -269,6 +420,7 @@ export class ImportBatchRepository {
     this.db
       .prepare(
         `UPDATE staged_questions SET
+          question_code = ?,
           source_type = ?, exam_year = ?, exam_round = ?, question_number = ?,
           parent_question_id = ?, concept_id = ?, subject = ?, category = ?, sub_category = ?,
           type = ?, question_text = ?, code_snippet = ?, language = ?,
@@ -278,6 +430,7 @@ export class ImportBatchRepository {
         WHERE id = ?`,
       )
       .run(
+        merged.questionCode ?? null,
         merged.sourceType,
         merged.examYear ?? null,
         merged.examRound ?? null,
@@ -448,8 +601,18 @@ export class ImportBatchRepository {
             ? `q_${staged.examYear}_0${staged.examRound}_${String(staged.questionNumber).padStart(2, "0")}`
             : `q_imp_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`;
 
+        const questionCode =
+          staged.questionCode ||
+          this.questionRepo.generateNextCode(
+            staged.sourceType,
+            staged.examYear,
+            staged.examRound,
+            staged.questionNumber,
+          );
+
         const question: Question = {
           id: liveQuestionId,
+          questionCode,
           sourceType: staged.sourceType,
           examYear: staged.examYear,
           examRound: staged.examRound,

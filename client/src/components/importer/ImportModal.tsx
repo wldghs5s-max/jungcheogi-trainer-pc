@@ -20,6 +20,7 @@ import {
   ImportFormat,
   ImportBatch,
   StagedQuestion,
+  Question,
   QuestionSourceType,
   Subject,
   SUBJECT_LIST,
@@ -40,6 +41,9 @@ interface ImportModalProps {
   isOpen: boolean;
   onClose: () => void;
   onQuestionsUpdated?: () => void;
+  initialQuestion?: Question | null;
+  initialTab?: "NEW_IMPORT" | "REVIEW_STAGING";
+  initialBatchId?: string | null;
 }
 
 const SAMPLE_MARKDOWN = `# 2024년 1회 기출문제 검수 대상
@@ -121,13 +125,45 @@ const SAMPLE_JSON = JSON.stringify(
   2,
 );
 
+function formatQuestionToMarkdown(q: Question): string {
+  const parts: string[] = [];
+  const codeOrId = q.questionCode || q.id;
+  parts.push(`# 문제 원문 가져오기: ${codeOrId}\n`);
+  parts.push(`### [문제 1] ${q.category}`);
+  parts.push(`- 과목: ${q.subject}`);
+  parts.push(`- 카테고리: ${q.category}`);
+  if (q.subCategory) parts.push(`- 세부카테고리: ${q.subCategory}`);
+  parts.push(`- 출처: ${q.sourceType}`);
+  if (q.examYear) parts.push(`- 기출: ${q.examYear}년 ${q.examRound ?? 1}회 ${q.questionNumber ?? 1}번`);
+  parts.push(`- 난이도: ${q.difficulty}`);
+  parts.push("");
+  parts.push(q.question);
+  parts.push("");
+  if (q.code) {
+    const lang = (q.language || "c").toLowerCase();
+    parts.push(`\`\`\`${lang}\n${q.code}\n\`\`\`\n`);
+  }
+  const ans = Array.isArray(q.groundTruthAnswer) ? q.groundTruthAnswer.join(", ") : q.groundTruthAnswer;
+  parts.push(`**정답**: ${ans}`);
+  if (q.officialExplanation) {
+    parts.push(`**해설**: ${q.officialExplanation}`);
+  }
+  if (q.keywords && q.keywords.length > 0) {
+    parts.push(`**키워드**: ${q.keywords.join(", ")}`);
+  }
+  return parts.join("\n");
+}
+
 export const ImportModal: React.FC<ImportModalProps> = ({
   isOpen,
   onClose,
   onQuestionsUpdated,
+  initialQuestion,
+  initialTab,
+  initialBatchId,
 }) => {
   const [activeTab, setActiveTab] = useState<"NEW_IMPORT" | "REVIEW_STAGING">(
-    "NEW_IMPORT",
+    initialTab || "NEW_IMPORT",
   );
 
   // New Import Form State
@@ -197,9 +233,19 @@ export const ImportModal: React.FC<ImportModalProps> = ({
 
   useEffect(() => {
     if (isOpen) {
-      loadBatches();
+      if (initialTab) {
+        setActiveTab(initialTab);
+      }
+      if (initialQuestion) {
+        setContent(formatQuestionToMarkdown(initialQuestion));
+        setSourceName(`export_${initialQuestion.questionCode || initialQuestion.id}.md`);
+        setFormat("MARKDOWN");
+        setSourceType(initialQuestion.sourceType);
+        setActiveTab("NEW_IMPORT");
+      }
+      loadBatches(initialBatchId || undefined);
     }
-  }, [isOpen, loadBatches]);
+  }, [isOpen, initialTab, initialQuestion, initialBatchId, loadBatches]);
 
   useEffect(() => {
     if (selectedBatchId) {
@@ -706,6 +752,66 @@ export const ImportModal: React.FC<ImportModalProps> = ({
                       {/* Card Header */}
                       <div style={styles.qCardHeader}>
                         <div style={styles.qHeaderLeft}>
+                          {q.questionCode && (
+                            <span
+                              onClick={() => {
+                                navigator.clipboard.writeText(q.questionCode!);
+                                alert(`문항 식별 코드 '${q.questionCode}'가 클립보드에 복사되었습니다.`);
+                              }}
+                              style={{
+                                cursor: "pointer",
+                                fontFamily: "monospace",
+                                fontSize: "11px",
+                                fontWeight: 700,
+                                color: "#60A5FA",
+                                backgroundColor: "rgba(59, 130, 246, 0.15)",
+                                border: "1px solid rgba(59, 130, 246, 0.3)",
+                                padding: "2px 6px",
+                                borderRadius: "4px",
+                                display: "inline-flex",
+                                alignItems: "center",
+                                gap: "3px",
+                              }}
+                              title="클릭하여 questionCode 복사"
+                            >
+                              <span>{q.questionCode}</span>
+                              <span style={{ fontSize: "10px", opacity: 0.8 }}>📋</span>
+                            </span>
+                          )}
+                          {(q.sourceType === "AI_GENERATED" ||
+                            q.sourceType === "AI_VARIATION") && (
+                            <>
+                              <span
+                                style={{
+                                  fontSize: "11px",
+                                  color: "#C084FC",
+                                  backgroundColor: "rgba(168, 85, 247, 0.2)",
+                                  border: "1px solid rgba(168, 85, 247, 0.35)",
+                                  padding: "2px 6px",
+                                  borderRadius: "4px",
+                                  fontWeight: 600,
+                                }}
+                              >
+                                {q.sourceType === "AI_GENERATED"
+                                  ? "AI 독립형 신규"
+                                  : "AI 기출 변형"}
+                              </span>
+                              <span
+                                style={{
+                                  fontSize: "11px",
+                                  color: "#FBBF24",
+                                  backgroundColor: "rgba(245, 158, 11, 0.15)",
+                                  border: "1px solid rgba(245, 158, 11, 0.3)",
+                                  padding: "2px 6px",
+                                  borderRadius: "4px",
+                                  fontWeight: 600,
+                                }}
+                                title="현재 환경에 C 컴파일러/샌드박스가 없어 정적 정합성 검증만 통과한 상태입니다."
+                              >
+                                실제 C 실행 미검증 (정적 검증)
+                              </span>
+                            </>
+                          )}
                           <span style={styles.qIndexBadge}>
                             #{q.indexInBatch}
                           </span>
@@ -849,6 +955,89 @@ export const ImportModal: React.FC<ImportModalProps> = ({
                               <span style={styles.explanationText}>
                                 {q.officialExplanation}
                               </span>
+                            </div>
+                          )}
+                          {q.aiExplanation &&
+                            q.aiExplanation !== q.officialExplanation && (
+                              <div style={styles.explanationRow}>
+                                <span
+                                  style={{
+                                    ...styles.explanationLabel,
+                                    color: "#C084FC",
+                                  }}
+                                >
+                                  AI 해설:
+                                </span>
+                                <span style={styles.explanationText}>
+                                  {q.aiExplanation}
+                                </span>
+                              </div>
+                            )}
+                          {q.aiVariationNotes && (
+                            <div
+                              style={{
+                                marginTop: "8px",
+                                padding: "8px 12px",
+                                backgroundColor: "rgba(147, 51, 234, 0.08)",
+                                border: "1px solid rgba(147, 51, 234, 0.25)",
+                                borderRadius: "6px",
+                              }}
+                            >
+                              <div
+                                style={{
+                                  fontSize: "11px",
+                                  fontWeight: 700,
+                                  color: "#C084FC",
+                                  marginBottom: "4px",
+                                  display: "flex",
+                                  alignItems: "center",
+                                  gap: "4px",
+                                }}
+                              >
+                                <span>🧠 AI 출제 설계 및 추적표 (stepByStepTrace)</span>
+                              </div>
+                              <div
+                                style={{
+                                  fontSize: "12px",
+                                  color: "#E2E8F0",
+                                  whiteSpace: "pre-wrap",
+                                  fontFamily: "monospace",
+                                  lineHeight: 1.45,
+                                }}
+                              >
+                                {q.aiVariationNotes}
+                              </div>
+                            </div>
+                          )}
+                          {q.reviewerNotes && (
+                            <div
+                              style={{
+                                marginTop: "6px",
+                                padding: "6px 10px",
+                                backgroundColor: "rgba(59, 130, 246, 0.08)",
+                                border: "1px solid rgba(59, 130, 246, 0.25)",
+                                borderRadius: "6px",
+                              }}
+                            >
+                              <div
+                                style={{
+                                  fontSize: "11px",
+                                  fontWeight: 700,
+                                  color: "#60A5FA",
+                                  marginBottom: "2px",
+                                }}
+                              >
+                                🛡️ 검수 / Evaluator 판정 메모:
+                              </div>
+                              <div
+                                style={{
+                                  fontSize: "12px",
+                                  color: "#CBD5E1",
+                                  whiteSpace: "pre-wrap",
+                                }}
+                              >
+                                {q.reviewerNotes}
+                              </div>
                             </div>
                           )}
                           {q.keywords && q.keywords.length > 0 && (

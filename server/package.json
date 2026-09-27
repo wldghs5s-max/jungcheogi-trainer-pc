@@ -7,7 +7,7 @@
     "dev": "tsx watch src/index.ts",
     "build": "tsc",
     "start": "node dist/index.js",
-    "test": "tsx test/health.test.ts && tsx test/questions.test.ts && tsx test/sessions.test.ts && tsx test/grading_edge_cases.test.ts && tsx test/imports.test.ts && tsx test/learning_engine.test.ts && tsx test/recommendation_engine.test.ts && tsx test/data_pipeline_and_variations.test.ts && tsx test/ai_engine.test.ts && tsx test/execution.test.ts && tsx test/session_sampling.test.ts && tsx test/auth_token.test.ts",
+    "test": "tsx test/health.test.ts && tsx test/questions.test.ts && tsx test/sessions.test.ts && tsx test/grading_edge_cases.test.ts && tsx test/imports.test.ts && tsx test/learning_engine.test.ts && tsx test/recommendation_engine.test.ts && tsx test/data_pipeline_and_variations.test.ts && tsx test/ai_engine.test.ts && tsx test/execution.test.ts && tsx test/session_sampling.test.ts && tsx test/auth_token.test.ts && tsx test/offline_regression.test.ts && tsx test/ai_pipeline_staging.test.ts",
     "test:health": "tsx test/health.test.ts",
     "test:questions": "tsx test/questions.test.ts",
     "test:sessions": "tsx test/sessions.test.ts",

@@ -1,0 +1,249 @@
+{
+  "summary": {
+    "targetCount": 1,
+    "requestedCount": 1,
+    "successCount": 1,
+    "failureCount": 0,
+    "retryCount": 0,
+    "mockFallbackCount": 0,
+    "evaluatedAt": "2026-09-27T15:47:28.935Z",
+    "modelUsed": "gemini-3.5-flash-lite",
+    "modelBreakdown": {
+      "gemini-3.5-flash-lite": 1
+    },
+    "strictLive": true
+  },
+  "metrics": {
+    "schemaPassRate": 1,
+    "highNoveltyRate": 0,
+    "mediumNoveltyRate": 0,
+    "lowNoveltyRate": 1,
+    "nearDuplicateExistingRate": 0,
+    "nearDuplicatePeerRate": 0,
+    "identicalPeerDuplicateRate": 0,
+    "codeSyntaxPassRate": 1,
+    "answerExplanationConsistencyRate": 1,
+    "stepTraceConsistencyRate": 1,
+    "humanReviewRate": 0,
+    "generationRejectionRate": 0
+  },
+  "conceptDistribution": {
+    "포인터와 1차원 배열": 1
+  },
+  "difficultyDistribution": {
+    "하": 0,
+    "중": 1,
+    "중상": 0,
+    "상": 0
+  },
+  "peerDuplicates": [],
+  "humanReviewItems": [],
+  "rejectedItems": [],
+  "sampleQuestions": {
+    "highestNovelty": [
+      {
+        "evaluationId": "EVAL-C-01",
+        "correlationId": "eval_EVAL-C-01_att1_1790524041960",
+        "generatedAt": "2026-09-27T15:47:26.922Z",
+        "attempt": 1,
+        "questionText": "다음 C 언어로 구현된 프로그램을 분석하여 그 실행 결과를 쓰시오.",
+        "code": "#include <stdio.h>\n\nint main(void) {\n    int a[] = {2, 4, 6, 8, 10};\n    int *p = a;\n    int sum = 0;\n\n    for(int i = 0; i < 3; i++) {\n        sum += *(p + i);\n        *(a + i) += *(a + i + 1);\n    }\n\n    printf(\"%d\", sum);\n    return 0;\n}",
+        "answer": "12",
+        "explanation": "이 문제는 배열 이름이 포인터 상수처럼 동작하는 성질과 포인터 변수를 이용한 역참조 연산(*(p + i)), 그리고 배열 요소의 값을 동적으로 갱신하는 과정을 추적하는 문제입니다. \n\n1. 초기 상태: a 배열은 {2, 4, 6, 8, 10}이며, 포인터 p는 a[0]을 가리킵니다.\n2. i = 0 일 때:\n   - sum += *(p + 0)에 의해 sum은 기존 0에 a[0] 값인 2를 더해 2가 됩니다.\n   - *(a + 0) += *(a + 1)에 의해 a[0]은 기존 2에 a[1] 값인 4를 더한 6이 됩니다. (배열 상태: {6, 4, 6, 8, 10})\n3. i = 1 일 때:\n   - sum += *(p + 1)에 의해 sum은 기존 2에 a[1] 값인 4를 더해 6이 됩니다.\n   - *(a + 1) += *(a + 2)에 의해 a[1]은 기존 4에 a[2] 값인 6을 더한 10이 됩니다. (배열 상태: {6, 10, 6, 8, 10})\n4. i = 2 일 때:\n   - sum += *(p + 2)에 의해 sum은 기존 6에 a[2] 값인 6을 더해 12가 됩니다.\n   - *(a + 2) += *(a + 3)에 의해 a[2]는 기존 6에 a[3] 값인 8을 더한 14가 됩니다.\n5. 루프 종료 후 sum의 최종 값인 12가 출력됩니다.",
+        "stepByStepTrace": "1. int a[5] = {2, 4, 6, 8, 10}; 선언\n2. int *p = a; p는 a[0]을 가리킴\n3. i=0: sum += *(p + 0) -> sum += a[0](2), a[0] += *(a + 1)(4) -> a[0]=6\n4. i=1: sum += *(p + 1) -> sum += a[1](4), a[1] += *(a + 2)(6) -> a[1]=10\n5. i=2: sum += *(p + 2) -> sum += a[2](6), a[2] += *(a + 3)(8) -> a[2]=14\n6. 최종 sum = 2 + 4 + 6 = 12\n7. printf 결과: 12",
+        "targetConcept": "포인터와 1차원 배열",
+        "skill": "배열명 포인터 변환 및 *(arr + i) 역참조 연산 순서 추적",
+        "difficulty": "MEDIUM",
+        "estimatedDifficulty": "중",
+        "generationStrategy": "INDEPENDENT_DESIGN",
+        "model": "gemini-3.5-flash-lite",
+        "sourceType": "INDEPENDENT_EVALUATION",
+        "structuralPass": true,
+        "structuralIssues": [],
+        "nearestExistingSimilarity": 0.708,
+        "nearestExistingQuestionCode": "AI-000057",
+        "nearestExistingQuestionId": "q_imp_1790518323792_hzj2",
+        "maxPeerSimilarity": 0,
+        "independentNovelty": "LOW",
+        "learningValueScore": {
+          "hasPointerOrArray": true,
+          "hasControlFlow": true,
+          "hasStateMutation": true,
+          "cSyntaxValid": true
+        },
+        "codeSyntaxCheck": {
+          "balancedBraces": true,
+          "balancedParens": true,
+          "hasMain": true,
+          "hasReturn": true,
+          "notes": []
+        },
+        "consistencyCheck": {
+          "answerInExplanation": true,
+          "stepTraceMatchesAnswer": true,
+          "explanationConclusionMatchesAnswer": true,
+          "selfCorrectionDetected": false,
+          "riskFlags": []
+        },
+        "generationRejected": false,
+        "rejectionReasons": [],
+        "humanReviewRecommended": false,
+        "humanReviewReasons": []
+      }
+    ],
+    "highestSimilarity": [
+      {
+        "evaluationId": "EVAL-C-01",
+        "correlationId": "eval_EVAL-C-01_att1_1790524041960",
+        "generatedAt": "2026-09-27T15:47:26.922Z",
+        "attempt": 1,
+        "questionText": "다음 C 언어로 구현된 프로그램을 분석하여 그 실행 결과를 쓰시오.",
+        "code": "#include <stdio.h>\n\nint main(void) {\n    int a[] = {2, 4, 6, 8, 10};\n    int *p = a;\n    int sum = 0;\n\n    for(int i = 0; i < 3; i++) {\n        sum += *(p + i);\n        *(a + i) += *(a + i + 1);\n    }\n\n    printf(\"%d\", sum);\n    return 0;\n}",
+        "answer": "12",
+        "explanation": "이 문제는 배열 이름이 포인터 상수처럼 동작하는 성질과 포인터 변수를 이용한 역참조 연산(*(p + i)), 그리고 배열 요소의 값을 동적으로 갱신하는 과정을 추적하는 문제입니다. \n\n1. 초기 상태: a 배열은 {2, 4, 6, 8, 10}이며, 포인터 p는 a[0]을 가리킵니다.\n2. i = 0 일 때:\n   - sum += *(p + 0)에 의해 sum은 기존 0에 a[0] 값인 2를 더해 2가 됩니다.\n   - *(a + 0) += *(a + 1)에 의해 a[0]은 기존 2에 a[1] 값인 4를 더한 6이 됩니다. (배열 상태: {6, 4, 6, 8, 10})\n3. i = 1 일 때:\n   - sum += *(p + 1)에 의해 sum은 기존 2에 a[1] 값인 4를 더해 6이 됩니다.\n   - *(a + 1) += *(a + 2)에 의해 a[1]은 기존 4에 a[2] 값인 6을 더한 10이 됩니다. (배열 상태: {6, 10, 6, 8, 10})\n4. i = 2 일 때:\n   - sum += *(p + 2)에 의해 sum은 기존 6에 a[2] 값인 6을 더해 12가 됩니다.\n   - *(a + 2) += *(a + 3)에 의해 a[2]는 기존 6에 a[3] 값인 8을 더한 14가 됩니다.\n5. 루프 종료 후 sum의 최종 값인 12가 출력됩니다.",
+        "stepByStepTrace": "1. int a[5] = {2, 4, 6, 8, 10}; 선언\n2. int *p = a; p는 a[0]을 가리킴\n3. i=0: sum += *(p + 0) -> sum += a[0](2), a[0] += *(a + 1)(4) -> a[0]=6\n4. i=1: sum += *(p + 1) -> sum += a[1](4), a[1] += *(a + 2)(6) -> a[1]=10\n5. i=2: sum += *(p + 2) -> sum += a[2](6), a[2] += *(a + 3)(8) -> a[2]=14\n6. 최종 sum = 2 + 4 + 6 = 12\n7. printf 결과: 12",
+        "targetConcept": "포인터와 1차원 배열",
+        "skill": "배열명 포인터 변환 및 *(arr + i) 역참조 연산 순서 추적",
+        "difficulty": "MEDIUM",
+        "estimatedDifficulty": "중",
+        "generationStrategy": "INDEPENDENT_DESIGN",
+        "model": "gemini-3.5-flash-lite",
+        "sourceType": "INDEPENDENT_EVALUATION",
+        "structuralPass": true,
+        "structuralIssues": [],
+        "nearestExistingSimilarity": 0.708,
+        "nearestExistingQuestionCode": "AI-000057",
+        "nearestExistingQuestionId": "q_imp_1790518323792_hzj2",
+        "maxPeerSimilarity": 0,
+        "independentNovelty": "LOW",
+        "learningValueScore": {
+          "hasPointerOrArray": true,
+          "hasControlFlow": true,
+          "hasStateMutation": true,
+          "cSyntaxValid": true
+        },
+        "codeSyntaxCheck": {
+          "balancedBraces": true,
+          "balancedParens": true,
+          "hasMain": true,
+          "hasReturn": true,
+          "notes": []
+        },
+        "consistencyCheck": {
+          "answerInExplanation": true,
+          "stepTraceMatchesAnswer": true,
+          "explanationConclusionMatchesAnswer": true,
+          "selfCorrectionDetected": false,
+          "riskFlags": []
+        },
+        "generationRejected": false,
+        "rejectionReasons": [],
+        "humanReviewRecommended": false,
+        "humanReviewReasons": []
+      }
+    ],
+    "hardest": [],
+    "easiest": [
+      {
+        "evaluationId": "EVAL-C-01",
+        "correlationId": "eval_EVAL-C-01_att1_1790524041960",
+        "generatedAt": "2026-09-27T15:47:26.922Z",
+        "attempt": 1,
+        "questionText": "다음 C 언어로 구현된 프로그램을 분석하여 그 실행 결과를 쓰시오.",
+        "code": "#include <stdio.h>\n\nint main(void) {\n    int a[] = {2, 4, 6, 8, 10};\n    int *p = a;\n    int sum = 0;\n\n    for(int i = 0; i < 3; i++) {\n        sum += *(p + i);\n        *(a + i) += *(a + i + 1);\n    }\n\n    printf(\"%d\", sum);\n    return 0;\n}",
+        "answer": "12",
+        "explanation": "이 문제는 배열 이름이 포인터 상수처럼 동작하는 성질과 포인터 변수를 이용한 역참조 연산(*(p + i)), 그리고 배열 요소의 값을 동적으로 갱신하는 과정을 추적하는 문제입니다. \n\n1. 초기 상태: a 배열은 {2, 4, 6, 8, 10}이며, 포인터 p는 a[0]을 가리킵니다.\n2. i = 0 일 때:\n   - sum += *(p + 0)에 의해 sum은 기존 0에 a[0] 값인 2를 더해 2가 됩니다.\n   - *(a + 0) += *(a + 1)에 의해 a[0]은 기존 2에 a[1] 값인 4를 더한 6이 됩니다. (배열 상태: {6, 4, 6, 8, 10})\n3. i = 1 일 때:\n   - sum += *(p + 1)에 의해 sum은 기존 2에 a[1] 값인 4를 더해 6이 됩니다.\n   - *(a + 1) += *(a + 2)에 의해 a[1]은 기존 4에 a[2] 값인 6을 더한 10이 됩니다. (배열 상태: {6, 10, 6, 8, 10})\n4. i = 2 일 때:\n   - sum += *(p + 2)에 의해 sum은 기존 6에 a[2] 값인 6을 더해 12가 됩니다.\n   - *(a + 2) += *(a + 3)에 의해 a[2]는 기존 6에 a[3] 값인 8을 더한 14가 됩니다.\n5. 루프 종료 후 sum의 최종 값인 12가 출력됩니다.",
+        "stepByStepTrace": "1. int a[5] = {2, 4, 6, 8, 10}; 선언\n2. int *p = a; p는 a[0]을 가리킴\n3. i=0: sum += *(p + 0) -> sum += a[0](2), a[0] += *(a + 1)(4) -> a[0]=6\n4. i=1: sum += *(p + 1) -> sum += a[1](4), a[1] += *(a + 2)(6) -> a[1]=10\n5. i=2: sum += *(p + 2) -> sum += a[2](6), a[2] += *(a + 3)(8) -> a[2]=14\n6. 최종 sum = 2 + 4 + 6 = 12\n7. printf 결과: 12",
+        "targetConcept": "포인터와 1차원 배열",
+        "skill": "배열명 포인터 변환 및 *(arr + i) 역참조 연산 순서 추적",
+        "difficulty": "MEDIUM",
+        "estimatedDifficulty": "중",
+        "generationStrategy": "INDEPENDENT_DESIGN",
+        "model": "gemini-3.5-flash-lite",
+        "sourceType": "INDEPENDENT_EVALUATION",
+        "structuralPass": true,
+        "structuralIssues": [],
+        "nearestExistingSimilarity": 0.708,
+        "nearestExistingQuestionCode": "AI-000057",
+        "nearestExistingQuestionId": "q_imp_1790518323792_hzj2",
+        "maxPeerSimilarity": 0,
+        "independentNovelty": "LOW",
+        "learningValueScore": {
+          "hasPointerOrArray": true,
+          "hasControlFlow": true,
+          "hasStateMutation": true,
+          "cSyntaxValid": true
+        },
+        "codeSyntaxCheck": {
+          "balancedBraces": true,
+          "balancedParens": true,
+          "hasMain": true,
+          "hasReturn": true,
+          "notes": []
+        },
+        "consistencyCheck": {
+          "answerInExplanation": true,
+          "stepTraceMatchesAnswer": true,
+          "explanationConclusionMatchesAnswer": true,
+          "selfCorrectionDetected": false,
+          "riskFlags": []
+        },
+        "generationRejected": false,
+        "rejectionReasons": [],
+        "humanReviewRecommended": false,
+        "humanReviewReasons": []
+      }
+    ]
+  },
+  "items": [
+    {
+      "evaluationId": "EVAL-C-01",
+      "correlationId": "eval_EVAL-C-01_att1_1790524041960",
+      "generatedAt": "2026-09-27T15:47:26.922Z",
+      "attempt": 1,
+      "questionText": "다음 C 언어로 구현된 프로그램을 분석하여 그 실행 결과를 쓰시오.",
+      "code": "#include <stdio.h>\n\nint main(void) {\n    int a[] = {2, 4, 6, 8, 10};\n    int *p = a;\n    int sum = 0;\n\n    for(int i = 0; i < 3; i++) {\n        sum += *(p + i);\n        *(a + i) += *(a + i + 1);\n    }\n\n    printf(\"%d\", sum);\n    return 0;\n}",
+      "answer": "12",
+      "explanation": "이 문제는 배열 이름이 포인터 상수처럼 동작하는 성질과 포인터 변수를 이용한 역참조 연산(*(p + i)), 그리고 배열 요소의 값을 동적으로 갱신하는 과정을 추적하는 문제입니다. \n\n1. 초기 상태: a 배열은 {2, 4, 6, 8, 10}이며, 포인터 p는 a[0]을 가리킵니다.\n2. i = 0 일 때:\n   - sum += *(p + 0)에 의해 sum은 기존 0에 a[0] 값인 2를 더해 2가 됩니다.\n   - *(a + 0) += *(a + 1)에 의해 a[0]은 기존 2에 a[1] 값인 4를 더한 6이 됩니다. (배열 상태: {6, 4, 6, 8, 10})\n3. i = 1 일 때:\n   - sum += *(p + 1)에 의해 sum은 기존 2에 a[1] 값인 4를 더해 6이 됩니다.\n   - *(a + 1) += *(a + 2)에 의해 a[1]은 기존 4에 a[2] 값인 6을 더한 10이 됩니다. (배열 상태: {6, 10, 6, 8, 10})\n4. i = 2 일 때:\n   - sum += *(p + 2)에 의해 sum은 기존 6에 a[2] 값인 6을 더해 12가 됩니다.\n   - *(a + 2) += *(a + 3)에 의해 a[2]는 기존 6에 a[3] 값인 8을 더한 14가 됩니다.\n5. 루프 종료 후 sum의 최종 값인 12가 출력됩니다.",
+      "stepByStepTrace": "1. int a[5] = {2, 4, 6, 8, 10}; 선언\n2. int *p = a; p는 a[0]을 가리킴\n3. i=0: sum += *(p + 0) -> sum += a[0](2), a[0] += *(a + 1)(4) -> a[0]=6\n4. i=1: sum += *(p + 1) -> sum += a[1](4), a[1] += *(a + 2)(6) -> a[1]=10\n5. i=2: sum += *(p + 2) -> sum += a[2](6), a[2] += *(a + 3)(8) -> a[2]=14\n6. 최종 sum = 2 + 4 + 6 = 12\n7. printf 결과: 12",
+      "targetConcept": "포인터와 1차원 배열",
+      "skill": "배열명 포인터 변환 및 *(arr + i) 역참조 연산 순서 추적",
+      "difficulty": "MEDIUM",
+      "estimatedDifficulty": "중",
+      "generationStrategy": "INDEPENDENT_DESIGN",
+      "model": "gemini-3.5-flash-lite",
+      "sourceType": "INDEPENDENT_EVALUATION",
+      "structuralPass": true,
+      "structuralIssues": [],
+      "nearestExistingSimilarity": 0.708,
+      "nearestExistingQuestionCode": "AI-000057",
+      "nearestExistingQuestionId": "q_imp_1790518323792_hzj2",
+      "maxPeerSimilarity": 0,
+      "independentNovelty": "LOW",
+      "learningValueScore": {
+        "hasPointerOrArray": true,
+        "hasControlFlow": true,
+        "hasStateMutation": true,
+        "cSyntaxValid": true
+      },
+      "codeSyntaxCheck": {
+        "balancedBraces": true,
+        "balancedParens": true,
+        "hasMain": true,
+        "hasReturn": true,
+        "notes": []
+      },
+      "consistencyCheck": {
+        "answerInExplanation": true,
+        "stepTraceMatchesAnswer": true,
+        "explanationConclusionMatchesAnswer": true,
+        "selfCorrectionDetected": false,
+        "riskFlags": []
+      },
+      "generationRejected": false,
+      "rejectionReasons": [],
+      "humanReviewRecommended": false,
+      "humanReviewReasons": []
+    }
+  ]
+}

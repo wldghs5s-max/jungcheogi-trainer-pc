@@ -51,6 +51,7 @@ export interface ImportBatch {
 
 export interface StagedQuestion {
   id: string;
+  questionCode?: string;
   batchId: string;
   indexInBatch: number;
   sourceType: QuestionSourceType;

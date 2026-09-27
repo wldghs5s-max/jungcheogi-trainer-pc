@@ -96,6 +96,13 @@ export interface AIBatchGenerateResponse {
   batchId: string;
   count: number;
   stagedQuestionIds: string[];
+  passCount?: number;
+  reviewCount?: number;
+  rejectCount?: number;
+  rejectedItems?: Array<{
+    reason: string;
+    details?: any;
+  }>;
   message?: string;
 }
 
@@ -126,4 +133,46 @@ export interface AIStageDrillResponse {
   batchId: string;
   message?: string;
 }
+
+export interface QuestionDesignMetadata {
+  concept: string;
+  difficulty: "EASY" | "MEDIUM" | "HARD";
+  skill: string;
+  questionDesign: string;
+  stepByStepTrace?: string;
+}
+
+export interface GeneratedIndependentQuestion {
+  correlationId?: string;
+  questionText: string;
+  code?: string;
+  language?: string;
+  type: string;
+  subject: string;
+  category: string;
+  groundTruthAnswer: string | string[];
+  officialExplanation: string;
+  difficulty: "EASY" | "MEDIUM" | "HARD";
+  keywords: string[];
+  designMetadata: QuestionDesignMetadata;
+  generationMetadata: {
+    model: string;
+    generator: string;
+    generatedAt: string;
+    strategy: "INDEPENDENT_DESIGN" | "MOCK";
+  };
+}
+
+export interface IndependentGenerationContext {
+  domain?: string;
+  subject?: string;
+  language?: string;
+  conceptName?: string;
+  difficulty?: "EASY" | "MEDIUM" | "HARD";
+  avoidSnippets?: string[];
+  instructions?: string;
+  correlationId?: string;
+  strictLive?: boolean;
+}
+
 

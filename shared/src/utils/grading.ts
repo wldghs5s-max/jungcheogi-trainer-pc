@@ -590,3 +590,12 @@ export function formatAnswerDisplay(answer: string | string[]): string {
   }
   return answer;
 }
+
+/**
+ * ①, ②, (1), (2), 1., 2. 등의 문항 번호 접두사를 제거합니다.
+ */
+export function stripSubItemPrefix(str: string): string {
+  if (!str) return "";
+  return str.replace(/^(\s*([①-⑳⑴-⑽]|\(\d+\)|\d+[\.\)])\s*)+/, "").trim();
+}
+

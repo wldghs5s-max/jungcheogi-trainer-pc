@@ -27,22 +27,26 @@ for (const candidate of envCandidates) {
 dotenv.config();
 
 function getDefaultDbPath(): string {
+  // Two levels up from this config file is always the canonical server directory:
+  const serverDir = path.resolve(__dirname, "../..");
+  const canonicalDbPath = path.resolve(serverDir, "data/jungcheogi.db");
+
   const custom = process.env.DATABASE_PATH;
   if (custom && path.isAbsolute(custom)) {
     return custom;
   }
 
-  // Find project root that contains 'server' folder
-  const projectRoot = fs.existsSync(path.resolve(process.cwd(), "server"))
-    ? process.cwd()
-    : path.resolve(process.cwd(), "..");
+  // If relative path targets jungcheogi.db, always map to the canonical server/data path
+  if (custom && custom.includes("jungcheogi.db")) {
+    return canonicalDbPath;
+  }
 
-  return path.resolve(projectRoot, "server/data/jungcheogi.db");
+  return canonicalDbPath;
 }
 
 export const env = {
   PORT: Number(process.env.PORT) || 8765,
-  HOST: process.env.HOST || "127.0.0.1",
+  HOST: process.env.HOST || "0.0.0.0",
   NODE_ENV: process.env.NODE_ENV || "development",
   DATABASE_PATH: getDefaultDbPath(),
   CORS_ORIGIN: process.env.CORS_ORIGIN || "http://localhost:5173",

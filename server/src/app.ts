@@ -8,27 +8,45 @@ import { importRoutes } from "./routes/imports.js";
 import { learningRoutes } from "./routes/learning.js";
 import { aiRoutes } from "./routes/ai.js";
 
-function isLoopbackAddress(ip?: string): boolean {
+function isAllowedAddress(ip?: string): boolean {
   if (!ip) return false;
-  return (
+  // Loopback (127.0.0.1, ::1, ::ffff:127.0.0.1)
+  if (
     ip === "127.0.0.1" ||
     ip === "::1" ||
     ip === "::ffff:127.0.0.1" ||
     ip.startsWith("127.")
-  );
+  ) {
+    return true;
+  }
+  // Allow RFC1918 private network IP ranges for home LAN / Wi-Fi access
+  const cleanIp = ip.replace(/^::ffff:/, "");
+  if (
+    cleanIp.startsWith("10.") ||
+    cleanIp.startsWith("192.168.") ||
+    /^172\.(1[6-9]|2[0-9]|3[0-1])\./.test(cleanIp)
+  ) {
+    return true;
+  }
+  return false;
 }
 
 export function buildApp(): FastifyInstance {
   const app = fastify({
     logger: env.NODE_ENV !== "test",
-    trustProxy: false,
+    trustProxy: true,
   });
 
   app.addHook("onRequest", async (request, reply) => {
-    if (!isLoopbackAddress(request.ip)) {
+    const socketIp = request.socket?.remoteAddress;
+    const isLocalSocket = isAllowedAddress(socketIp);
+    const isLocalIp = isAllowedAddress(request.ip);
+    const isCloudflareTunnel = Boolean(request.headers["cf-ray"]);
+
+    if (!isLocalSocket && !isLocalIp && !isCloudflareTunnel) {
       return reply.status(403).send({
         error: "Forbidden",
-        message: "이 API는 로컬호스트에서만 사용할 수 있습니다.",
+        message: "이 API는 로컬, 내부 네트워크(LAN) 및 Cloudflare Tunnel에서만 사용할 수 있습니다.",
       });
     }
 
@@ -48,7 +66,7 @@ export function buildApp(): FastifyInstance {
     }
   });
 
-  // Enable CORS for local development and future Cloudflare Tunnel
+  // Enable CORS for local development, LAN access, and Cloudflare Tunnel
   app.register(cors, {
     origin: (origin, cb) => {
       // Allow requests with no origin (like mobile apps, curl, server-to-server)
@@ -57,10 +75,15 @@ export function buildApp(): FastifyInstance {
         return;
       }
 
-      // Allow localhost and specified CORS_ORIGIN
+      // Allow localhost, LAN IPs, Cloudflare Tunnel domains, and specified CORS_ORIGIN
       if (
         origin.startsWith("http://localhost:") ||
         origin.startsWith("http://127.0.0.1:") ||
+        origin.startsWith("http://192.168.") ||
+        origin.startsWith("http://10.") ||
+        /^http:\/\/172\.(1[6-9]|2[0-9]|3[0-1])\./.test(origin) ||
+        origin.endsWith(".trycloudflare.com") ||
+        origin.endsWith(".cloudflare.com") ||
         origin === env.CORS_ORIGIN
       ) {
         cb(null, true);

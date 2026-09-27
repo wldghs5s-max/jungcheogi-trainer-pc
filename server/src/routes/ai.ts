@@ -26,6 +26,13 @@ import { getDatabase } from "../db/database.js";
 import { getAIService } from "../engine/aiService.js";
 import { MockQuestionVariationGenerator } from "../engine/variationGenerator.js";
 import { evaluateCodeOutput } from "../engine/codeExecutionEngine.js";
+import { isDuplicateOrTooSimilar } from "../engine/independentGenerator.js";
+import {
+  verifyStepTraceMatch,
+  verifyExplanationMatch,
+  calculateCodeSimilarity,
+  evaluateDualConsistency,
+} from "../engine/evaluationValidator.js";
 
 export async function aiRoutes(fastify: FastifyInstance): Promise<void> {
   const questionRepo = new QuestionRepository();
@@ -282,13 +289,37 @@ export async function aiRoutes(fastify: FastifyInstance): Promise<void> {
       if (mode === "DOMAIN" && domain) {
         const dTrim = domain.trim().toLowerCase();
         const matched = candidatePool.filter((q: Question) => {
-          const langMatch =
-            q.language && q.language.toLowerCase() === dTrim;
-          const subjMatch =
-            q.subject && q.subject.toLowerCase().includes(dTrim);
-          const catMatch =
-            q.category && q.category.toLowerCase().includes(dTrim);
-          return langMatch || subjMatch || catMatch;
+          const langMatch = q.language && q.language.toLowerCase() === dTrim;
+          const subjMatch = q.subject && q.subject.toLowerCase().includes(dTrim);
+          const catMatch = q.category && q.category.toLowerCase().includes(dTrim);
+          const cDirectMatch =
+            (dTrim === "c" || dTrim === "c언어" || dTrim === "c 언어") &&
+            ((q.language && q.language.toUpperCase() === "C") ||
+              (q.category && q.category.toLowerCase().includes("c")) ||
+              Boolean(q.code && /#include/i.test(q.code)));
+          const javaDirectMatch =
+            (dTrim === "java" || dTrim === "자바") &&
+            ((q.language && q.language.toUpperCase() === "JAVA") ||
+              (q.category && q.category.toLowerCase().includes("java")) ||
+              Boolean(q.code && /class\s+/i.test(q.code)));
+          const pyDirectMatch =
+            (dTrim === "python" || dTrim === "파이썬") &&
+            ((q.language && q.language.toUpperCase() === "PYTHON") ||
+              (q.category && q.category.toLowerCase().includes("python")));
+          const sqlDirectMatch =
+            (dTrim === "sql" || dTrim === "데이터베이스") &&
+            (Boolean(q.subject && q.subject.includes("데이터베이스")) ||
+              Boolean(q.category && q.category.toLowerCase().includes("sql")) ||
+              q.type === "SQL");
+          return (
+            langMatch ||
+            subjMatch ||
+            catMatch ||
+            cDirectMatch ||
+            javaDirectMatch ||
+            pyDirectMatch ||
+            sqlDirectMatch
+          );
         });
         if (matched.length > 0) {
           candidatePool = matched;
@@ -302,23 +333,167 @@ export async function aiRoutes(fastify: FastifyInstance): Promise<void> {
         });
       }
 
-      // 2. 문항별 변형 생성 및 스테이징
+      // 2. 독립형 생성 우선 여부 판단 (C 언어 및 프로그래밍 도메인은 단순 변형 대신 새로운 문제 설계 우선)
+      const dTrim = (domain || "").trim().toLowerCase();
+      const isProgDomain =
+        dTrim === "c" ||
+        dTrim === "c언어" ||
+        dTrim === "c 언어" ||
+        dTrim === "java" ||
+        dTrim === "자바" ||
+        dTrim === "python" ||
+        dTrim === "파이썬" ||
+        dTrim === "sql" ||
+        dTrim.includes("프로그래밍");
+
+      // Shuffle candidatePool to ensure variety and prevent cycling repetitive questions
+      const shuffledCandidates = [...candidatePool].sort(
+        () => Math.random() - 0.5,
+      );
+
+      // 기존 문제들의 코드 스니펫 목록 수집 (중복 배제 프롬프트용)
+      const existingCodeSnippets = allQuestions
+        .filter((q) => q.code && q.code.length > 20)
+        .slice(0, 5)
+        .map((q) => q.code as string);
+
       let targetBatchId: string | undefined = undefined;
       const stagedIds: string[] = [];
+      let passCount = 0;
+      let reviewCount = 0;
+      const rejectedItems: Array<{ reason: string; details?: any }> = [];
+      const batchGeneratedCodes: string[] = [];
 
       for (let i = 0; i < numQuestions; i++) {
-        const baseQuestion = candidatePool[i % candidatePool.length];
+        // C 언어 또는 프로그래밍 도메인이거나, 독립형 생성이 적절한 경우
+        if (isProgDomain || (mode === "DOMAIN" && (dTrim === "c" || dTrim.includes("c")))) {
+          try {
+            const indepQuestion = await aiService.generateIndependentQuestion({
+              domain: domain || "C",
+              language: (dTrim === "c" || dTrim === "c언어") ? "C" : undefined,
+              difficulty: i % 2 === 0 ? "HARD" : "MEDIUM",
+              avoidSnippets: existingCodeSnippets,
+            });
+
+            // 1. 코드 구문 검사 (괄호 및 main 함수)
+            const codeStr = indepQuestion.code || "";
+            let brace = 0;
+            let paren = 0;
+            for (const ch of codeStr) {
+              if (ch === "{") brace++;
+              if (ch === "}") brace--;
+              if (ch === "(") paren++;
+              if (ch === ")") paren--;
+            }
+            const isBalanced = brace === 0 && paren === 0;
+            const hasMain = /int\s+main\s*\(/.test(codeStr);
+            const hasSyntaxIssues = !isBalanced || !hasMain;
+
+            // 2. 기존 문제 및 동반 생성 문항과의 유사도/복제 검사
+            let cloneType: "NONE" | "IDENTICAL" | "MUTATION_CLONE" = "NONE";
+            for (const eq of allQuestions) {
+              if (eq.code) {
+                const sim = calculateCodeSimilarity(codeStr, eq.code);
+                if (sim.category === "IDENTICAL") {
+                  cloneType = "IDENTICAL";
+                  break;
+                } else if (sim.category === "MUTATION_CLONE" && cloneType === "NONE") {
+                  cloneType = "MUTATION_CLONE";
+                }
+              }
+            }
+            if (cloneType === "NONE") {
+              for (const prevCode of batchGeneratedCodes) {
+                const sim = calculateCodeSimilarity(codeStr, prevCode);
+                if (sim.category === "IDENTICAL") {
+                  cloneType = "IDENTICAL";
+                  break;
+                } else if (sim.category === "MUTATION_CLONE") {
+                  cloneType = "MUTATION_CLONE";
+                }
+              }
+            }
+
+            // 3. 추적표(stepTrace) 검증
+            const stepTrace = indepQuestion.designMetadata?.stepByStepTrace || "";
+            const ansStr = String(indepQuestion.groundTruthAnswer).trim();
+            const traceResult = verifyStepTraceMatch(stepTrace, ansStr);
+
+            // 4. 해설(explanation) 검증
+            const explStr = indepQuestion.officialExplanation || "";
+            const explResult = verifyExplanationMatch(explStr, ansStr);
+
+            // 5. 종합 판정 (evaluateDualConsistency)
+            const dualResult = evaluateDualConsistency({
+              stepTraceStatus: traceResult.status,
+              explanationStatus: explResult.status,
+              cloneType,
+              actualCodeOutput: undefined,
+              codeExecutionStatus: "UNAVAILABLE",
+              expectedAnswer: ansStr,
+              hasSyntaxIssues,
+            });
+
+            // REJECT: Staging에 올리지 않고 폐기 (거절 사유 기록)
+            if (dualResult.finalDecision === "REJECT") {
+              rejectedItems.push({
+                reason: dualResult.rejectionReasons.join("; ") || "정합성 또는 복제 결함",
+                details: {
+                  concept: indepQuestion.designMetadata?.concept,
+                  answer: ansStr,
+                  reasons: dualResult.rejectionReasons,
+                },
+              });
+              continue;
+            }
+
+            // PASS 또는 REVIEW: Staging에 저장 (사람 검수 대기)
+            if (dualResult.finalDecision === "PASS") {
+              passCount++;
+            } else {
+              reviewCount++;
+            }
+            batchGeneratedCodes.push(codeStr);
+
+            const stagedResult = await variationStager.stageIndependentQuestion(
+              indepQuestion,
+              targetBatchId,
+              {
+                decision: dualResult.finalDecision,
+                rejectionReasons: dualResult.rejectionReasons,
+                model: (indepQuestion as any).model,
+              }
+            );
+            targetBatchId = stagedResult.batchId;
+            stagedIds.push(stagedResult.stagedQuestion.id);
+            continue;
+          } catch (indepErr) {
+            console.warn(
+              `[BatchGenerate] independent generation failed, falling back to variation:`,
+              indepErr instanceof Error ? indepErr.message : indepErr,
+            );
+          }
+        }
+
+        // 기존 문제 변형 모드 (이론 문제 또는 독립형 생성 fallback)
+        const baseQuestion = shuffledCandidates[i % shuffledCandidates.length];
         const concept = baseQuestion.conceptId
           ? conceptRepo.findById(baseQuestion.conceptId)
           : null;
 
-        // AI 내부 자동 전략 교차 적용: 코드는 PARAMETER -> CODE -> DIFFICULTY, 이론은 CONCEPT -> SCENARIO
+        const isCodeQuestion = Boolean(
+          baseQuestion.code ||
+            baseQuestion.type === "CODE_TRACE" ||
+            baseQuestion.type.includes("CODE") ||
+            baseQuestion.language,
+        );
+
         let chosenStrategy: VariationType;
-        if (baseQuestion.type === "CODE_TRACE") {
+        if (isCodeQuestion) {
           const codeStrategies: VariationType[] = [
-            "PARAMETER_VARIATION",
             "CODE_VARIATION",
             "DIFFICULTY_VARIATION",
+            "PARAMETER_VARIATION",
           ];
           chosenStrategy = codeStrategies[i % codeStrategies.length];
         } else {
@@ -343,12 +518,27 @@ export async function aiRoutes(fastify: FastifyInstance): Promise<void> {
           );
           targetBatchId = stagedResult.batchId;
           stagedIds.push(stagedResult.stagedQuestion.id);
+          passCount++;
         } catch (err) {
           console.warn(
             `[BatchGenerate] variation failed for ${baseQuestion.id}:`,
             err instanceof Error ? err.message : err,
           );
         }
+      }
+
+      if (stagedIds.length === 0 && rejectedItems.length > 0) {
+        return reply.status(200).send({
+          success: false,
+          batchId: targetBatchId || "",
+          count: 0,
+          stagedQuestionIds: [],
+          passCount: 0,
+          reviewCount: 0,
+          rejectCount: rejectedItems.length,
+          rejectedItems,
+          message: `생성된 ${rejectedItems.length}개 문제가 검증기(Evaluator) 기준에 미달하여 자동 폐기(Reject)되었습니다.`,
+        });
       }
 
       if (stagedIds.length === 0) {
@@ -363,7 +553,11 @@ export async function aiRoutes(fastify: FastifyInstance): Promise<void> {
         batchId: targetBatchId || `batch_${Date.now()}`,
         count: stagedIds.length,
         stagedQuestionIds: stagedIds,
-        message: `${stagedIds.length}개 문제가 생성되어 검수 대기열에 등록되었습니다.`,
+        passCount,
+        reviewCount,
+        rejectCount: rejectedItems.length,
+        rejectedItems: rejectedItems.length > 0 ? rejectedItems : undefined,
+        message: `${stagedIds.length}개 문제가 검증을 거쳐 검수 대기열에 등록되었습니다. (PASS: ${passCount}, REVIEW: ${reviewCount}, REJECT 폐기: ${rejectedItems.length})`,
       };
       return reply.status(201).send(response);
     },

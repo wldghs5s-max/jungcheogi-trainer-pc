@@ -67,6 +67,7 @@ export interface ActiveRecallMeta {
 
 export interface Question {
   id: string;
+  questionCode?: string;
   sourceType: QuestionSourceType;
 
   // 실제 기출 메타데이터

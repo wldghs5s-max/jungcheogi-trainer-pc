@@ -1,0 +1,245 @@
+{
+  "summary": {
+    "targetCount": 1,
+    "requestedCount": 1,
+    "successCount": 1,
+    "failureCount": 0,
+    "retryCount": 1,
+    "mockFallbackCount": 0,
+    "evaluatedAt": "2026-09-27T15:42:06.420Z",
+    "modelUsed": "gemini-3.5-flash-lite",
+    "modelBreakdown": {
+      "gemini-3.5-flash-lite": 1
+    },
+    "strictLive": true
+  },
+  "metrics": {
+    "schemaPassRate": 1,
+    "highNoveltyRate": 0,
+    "mediumNoveltyRate": 1,
+    "lowNoveltyRate": 0,
+    "nearDuplicateExistingRate": 0,
+    "nearDuplicatePeerRate": 0,
+    "identicalPeerDuplicateRate": 0,
+    "codeSyntaxPassRate": 1,
+    "answerExplanationConsistencyRate": 1,
+    "stepTraceConsistencyRate": 1,
+    "humanReviewRate": 0,
+    "generationRejectionRate": 0
+  },
+  "conceptDistribution": {
+    "포인터와 1차원 배열": 1
+  },
+  "difficultyDistribution": {
+    "하": 0,
+    "중": 1,
+    "중상": 0,
+    "상": 0
+  },
+  "peerDuplicates": [],
+  "humanReviewItems": [],
+  "rejectedItems": [],
+  "sampleQuestions": {
+    "highestNovelty": [
+      {
+        "evaluationId": "EVAL-C-01",
+        "correlationId": "eval_EVAL-C-01_att2_1790523718166",
+        "generatedAt": "2026-09-27T15:42:04.412Z",
+        "attempt": 2,
+        "questionText": "다음 C 언어로 구현된 프로그램을 분석하여 그 실행 결과를 쓰시오.",
+        "code": "#include <stdio.h>\n\nint main(void) {\n    int a[] = {3, 6, 9, 12, 15};\n    int *p = a;\n    int sum = 0;\n\n    for (int i = 0; i < 4; i++) {\n        sum += *(p + i);\n    }\n\n    printf(\"%d\", sum);\n    return 0;\n}",
+        "answer": "30",
+        "explanation": "본 문제는 1차원 배열의 이름이 첫 번째 원소의 주소로 암시적 형변환되는 성질과 포인터 연산자(*(p + i))의 동작 방식을 이해하고 있는지 평가하는 문제입니다.\n1. int a[] = {3, 6, 9, 12, 15}; 선언을 통해 5개의 정수형 배열이 생성됩니다.\n2. int *p = a;를 통해 포인터 변수 p는 배열의 첫 번째 원소(&a[0])를 가리킵니다.\n3. 반복문 내에서 i가 0부터 3까지 증가할 때마다 *(p + 0), *(p + 1), *(p + 2), *(p + 3)은 각각 a[0], a[1], a[2], a[3]의 값인 3, 6, 9, 12를 참조합니다.\n4. 이들의 누적 합(sum)은 3 + 6 + 9 + 12 = 30이 되며, 마지막에 30이 출력됩니다.",
+        "targetConcept": "포인터와 1차원 배열",
+        "skill": "배열명 포인터 변환 및 *(arr + i) 역참조 연산 순서 추적",
+        "difficulty": "MEDIUM",
+        "estimatedDifficulty": "중",
+        "generationStrategy": "INDEPENDENT_DESIGN",
+        "model": "gemini-3.5-flash-lite",
+        "sourceType": "INDEPENDENT_EVALUATION",
+        "structuralPass": true,
+        "structuralIssues": [],
+        "nearestExistingSimilarity": 0.481,
+        "nearestExistingQuestionCode": "AI-000057",
+        "nearestExistingQuestionId": "q_imp_1790518323792_hzj2",
+        "maxPeerSimilarity": 0,
+        "independentNovelty": "MEDIUM",
+        "learningValueScore": {
+          "hasPointerOrArray": true,
+          "hasControlFlow": true,
+          "hasStateMutation": true,
+          "cSyntaxValid": true
+        },
+        "codeSyntaxCheck": {
+          "balancedBraces": true,
+          "balancedParens": true,
+          "hasMain": true,
+          "hasReturn": true,
+          "notes": []
+        },
+        "consistencyCheck": {
+          "answerInExplanation": true,
+          "stepTraceMatchesAnswer": true,
+          "explanationConclusionMatchesAnswer": true,
+          "selfCorrectionDetected": false,
+          "riskFlags": []
+        },
+        "generationRejected": false,
+        "rejectionReasons": [],
+        "humanReviewRecommended": false,
+        "humanReviewReasons": []
+      }
+    ],
+    "highestSimilarity": [
+      {
+        "evaluationId": "EVAL-C-01",
+        "correlationId": "eval_EVAL-C-01_att2_1790523718166",
+        "generatedAt": "2026-09-27T15:42:04.412Z",
+        "attempt": 2,
+        "questionText": "다음 C 언어로 구현된 프로그램을 분석하여 그 실행 결과를 쓰시오.",
+        "code": "#include <stdio.h>\n\nint main(void) {\n    int a[] = {3, 6, 9, 12, 15};\n    int *p = a;\n    int sum = 0;\n\n    for (int i = 0; i < 4; i++) {\n        sum += *(p + i);\n    }\n\n    printf(\"%d\", sum);\n    return 0;\n}",
+        "answer": "30",
+        "explanation": "본 문제는 1차원 배열의 이름이 첫 번째 원소의 주소로 암시적 형변환되는 성질과 포인터 연산자(*(p + i))의 동작 방식을 이해하고 있는지 평가하는 문제입니다.\n1. int a[] = {3, 6, 9, 12, 15}; 선언을 통해 5개의 정수형 배열이 생성됩니다.\n2. int *p = a;를 통해 포인터 변수 p는 배열의 첫 번째 원소(&a[0])를 가리킵니다.\n3. 반복문 내에서 i가 0부터 3까지 증가할 때마다 *(p + 0), *(p + 1), *(p + 2), *(p + 3)은 각각 a[0], a[1], a[2], a[3]의 값인 3, 6, 9, 12를 참조합니다.\n4. 이들의 누적 합(sum)은 3 + 6 + 9 + 12 = 30이 되며, 마지막에 30이 출력됩니다.",
+        "targetConcept": "포인터와 1차원 배열",
+        "skill": "배열명 포인터 변환 및 *(arr + i) 역참조 연산 순서 추적",
+        "difficulty": "MEDIUM",
+        "estimatedDifficulty": "중",
+        "generationStrategy": "INDEPENDENT_DESIGN",
+        "model": "gemini-3.5-flash-lite",
+        "sourceType": "INDEPENDENT_EVALUATION",
+        "structuralPass": true,
+        "structuralIssues": [],
+        "nearestExistingSimilarity": 0.481,
+        "nearestExistingQuestionCode": "AI-000057",
+        "nearestExistingQuestionId": "q_imp_1790518323792_hzj2",
+        "maxPeerSimilarity": 0,
+        "independentNovelty": "MEDIUM",
+        "learningValueScore": {
+          "hasPointerOrArray": true,
+          "hasControlFlow": true,
+          "hasStateMutation": true,
+          "cSyntaxValid": true
+        },
+        "codeSyntaxCheck": {
+          "balancedBraces": true,
+          "balancedParens": true,
+          "hasMain": true,
+          "hasReturn": true,
+          "notes": []
+        },
+        "consistencyCheck": {
+          "answerInExplanation": true,
+          "stepTraceMatchesAnswer": true,
+          "explanationConclusionMatchesAnswer": true,
+          "selfCorrectionDetected": false,
+          "riskFlags": []
+        },
+        "generationRejected": false,
+        "rejectionReasons": [],
+        "humanReviewRecommended": false,
+        "humanReviewReasons": []
+      }
+    ],
+    "hardest": [],
+    "easiest": [
+      {
+        "evaluationId": "EVAL-C-01",
+        "correlationId": "eval_EVAL-C-01_att2_1790523718166",
+        "generatedAt": "2026-09-27T15:42:04.412Z",
+        "attempt": 2,
+        "questionText": "다음 C 언어로 구현된 프로그램을 분석하여 그 실행 결과를 쓰시오.",
+        "code": "#include <stdio.h>\n\nint main(void) {\n    int a[] = {3, 6, 9, 12, 15};\n    int *p = a;\n    int sum = 0;\n\n    for (int i = 0; i < 4; i++) {\n        sum += *(p + i);\n    }\n\n    printf(\"%d\", sum);\n    return 0;\n}",
+        "answer": "30",
+        "explanation": "본 문제는 1차원 배열의 이름이 첫 번째 원소의 주소로 암시적 형변환되는 성질과 포인터 연산자(*(p + i))의 동작 방식을 이해하고 있는지 평가하는 문제입니다.\n1. int a[] = {3, 6, 9, 12, 15}; 선언을 통해 5개의 정수형 배열이 생성됩니다.\n2. int *p = a;를 통해 포인터 변수 p는 배열의 첫 번째 원소(&a[0])를 가리킵니다.\n3. 반복문 내에서 i가 0부터 3까지 증가할 때마다 *(p + 0), *(p + 1), *(p + 2), *(p + 3)은 각각 a[0], a[1], a[2], a[3]의 값인 3, 6, 9, 12를 참조합니다.\n4. 이들의 누적 합(sum)은 3 + 6 + 9 + 12 = 30이 되며, 마지막에 30이 출력됩니다.",
+        "targetConcept": "포인터와 1차원 배열",
+        "skill": "배열명 포인터 변환 및 *(arr + i) 역참조 연산 순서 추적",
+        "difficulty": "MEDIUM",
+        "estimatedDifficulty": "중",
+        "generationStrategy": "INDEPENDENT_DESIGN",
+        "model": "gemini-3.5-flash-lite",
+        "sourceType": "INDEPENDENT_EVALUATION",
+        "structuralPass": true,
+        "structuralIssues": [],
+        "nearestExistingSimilarity": 0.481,
+        "nearestExistingQuestionCode": "AI-000057",
+        "nearestExistingQuestionId": "q_imp_1790518323792_hzj2",
+        "maxPeerSimilarity": 0,
+        "independentNovelty": "MEDIUM",
+        "learningValueScore": {
+          "hasPointerOrArray": true,
+          "hasControlFlow": true,
+          "hasStateMutation": true,
+          "cSyntaxValid": true
+        },
+        "codeSyntaxCheck": {
+          "balancedBraces": true,
+          "balancedParens": true,
+          "hasMain": true,
+          "hasReturn": true,
+          "notes": []
+        },
+        "consistencyCheck": {
+          "answerInExplanation": true,
+          "stepTraceMatchesAnswer": true,
+          "explanationConclusionMatchesAnswer": true,
+          "selfCorrectionDetected": false,
+          "riskFlags": []
+        },
+        "generationRejected": false,
+        "rejectionReasons": [],
+        "humanReviewRecommended": false,
+        "humanReviewReasons": []
+      }
+    ]
+  },
+  "items": [
+    {
+      "evaluationId": "EVAL-C-01",
+      "correlationId": "eval_EVAL-C-01_att2_1790523718166",
+      "generatedAt": "2026-09-27T15:42:04.412Z",
+      "attempt": 2,
+      "questionText": "다음 C 언어로 구현된 프로그램을 분석하여 그 실행 결과를 쓰시오.",
+      "code": "#include <stdio.h>\n\nint main(void) {\n    int a[] = {3, 6, 9, 12, 15};\n    int *p = a;\n    int sum = 0;\n\n    for (int i = 0; i < 4; i++) {\n        sum += *(p + i);\n    }\n\n    printf(\"%d\", sum);\n    return 0;\n}",
+      "answer": "30",
+      "explanation": "본 문제는 1차원 배열의 이름이 첫 번째 원소의 주소로 암시적 형변환되는 성질과 포인터 연산자(*(p + i))의 동작 방식을 이해하고 있는지 평가하는 문제입니다.\n1. int a[] = {3, 6, 9, 12, 15}; 선언을 통해 5개의 정수형 배열이 생성됩니다.\n2. int *p = a;를 통해 포인터 변수 p는 배열의 첫 번째 원소(&a[0])를 가리킵니다.\n3. 반복문 내에서 i가 0부터 3까지 증가할 때마다 *(p + 0), *(p + 1), *(p + 2), *(p + 3)은 각각 a[0], a[1], a[2], a[3]의 값인 3, 6, 9, 12를 참조합니다.\n4. 이들의 누적 합(sum)은 3 + 6 + 9 + 12 = 30이 되며, 마지막에 30이 출력됩니다.",
+      "targetConcept": "포인터와 1차원 배열",
+      "skill": "배열명 포인터 변환 및 *(arr + i) 역참조 연산 순서 추적",
+      "difficulty": "MEDIUM",
+      "estimatedDifficulty": "중",
+      "generationStrategy": "INDEPENDENT_DESIGN",
+      "model": "gemini-3.5-flash-lite",
+      "sourceType": "INDEPENDENT_EVALUATION",
+      "structuralPass": true,
+      "structuralIssues": [],
+      "nearestExistingSimilarity": 0.481,
+      "nearestExistingQuestionCode": "AI-000057",
+      "nearestExistingQuestionId": "q_imp_1790518323792_hzj2",
+      "maxPeerSimilarity": 0,
+      "independentNovelty": "MEDIUM",
+      "learningValueScore": {
+        "hasPointerOrArray": true,
+        "hasControlFlow": true,
+        "hasStateMutation": true,
+        "cSyntaxValid": true
+      },
+      "codeSyntaxCheck": {
+        "balancedBraces": true,
+        "balancedParens": true,
+        "hasMain": true,
+        "hasReturn": true,
+        "notes": []
+      },
+      "consistencyCheck": {
+        "answerInExplanation": true,
+        "stepTraceMatchesAnswer": true,
+        "explanationConclusionMatchesAnswer": true,
+        "selfCorrectionDetected": false,
+        "riskFlags": []
+      },
+      "generationRejected": false,
+      "rejectionReasons": [],
+      "humanReviewRecommended": false,
+      "humanReviewReasons": []
+    }
+  ]
+}

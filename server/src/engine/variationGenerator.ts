@@ -8,9 +8,11 @@ import {
   ImportBatch,
   CodeLanguage,
   normalizeVariationType,
+  GeneratedIndependentQuestion,
 } from '@jungcheogi/shared';
 import { getDatabase } from '../db/database.js';
 import { ImportBatchRepository } from '../db/repositories/importBatchRepository.js';
+import { QuestionRepository } from '../db/repositories/questionRepository.js';
 import { generateStructuralFingerprint } from '../db/importers/fingerprint.js';
 import { VariationValidator } from './variationValidator.js';
 import { evaluateCodeOutput } from './codeExecutionEngine.js';
@@ -56,10 +58,12 @@ export interface QuestionVariationGenerator {
 export class MockQuestionVariationGenerator implements QuestionVariationGenerator {
   private db: Database;
   private importBatchRepo: ImportBatchRepository;
+  private questionRepo: QuestionRepository;
 
   constructor(customDb?: Database) {
     this.db = customDb || getDatabase();
     this.importBatchRepo = new ImportBatchRepository(this.db);
+    this.questionRepo = new QuestionRepository(this.db);
   }
 
   /**
@@ -220,8 +224,10 @@ export class MockQuestionVariationGenerator implements QuestionVariationGenerato
 
     // 3. StagedQuestion 엔티티 구성 (상태: PENDING)
     const stagedId = `stg_var_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`;
+    const questionCode = this.questionRepo.generateNextCode('AI_VARIATION');
     const stagedQuestion: StagedQuestion = {
       id: stagedId,
+      questionCode,
       batchId: targetBatchId,
       indexInBatch: 0,
       sourceType: 'AI_VARIATION',
@@ -250,14 +256,14 @@ export class MockQuestionVariationGenerator implements QuestionVariationGenerato
     // 4. Staging 테이블에 저장 (단일 문항 삽입)
     const stmt = this.db.prepare(`
       INSERT INTO staged_questions (
-        id, batch_id, index_in_batch, source_type, parent_question_id,
+        id, question_code, batch_id, index_in_batch, source_type, parent_question_id,
         concept_id, subject, category, type, question_text,
         code_snippet, language, options_json, ground_truth_answer,
         ai_explanation, ai_variation_notes, difficulty, keywords_json,
         structural_fingerprint, duplicate_status, validation_issues_json,
         review_status, created_at
       ) VALUES (
-        @id, @batch_id, @index_in_batch, @source_type, @parent_question_id,
+        @id, @question_code, @batch_id, @index_in_batch, @source_type, @parent_question_id,
         @concept_id, @subject, @category, @type, @question_text,
         @code_snippet, @language, @options_json, @ground_truth_answer,
         @ai_explanation, @ai_variation_notes, @difficulty, @keywords_json,
@@ -268,6 +274,7 @@ export class MockQuestionVariationGenerator implements QuestionVariationGenerato
 
     stmt.run({
       id: stagedQuestion.id,
+      question_code: stagedQuestion.questionCode ?? null,
       batch_id: stagedQuestion.batchId,
       index_in_batch: stagedQuestion.indexInBatch,
       source_type: stagedQuestion.sourceType,
@@ -293,6 +300,141 @@ export class MockQuestionVariationGenerator implements QuestionVariationGenerato
     });
 
     // 배치 카운트 동기화
+    this.importBatchRepo.syncBatchCounts(targetBatchId);
+
+    return {
+      batchId: targetBatchId,
+      stagedQuestion,
+    };
+  }
+
+  /**
+   * 독립형 AI 신규 문제(GeneratedIndependentQuestion)를 Staging 테이블에 저장
+   */
+  public async stageIndependentQuestion(
+    question: GeneratedIndependentQuestion,
+    batchId?: string,
+    evaluatorMeta?: {
+      decision?: "PASS" | "REVIEW" | "REJECT";
+      rejectionReasons?: string[];
+      model?: string;
+    }
+  ): Promise<{ batchId: string; stagedQuestion: StagedQuestion }> {
+    const nowIso = new Date().toISOString();
+    let targetBatchId = batchId;
+
+    if (!targetBatchId) {
+      const batch: ImportBatch = {
+        id: `batch_indep_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
+        sourceName: `AI 독립형 문제 생성 (${question.category})`,
+        format: 'JSON',
+        sourceType: 'AI_GENERATED',
+        totalCount: 0,
+        pendingCount: 0,
+        approvedCount: 0,
+        rejectedCount: 0,
+        committedCount: 0,
+        status: 'PENDING_REVIEW',
+        createdAt: nowIso,
+      };
+      this.importBatchRepo.createBatch(batch, []);
+      targetBatchId = batch.id;
+    }
+
+    const fingerprint = generateStructuralFingerprint(
+      question.questionText,
+      question.code
+    );
+
+    const questionCode = this.questionRepo.generateNextCode('AI_GENERATED');
+    const decision = evaluatorMeta?.decision || 'PASS';
+    const reasons = evaluatorMeta?.rejectionReasons || [];
+    const model = evaluatorMeta?.model || (question as any).model || 'AI';
+
+    let variationNotes = `[독립형 출제 설계: ${question.designMetadata.concept}] (${question.designMetadata.skill})\n- 모델: ${model}\n- 검증 상태: ${decision} (코드 실행 상태: UNAVAILABLE - 실제 C 런타임 미검증)`;
+    if (question.designMetadata.stepByStepTrace) {
+      variationNotes += `\n- 단계별 추적표:\n${question.designMetadata.stepByStepTrace}`;
+    }
+
+    const reviewerNotes =
+      decision === 'REVIEW'
+        ? `[검수 필요: Evaluator REVIEW] ${reasons.join('; ') || '세부 검토 권장'}`
+        : `[정적 정합성 검증 통과: Evaluator PASS] (실제 C 런타임 미검증)`;
+
+    const stagedId = `stg_indep_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`;
+    const stagedQuestion: StagedQuestion = {
+      id: stagedId,
+      questionCode,
+      batchId: targetBatchId,
+      indexInBatch: 0,
+      sourceType: 'AI_GENERATED',
+      subject: question.subject as any,
+      category: question.category,
+      type: question.type as any,
+      questionText: question.questionText,
+      codeSnippet: question.code,
+      language: (question.language as CodeLanguage) ?? undefined,
+      groundTruthAnswer: question.groundTruthAnswer,
+      officialExplanation: question.officialExplanation,
+      aiExplanation: question.officialExplanation,
+      aiVariationNotes: variationNotes,
+      difficulty: question.difficulty,
+      keywords: question.keywords,
+      structuralFingerprint: fingerprint,
+      duplicateStatus: 'NEW',
+      validationIssues: [],
+      reviewStatus: 'PENDING',
+      reviewerNotes,
+      createdAt: nowIso,
+    };
+
+    const stmt = this.db.prepare(`
+      INSERT INTO staged_questions (
+        id, question_code, batch_id, index_in_batch, source_type, parent_question_id,
+        concept_id, subject, category, type, question_text,
+        code_snippet, language, options_json, ground_truth_answer,
+        official_explanation, ai_explanation, ai_variation_notes, difficulty, keywords_json,
+        structural_fingerprint, duplicate_status, validation_issues_json,
+        review_status, reviewer_notes, created_at
+      ) VALUES (
+        @id, @question_code, @batch_id, @index_in_batch, @source_type, @parent_question_id,
+        @concept_id, @subject, @category, @type, @question_text,
+        @code_snippet, @language, @options_json, @ground_truth_answer,
+        @official_explanation, @ai_explanation, @ai_variation_notes, @difficulty, @keywords_json,
+        @structural_fingerprint, @duplicate_status, @validation_issues_json,
+        @review_status, @reviewer_notes, @created_at
+      )
+    `);
+
+    stmt.run({
+      id: stagedQuestion.id,
+      question_code: stagedQuestion.questionCode ?? null,
+      batch_id: stagedQuestion.batchId,
+      index_in_batch: stagedQuestion.indexInBatch,
+      source_type: stagedQuestion.sourceType,
+      parent_question_id: null,
+      concept_id: null,
+      subject: stagedQuestion.subject,
+      category: stagedQuestion.category,
+      type: stagedQuestion.type,
+      question_text: stagedQuestion.questionText,
+      code_snippet: stagedQuestion.codeSnippet ?? null,
+      language: stagedQuestion.language ?? null,
+      options_json: null,
+      ground_truth_answer: JSON.stringify(stagedQuestion.groundTruthAnswer),
+      official_explanation: stagedQuestion.officialExplanation ?? null,
+      ai_explanation: stagedQuestion.aiExplanation ?? null,
+      ai_variation_notes: stagedQuestion.aiVariationNotes ?? null,
+      difficulty: stagedQuestion.difficulty,
+      keywords_json: JSON.stringify(stagedQuestion.keywords || []),
+      structural_fingerprint: stagedQuestion.structuralFingerprint,
+      duplicate_status: stagedQuestion.duplicateStatus,
+      validation_issues_json: JSON.stringify(stagedQuestion.validationIssues || []),
+      review_status: stagedQuestion.reviewStatus,
+      reviewer_notes: stagedQuestion.reviewerNotes ?? null,
+      created_at: stagedQuestion.createdAt,
+    });
+
     this.importBatchRepo.syncBatchCounts(targetBatchId);
 
     return {

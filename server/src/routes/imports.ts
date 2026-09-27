@@ -262,4 +262,149 @@ export async function importRoutes(fastify: FastifyInstance) {
       return reply.status(200).send({ success: true, deletedBatchId: id });
     },
   );
+
+  /**
+   * 9. GET /api/staging/questions
+   * Staging 큐 문항 직접 조회 (필터: batchId, sourceType, reviewStatus, limit, offset)
+   */
+  fastify.get(
+    "/api/staging/questions",
+    async (
+      request: FastifyRequest<{
+        Querystring: {
+          batchId?: string;
+          sourceType?: string;
+          reviewStatus?: StagedReviewStatus;
+          limit?: number;
+          offset?: number;
+        };
+      }>,
+      reply: FastifyReply,
+    ) => {
+      const { batchId, sourceType, reviewStatus, limit, offset } =
+        request.query || {};
+      const result = batchRepo.findStagedQuestions({
+        batchId,
+        sourceType,
+        reviewStatus,
+        limit: limit ? Number(limit) : undefined,
+        offset: offset ? Number(offset) : undefined,
+      });
+      return reply.status(200).send(result);
+    },
+  );
+
+  /**
+   * 10. POST /api/staging/questions/:stagedId/approve
+   * 단일 문항 승인 및 Live DB 이관 (commit: true가 기본값 또는 선택)
+   */
+  fastify.post(
+    "/api/staging/questions/:stagedId/approve",
+    async (
+      request: FastifyRequest<{
+        Params: { stagedId: string };
+        Body?: { commit?: boolean; reviewerNotes?: string };
+      }>,
+      reply: FastifyReply,
+    ) => {
+      const { stagedId } = request.params;
+      const { commit = true, reviewerNotes } = request.body || {};
+
+      try {
+        if (commit) {
+          const liveQuestion = batchRepo.commitSingleApprovedQuestion(stagedId);
+          const stagedQuestion = batchRepo.findStagedById(stagedId);
+          return reply.status(200).send({
+            success: true,
+            message: `문항 '${stagedId}'(${liveQuestion.questionCode})이 승인되어 Live DB로 이관되었습니다.`,
+            liveQuestion,
+            stagedQuestion,
+          });
+        } else {
+          const updated = batchRepo.setStagedReviewStatus(
+            stagedId,
+            "APPROVED",
+            reviewerNotes,
+          );
+          return reply.status(200).send({
+            success: true,
+            message: `문항 '${stagedId}'이 승인(APPROVED) 상태로 변경되었습니다.`,
+            stagedQuestion: updated,
+          });
+        }
+      } catch (err) {
+        return reply.status(400).send({
+          statusCode: 400,
+          error: "Approval Error",
+          message: err instanceof Error ? err.message : "승인 처리 실패",
+        });
+      }
+    },
+  );
+
+  /**
+   * 11. POST /api/staging/questions/:stagedId/reject
+   * 단일 문항 반려(Reject)
+   */
+  fastify.post(
+    "/api/staging/questions/:stagedId/reject",
+    async (
+      request: FastifyRequest<{
+        Params: { stagedId: string };
+        Body?: { reviewerNotes?: string };
+      }>,
+      reply: FastifyReply,
+    ) => {
+      const { stagedId } = request.params;
+      const { reviewerNotes } = request.body || {};
+
+      const updated = batchRepo.setStagedReviewStatus(
+        stagedId,
+        "REJECTED",
+        reviewerNotes,
+      );
+
+      if (!updated) {
+        return reply.status(404).send({
+          statusCode: 404,
+          error: "Not Found",
+          message: `Staged 문항 '${stagedId}'를 찾을 수 없습니다.`,
+        });
+      }
+
+      return reply.status(200).send({
+        success: true,
+        message: `문항 '${stagedId}'이 반려(REJECTED)되었습니다.`,
+        stagedQuestion: updated,
+      });
+    },
+  );
+
+  /**
+   * 12. POST /api/staging/batches/:id/commit
+   * 배치 일괄 Live DB 이관
+   */
+  fastify.post(
+    "/api/staging/batches/:id/commit",
+    async (
+      request: FastifyRequest<{ Params: { id: string } }>,
+      reply: FastifyReply,
+    ) => {
+      const { id } = request.params;
+      try {
+        const result = pipeline.commit(id);
+        const batchData = batchRepo.findBatchById(id);
+        return reply.status(200).send({
+          ...result,
+          batch: batchData?.batch,
+        });
+      } catch (err) {
+        return reply.status(400).send({
+          statusCode: 400,
+          error: "Commit Error",
+          message: err instanceof Error ? err.message : "커밋 실패",
+        });
+      }
+    },
+  );
 }

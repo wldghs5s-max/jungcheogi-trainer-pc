@@ -1,0 +1,700 @@
+{
+  "originalEvaluatedAt": "2026-09-27T15:57:40.076Z",
+  "reEvaluatedAt": "2026-09-27T16:29:13.924Z",
+  "targetCount": 30,
+  "summary": {
+    "oldRejectCount": 14,
+    "newRejectCount": 16,
+    "newPassCount": 13,
+    "newReviewCount": 1,
+    "traceContradictionCount": 2,
+    "traceInsufficientCount": 8,
+    "explContradictionCount": 7,
+    "explInsufficientCount": 0,
+    "identicalCloneCount": 5,
+    "mutationCloneCount": 2,
+    "emptyRejectionReasonsCount": 0,
+    "invariantViolationsCount": 0
+  },
+  "items": [
+    {
+      "evaluationId": "EVAL-C-01",
+      "targetConcept": "포인터와 1차원 배열",
+      "answer": "80, 11",
+      "codeSnippet": "#include <stdio.h> int main(void) { int arr[5] = {2, 4, 6, 8...",
+      "decision": "PASS",
+      "generationRejected": false,
+      "humanReviewRecommended": false,
+      "stepTraceStatus": "MATCH",
+      "explanationStatus": "MATCH",
+      "selfCorrectionDetected": false,
+      "cloneType": "NONE",
+      "clonedWithPeers": [],
+      "rejectionReasons": [],
+      "humanReviewReasons": [],
+      "oldDecision": "PASS",
+      "oldRejectionReasons": []
+    },
+    {
+      "evaluationId": "EVAL-C-02",
+      "targetConcept": "포인터 증감 연산자",
+      "answer": "370-KPSFB",
+      "codeSnippet": "#include <stdio.h> int main(void) { char s[] = \"KOREA\"; char...",
+      "decision": "REJECT",
+      "generationRejected": true,
+      "humanReviewRecommended": true,
+      "stepTraceStatus": "CONTRADICTION",
+      "stepTraceReason": "추적표 홀수 문자('O')에 대한 짝수 분기(*p++) 오실행 및 정답(\"370-KPSFB\") 미도출 모순",
+      "explanationStatus": "MATCH",
+      "selfCorrectionDetected": false,
+      "cloneType": "NONE",
+      "clonedWithPeers": [],
+      "rejectionReasons": [
+        "추적표 홀수 문자('O')에 대한 짝수 분기(*p++) 오실행 및 정답(\"370-KPSFB\") 미도출 모순"
+      ],
+      "humanReviewReasons": [
+        "추적표 홀수 문자('O')에 대한 짝수 분기(*p++) 오실행 및 정답(\"370-KPSFB\") 미도출 모순"
+      ],
+      "oldDecision": "REJECT",
+      "oldRejectionReasons": [
+        "추적표(stepTrace)와 정답 불일치"
+      ]
+    },
+    {
+      "evaluationId": "EVAL-C-03",
+      "targetConcept": "함수와 포인터 (Call by Reference)",
+      "answer": "15 10 30",
+      "codeSnippet": "#include <stdio.h> int update(int *a, int b) { *a += b; b +=...",
+      "decision": "PASS",
+      "generationRejected": false,
+      "humanReviewRecommended": false,
+      "stepTraceStatus": "MATCH",
+      "explanationStatus": "MATCH",
+      "selfCorrectionDetected": false,
+      "cloneType": "NONE",
+      "clonedWithPeers": [],
+      "rejectionReasons": [],
+      "humanReviewReasons": [],
+      "oldDecision": "PASS",
+      "oldRejectionReasons": []
+    },
+    {
+      "evaluationId": "EVAL-C-04",
+      "targetConcept": "문자열 포인터와 널문자",
+      "answer": "tEST#1913",
+      "codeSnippet": "#include <stdio.h> int main(void) { char str[] = \"Test#2024\"...",
+      "decision": "REJECT",
+      "generationRejected": true,
+      "humanReviewRecommended": true,
+      "stepTraceStatus": "INSUFFICIENT",
+      "stepTraceReason": "추적표 실행/결론부에 정답(\"tEST#1913\") 미언급",
+      "explanationStatus": "MATCH",
+      "selfCorrectionDetected": false,
+      "cloneType": "IDENTICAL",
+      "clonedWithPeers": [
+        "EVAL-C-12(MUTATION_CLONE)",
+        "EVAL-C-20(IDENTICAL)",
+        "EVAL-C-28(MUTATION_CLONE)"
+      ],
+      "rejectionReasons": [
+        "동일 배치 내 IDENTICAL 코드 중복 (EVAL-C-20)"
+      ],
+      "humanReviewReasons": [
+        "동일 배치 내 IDENTICAL 코드 중복 (EVAL-C-20)"
+      ],
+      "oldDecision": "REJECT",
+      "oldRejectionReasons": [
+        "추적표(stepTrace)와 정답 불일치"
+      ]
+    },
+    {
+      "evaluationId": "EVAL-C-05",
+      "targetConcept": "조건 분기형 재귀 함수",
+      "answer": "13",
+      "codeSnippet": "#include <stdio.h> int solve(int n) { if (n <= 1) return 1; ...",
+      "decision": "REJECT",
+      "generationRejected": true,
+      "humanReviewRecommended": true,
+      "stepTraceStatus": "MATCH",
+      "explanationStatus": "MATCH",
+      "selfCorrectionDetected": false,
+      "cloneType": "IDENTICAL",
+      "clonedWithPeers": [
+        "EVAL-C-21(IDENTICAL)",
+        "EVAL-C-29(IDENTICAL)"
+      ],
+      "rejectionReasons": [
+        "동일 배치 내 IDENTICAL 코드 중복 (EVAL-C-21, EVAL-C-29)"
+      ],
+      "humanReviewReasons": [
+        "동일 배치 내 IDENTICAL 코드 중복 (EVAL-C-21, EVAL-C-29)"
+      ],
+      "oldDecision": "REJECT",
+      "oldRejectionReasons": []
+    },
+    {
+      "evaluationId": "EVAL-C-06",
+      "targetConcept": "구조체와 화살표(->) 연산자",
+      "answer": "110",
+      "codeSnippet": "#include <stdio.h> struct Data { int id; int score; }; int m...",
+      "decision": "REJECT",
+      "generationRejected": true,
+      "humanReviewRecommended": true,
+      "stepTraceStatus": "MATCH",
+      "explanationStatus": "CONTRADICTION",
+      "explanationReason": "해설 결론(\"결과적으로 배열의 최종 score 값은 각각 items[0]....\")과 정답(\"110\") 불일치",
+      "selfCorrectionDetected": false,
+      "cloneType": "NONE",
+      "clonedWithPeers": [],
+      "rejectionReasons": [
+        "해설 결론(\"결과적으로 배열의 최종 score 값은 각각 items[0]....\")과 정답(\"110\") 불일치"
+      ],
+      "humanReviewReasons": [
+        "해설 결론(\"결과적으로 배열의 최종 score 값은 각각 items[0]....\")과 정답(\"110\") 불일치"
+      ],
+      "oldDecision": "REJECT",
+      "oldRejectionReasons": [
+        "해설 결론(\"결과적으로 배열의 최종 score 값은 각각 items...\")과 정답(\"110\") 불일치"
+      ]
+    },
+    {
+      "evaluationId": "EVAL-C-07",
+      "targetConcept": "비트 연산자 (Bitwise)",
+      "answer": "14 26",
+      "codeSnippet": "#include <stdio.h> int main(void) { int a = 25; int b = 14; ...",
+      "decision": "PASS",
+      "generationRejected": false,
+      "humanReviewRecommended": false,
+      "stepTraceStatus": "MATCH",
+      "explanationStatus": "MATCH",
+      "selfCorrectionDetected": false,
+      "cloneType": "NONE",
+      "clonedWithPeers": [],
+      "rejectionReasons": [],
+      "humanReviewReasons": [],
+      "oldDecision": "PASS",
+      "oldRejectionReasons": []
+    },
+    {
+      "evaluationId": "EVAL-C-08",
+      "targetConcept": "정적 변수(static)와 스코프",
+      "answer": "66",
+      "codeSnippet": "#include <stdio.h> int total = 10; int process(int n) { stat...",
+      "decision": "PASS",
+      "generationRejected": false,
+      "humanReviewRecommended": false,
+      "stepTraceStatus": "MATCH",
+      "explanationStatus": "MATCH",
+      "selfCorrectionDetected": false,
+      "cloneType": "NONE",
+      "clonedWithPeers": [],
+      "rejectionReasons": [],
+      "humanReviewReasons": [],
+      "oldDecision": "PASS",
+      "oldRejectionReasons": []
+    },
+    {
+      "evaluationId": "EVAL-C-09",
+      "targetConcept": "포인터와 1차원 배열",
+      "answer": "6, 8",
+      "codeSnippet": "#include <stdio.h> int main(void) { int a[] = {2, 4, 6, 8, 1...",
+      "decision": "REVIEW",
+      "generationRejected": false,
+      "humanReviewRecommended": true,
+      "stepTraceStatus": "INSUFFICIENT",
+      "stepTraceReason": "추적표 루프 합산(sum=30) 기술 혼선 (해설 및 코드는 정상 6, 8 도출)",
+      "explanationStatus": "MATCH",
+      "selfCorrectionDetected": false,
+      "cloneType": "NONE",
+      "clonedWithPeers": [],
+      "rejectionReasons": [],
+      "humanReviewReasons": [
+        "추적표 루프 합산(sum=30) 기술 혼선 (해설 및 코드는 정상 6, 8 도출)"
+      ],
+      "oldDecision": "PASS",
+      "oldRejectionReasons": []
+    },
+    {
+      "evaluationId": "EVAL-C-10",
+      "targetConcept": "포인터 증감 연산자",
+      "answer": "16",
+      "codeSnippet": "#include <stdio.h> int main(void) { char str[] = \"Kisa2025\";...",
+      "decision": "REJECT",
+      "generationRejected": true,
+      "humanReviewRecommended": true,
+      "stepTraceStatus": "INSUFFICIENT",
+      "stepTraceReason": "추적표 실행/결론부에 정답(\"16\") 미언급",
+      "explanationStatus": "CONTRADICTION",
+      "explanationReason": "해설 결론(\"반복문이 종료된 후 최종 sum 값은 11이 되어야 하나, 코드 내 문자의 개수와...\")과 정답(\"16\") 불일치",
+      "selfCorrectionDetected": true,
+      "cloneType": "NONE",
+      "clonedWithPeers": [],
+      "rejectionReasons": [
+        "해설 결론(\"반복문이 종료된 후 최종 sum 값은 11이 되어야 하나, 코드 내 문자의 개수와...\")과 정답(\"16\") 불일치"
+      ],
+      "humanReviewReasons": [
+        "해설 결론(\"반복문이 종료된 후 최종 sum 값은 11이 되어야 하나, 코드 내 문자의 개수와...\")과 정답(\"16\") 불일치"
+      ],
+      "oldDecision": "REJECT",
+      "oldRejectionReasons": [
+        "추적표(stepTrace)와 정답 불일치",
+        "해설 결론(\"반복문이 종료된 후 최종 sum 값은 11이 되어야 하...\")과 정답(\"16\") 불일치",
+        "해설 내 자가 정정/계산 착오 의심"
+      ]
+    },
+    {
+      "evaluationId": "EVAL-C-11",
+      "targetConcept": "함수와 포인터 (Call by Reference)",
+      "answer": "16, 3, 19",
+      "codeSnippet": "#include <stdio.h> void calc(int *a, int b) { *a += b; b *= ...",
+      "decision": "REJECT",
+      "generationRejected": true,
+      "humanReviewRecommended": true,
+      "stepTraceStatus": "INSUFFICIENT",
+      "stepTraceReason": "추적표에 정답(\"16, 3, 19\")의 핵심 토큰 미도출",
+      "explanationStatus": "CONTRADICTION",
+      "explanationReason": "해설 결론(\"(수정된 정답: 19, 3, 22)...\")과 정답(\"16, 3, 19\") 불일치",
+      "selfCorrectionDetected": true,
+      "cloneType": "NONE",
+      "clonedWithPeers": [],
+      "rejectionReasons": [
+        "해설 결론(\"(수정된 정답: 19, 3, 22)...\")과 정답(\"16, 3, 19\") 불일치"
+      ],
+      "humanReviewReasons": [
+        "해설 결론(\"(수정된 정답: 19, 3, 22)...\")과 정답(\"16, 3, 19\") 불일치"
+      ],
+      "oldDecision": "REJECT",
+      "oldRejectionReasons": [
+        "추적표(stepTrace)와 정답 불일치",
+        "해설 결론(\"(수정된 정답: 19, 3, 22)...\")과 정답(\"16, 3, 19\") 불일치",
+        "해설 내 자가 정정/계산 착오 의심"
+      ]
+    },
+    {
+      "evaluationId": "EVAL-C-12",
+      "targetConcept": "문자열 포인터와 널문자",
+      "answer": "EX!2AMP",
+      "codeSnippet": "#include <stdio.h> int main(void) { char str[] = \"Ex!2AmP\"; ...",
+      "decision": "REJECT",
+      "generationRejected": true,
+      "humanReviewRecommended": true,
+      "stepTraceStatus": "MATCH",
+      "explanationStatus": "MATCH",
+      "selfCorrectionDetected": false,
+      "cloneType": "MUTATION_CLONE",
+      "clonedWithPeers": [
+        "EVAL-C-04(MUTATION_CLONE)",
+        "EVAL-C-20(MUTATION_CLONE)",
+        "EVAL-C-28(MUTATION_CLONE)"
+      ],
+      "rejectionReasons": [
+        "동일 배치 내 MUTATION_CLONE 변이 복제 (EVAL-C-04, EVAL-C-20, EVAL-C-28)"
+      ],
+      "humanReviewReasons": [
+        "동일 배치 내 MUTATION_CLONE 변이 복제 (EVAL-C-04, EVAL-C-20, EVAL-C-28)"
+      ],
+      "oldDecision": "PASS",
+      "oldRejectionReasons": []
+    },
+    {
+      "evaluationId": "EVAL-C-13",
+      "targetConcept": "조건 분기형 재귀 함수",
+      "answer": "15",
+      "codeSnippet": "#include <stdio.h> int solve(int n) { if (n <= 1) { return n...",
+      "decision": "REJECT",
+      "generationRejected": true,
+      "humanReviewRecommended": true,
+      "stepTraceStatus": "INSUFFICIENT",
+      "stepTraceReason": "추적표 실행/결론부에 정답(\"15\") 미언급",
+      "explanationStatus": "CONTRADICTION",
+      "explanationReason": "해설 내 자가 정정 혼선 및 결론(25)과 정답(15) 모순",
+      "selfCorrectionDetected": true,
+      "cloneType": "NONE",
+      "clonedWithPeers": [],
+      "rejectionReasons": [
+        "해설 내 자가 정정 혼선 및 결론(25)과 정답(15) 모순"
+      ],
+      "humanReviewReasons": [
+        "해설 내 자가 정정 혼선 및 결론(25)과 정답(15) 모순"
+      ],
+      "oldDecision": "REJECT",
+      "oldRejectionReasons": [
+        "추적표(stepTrace)와 정답 불일치",
+        "해설 내 자가 정정/계산 착오 의심"
+      ]
+    },
+    {
+      "evaluationId": "EVAL-C-14",
+      "targetConcept": "구조체와 화살표(->) 연산자",
+      "answer": "2:65 7:60 8:80",
+      "codeSnippet": "#include <stdio.h> struct Data { int id; int score; }; void ...",
+      "decision": "PASS",
+      "generationRejected": false,
+      "humanReviewRecommended": false,
+      "stepTraceStatus": "MATCH",
+      "explanationStatus": "MATCH",
+      "selfCorrectionDetected": false,
+      "cloneType": "NONE",
+      "clonedWithPeers": [],
+      "rejectionReasons": [],
+      "humanReviewReasons": [],
+      "oldDecision": "REJECT",
+      "oldRejectionReasons": [
+        "추적표(stepTrace)와 정답 불일치"
+      ]
+    },
+    {
+      "evaluationId": "EVAL-C-15",
+      "targetConcept": "비트 연산자 (Bitwise)",
+      "answer": "14 15",
+      "codeSnippet": "#include <stdio.h> int main(void) { int a = 25; int b = 14; ...",
+      "decision": "PASS",
+      "generationRejected": false,
+      "humanReviewRecommended": false,
+      "stepTraceStatus": "MATCH",
+      "explanationStatus": "MATCH",
+      "selfCorrectionDetected": false,
+      "cloneType": "NONE",
+      "clonedWithPeers": [],
+      "rejectionReasons": [],
+      "humanReviewReasons": [],
+      "oldDecision": "PASS",
+      "oldRejectionReasons": []
+    },
+    {
+      "evaluationId": "EVAL-C-16",
+      "targetConcept": "정적 변수(static)와 스코프",
+      "answer": "29",
+      "codeSnippet": "#include <stdio.h> int g_val = 5; int process(int n) { stati...",
+      "decision": "PASS",
+      "generationRejected": false,
+      "humanReviewRecommended": false,
+      "stepTraceStatus": "MATCH",
+      "explanationStatus": "MATCH",
+      "selfCorrectionDetected": false,
+      "cloneType": "NONE",
+      "clonedWithPeers": [],
+      "rejectionReasons": [],
+      "humanReviewReasons": [],
+      "oldDecision": "PASS",
+      "oldRejectionReasons": []
+    },
+    {
+      "evaluationId": "EVAL-C-17",
+      "targetConcept": "포인터와 1차원 배열",
+      "answer": "24",
+      "codeSnippet": "#include <stdio.h> int main(void) { int a[] = {2, 4, 6, 8, 1...",
+      "decision": "REJECT",
+      "generationRejected": true,
+      "humanReviewRecommended": true,
+      "stepTraceStatus": "INSUFFICIENT",
+      "stepTraceReason": "추적표 실행/결론부에 정답(\"24\") 미언급",
+      "explanationStatus": "CONTRADICTION",
+      "explanationReason": "해설 결론(\"따라서 최종 출력 결과는 21입니다....\")과 정답(\"24\") 불일치",
+      "selfCorrectionDetected": true,
+      "cloneType": "NONE",
+      "clonedWithPeers": [],
+      "rejectionReasons": [
+        "해설 결론(\"따라서 최종 출력 결과는 21입니다....\")과 정답(\"24\") 불일치"
+      ],
+      "humanReviewReasons": [
+        "해설 결론(\"따라서 최종 출력 결과는 21입니다....\")과 정답(\"24\") 불일치"
+      ],
+      "oldDecision": "REJECT",
+      "oldRejectionReasons": [
+        "추적표(stepTrace)와 정답 불일치",
+        "해설 결론(\"따라서 최종 출력 결과는 21입니다....\")과 정답(\"24\") 불일치",
+        "해설 내 자가 정정/계산 착오 의심"
+      ]
+    },
+    {
+      "evaluationId": "EVAL-C-18",
+      "targetConcept": "포인터 증감 연산자",
+      "answer": "L4V=",
+      "codeSnippet": "#include <stdio.h> int main(void) { char arr[] = \"K2S9\"; cha...",
+      "decision": "PASS",
+      "generationRejected": false,
+      "humanReviewRecommended": false,
+      "stepTraceStatus": "MATCH",
+      "explanationStatus": "MATCH",
+      "selfCorrectionDetected": false,
+      "cloneType": "NONE",
+      "clonedWithPeers": [],
+      "rejectionReasons": [],
+      "humanReviewReasons": [],
+      "oldDecision": "PASS",
+      "oldRejectionReasons": []
+    },
+    {
+      "evaluationId": "EVAL-C-19",
+      "targetConcept": "함수와 포인터 (Call by Reference)",
+      "answer": "15, 5, 75",
+      "codeSnippet": "#include <stdio.h> void update(int *a, int b) { *a += b; } v...",
+      "decision": "PASS",
+      "generationRejected": false,
+      "humanReviewRecommended": false,
+      "stepTraceStatus": "MATCH",
+      "explanationStatus": "MATCH",
+      "selfCorrectionDetected": false,
+      "cloneType": "NONE",
+      "clonedWithPeers": [],
+      "rejectionReasons": [],
+      "humanReviewReasons": [],
+      "oldDecision": "PASS",
+      "oldRejectionReasons": []
+    },
+    {
+      "evaluationId": "EVAL-C-20",
+      "targetConcept": "문자열 포인터와 널문자",
+      "answer": "eXaMpLe",
+      "codeSnippet": "#include <stdio.h> int main(void) { char str[] = \"ExAmPlE\"; ...",
+      "decision": "REJECT",
+      "generationRejected": true,
+      "humanReviewRecommended": true,
+      "stepTraceStatus": "INSUFFICIENT",
+      "stepTraceReason": "추적표 실행/결론부에 정답(\"eXaMpLe\") 미언급",
+      "explanationStatus": "MATCH",
+      "selfCorrectionDetected": false,
+      "cloneType": "IDENTICAL",
+      "clonedWithPeers": [
+        "EVAL-C-04(IDENTICAL)",
+        "EVAL-C-12(MUTATION_CLONE)",
+        "EVAL-C-28(MUTATION_CLONE)"
+      ],
+      "rejectionReasons": [
+        "동일 배치 내 IDENTICAL 코드 중복 (EVAL-C-04)"
+      ],
+      "humanReviewReasons": [
+        "동일 배치 내 IDENTICAL 코드 중복 (EVAL-C-04)"
+      ],
+      "oldDecision": "REJECT",
+      "oldRejectionReasons": [
+        "추적표(stepTrace)와 정답 불일치"
+      ]
+    },
+    {
+      "evaluationId": "EVAL-C-21",
+      "targetConcept": "조건 분기형 재귀 함수",
+      "answer": "13",
+      "codeSnippet": "#include <stdio.h> int solve(int n) { if (n <= 1) return 1; ...",
+      "decision": "REJECT",
+      "generationRejected": true,
+      "humanReviewRecommended": true,
+      "stepTraceStatus": "MATCH",
+      "explanationStatus": "MATCH",
+      "selfCorrectionDetected": false,
+      "cloneType": "IDENTICAL",
+      "clonedWithPeers": [
+        "EVAL-C-05(IDENTICAL)",
+        "EVAL-C-29(IDENTICAL)"
+      ],
+      "rejectionReasons": [
+        "동일 배치 내 IDENTICAL 코드 중복 (EVAL-C-05, EVAL-C-29)"
+      ],
+      "humanReviewReasons": [
+        "동일 배치 내 IDENTICAL 코드 중복 (EVAL-C-05, EVAL-C-29)"
+      ],
+      "oldDecision": "REJECT",
+      "oldRejectionReasons": []
+    },
+    {
+      "evaluationId": "EVAL-C-22",
+      "targetConcept": "구조체와 화살표(->) 연산자",
+      "answer": "15 20 52",
+      "codeSnippet": "#include <stdio.h> struct Data { int id; int score; }; int m...",
+      "decision": "REJECT",
+      "generationRejected": true,
+      "humanReviewRecommended": true,
+      "stepTraceStatus": "MATCH",
+      "explanationStatus": "CONTRADICTION",
+      "explanationReason": "해설 결론(\"최종 출력문에서 items[0]....\")과 정답(\"15 20 52\") 불일치",
+      "selfCorrectionDetected": false,
+      "cloneType": "NONE",
+      "clonedWithPeers": [],
+      "rejectionReasons": [
+        "해설 결론(\"최종 출력문에서 items[0]....\")과 정답(\"15 20 52\") 불일치"
+      ],
+      "humanReviewReasons": [
+        "해설 결론(\"최종 출력문에서 items[0]....\")과 정답(\"15 20 52\") 불일치"
+      ],
+      "oldDecision": "REJECT",
+      "oldRejectionReasons": [
+        "해설 결론(\"최종 출력문에서 items[0]....\")과 정답(\"15 20 52\") 불일치"
+      ]
+    },
+    {
+      "evaluationId": "EVAL-C-23",
+      "targetConcept": "비트 연산자 (Bitwise)",
+      "answer": "11",
+      "codeSnippet": "#include <stdio.h> int main(void) { int a = 25; int b = 14; ...",
+      "decision": "REJECT",
+      "generationRejected": true,
+      "humanReviewRecommended": true,
+      "stepTraceStatus": "MATCH",
+      "explanationStatus": "CONTRADICTION",
+      "explanationReason": "해설 결론(\"최종 출력:...\")과 정답(\"11\") 불일치",
+      "selfCorrectionDetected": false,
+      "cloneType": "NONE",
+      "clonedWithPeers": [],
+      "rejectionReasons": [
+        "해설 결론(\"최종 출력:...\")과 정답(\"11\") 불일치"
+      ],
+      "humanReviewReasons": [
+        "해설 결론(\"최종 출력:...\")과 정답(\"11\") 불일치"
+      ],
+      "oldDecision": "REJECT",
+      "oldRejectionReasons": [
+        "해설 결론(\"최종 출력:...\")과 정답(\"11\") 불일치"
+      ]
+    },
+    {
+      "evaluationId": "EVAL-C-24",
+      "targetConcept": "정적 변수(static)와 스코프",
+      "answer": "2, 5, 6, 13",
+      "codeSnippet": "#include <stdio.h> int total = 0; int accum(int val) { stati...",
+      "decision": "PASS",
+      "generationRejected": false,
+      "humanReviewRecommended": false,
+      "stepTraceStatus": "MATCH",
+      "explanationStatus": "MATCH",
+      "selfCorrectionDetected": false,
+      "cloneType": "NONE",
+      "clonedWithPeers": [],
+      "rejectionReasons": [],
+      "humanReviewReasons": [],
+      "oldDecision": "PASS",
+      "oldRejectionReasons": []
+    },
+    {
+      "evaluationId": "EVAL-C-25",
+      "targetConcept": "포인터와 1차원 배열",
+      "answer": "2 4 4 8 10",
+      "codeSnippet": "#include <stdio.h> int main(void) { int arr[] = {2, 4, 6, 8,...",
+      "decision": "REJECT",
+      "generationRejected": true,
+      "humanReviewRecommended": true,
+      "stepTraceStatus": "CONTRADICTION",
+      "stepTraceReason": "추적표에서 arr[0]=8로 계산하여 정답(\"2 4 4 8 10\")과 모순",
+      "explanationStatus": "MATCH",
+      "selfCorrectionDetected": false,
+      "cloneType": "NONE",
+      "clonedWithPeers": [],
+      "rejectionReasons": [
+        "추적표에서 arr[0]=8로 계산하여 정답(\"2 4 4 8 10\")과 모순"
+      ],
+      "humanReviewReasons": [
+        "추적표에서 arr[0]=8로 계산하여 정답(\"2 4 4 8 10\")과 모순"
+      ],
+      "oldDecision": "PASS",
+      "oldRejectionReasons": []
+    },
+    {
+      "evaluationId": "EVAL-C-26",
+      "targetConcept": "포인터 증감 연산자",
+      "answer": "LPSFB",
+      "codeSnippet": "#include <stdio.h> int main(void) { char arr[] = \"KOREA\"; ch...",
+      "decision": "PASS",
+      "generationRejected": false,
+      "humanReviewRecommended": false,
+      "stepTraceStatus": "MATCH",
+      "explanationStatus": "MATCH",
+      "selfCorrectionDetected": false,
+      "cloneType": "NONE",
+      "clonedWithPeers": [],
+      "rejectionReasons": [],
+      "humanReviewReasons": [],
+      "oldDecision": "PASS",
+      "oldRejectionReasons": []
+    },
+    {
+      "evaluationId": "EVAL-C-27",
+      "targetConcept": "함수와 포인터 (Call by Reference)",
+      "answer": "15 5 25",
+      "codeSnippet": "#include <stdio.h> int calculate(int *a, int b) { *a += b; b...",
+      "decision": "PASS",
+      "generationRejected": false,
+      "humanReviewRecommended": false,
+      "stepTraceStatus": "MATCH",
+      "explanationStatus": "MATCH",
+      "selfCorrectionDetected": false,
+      "cloneType": "NONE",
+      "clonedWithPeers": [],
+      "rejectionReasons": [],
+      "humanReviewReasons": [],
+      "oldDecision": "PASS",
+      "oldRejectionReasons": []
+    },
+    {
+      "evaluationId": "EVAL-C-28",
+      "targetConcept": "문자열 포인터와 널문자",
+      "answer": "CPDF!2024",
+      "codeSnippet": "#include <stdio.h> int main(void) { char str[] = \"Code!2024\"...",
+      "decision": "REJECT",
+      "generationRejected": true,
+      "humanReviewRecommended": true,
+      "stepTraceStatus": "INSUFFICIENT",
+      "stepTraceReason": "추적표 실행/결론부에 정답(\"CPDF!2024\") 미언급",
+      "explanationStatus": "MATCH",
+      "selfCorrectionDetected": false,
+      "cloneType": "MUTATION_CLONE",
+      "clonedWithPeers": [
+        "EVAL-C-04(MUTATION_CLONE)",
+        "EVAL-C-12(MUTATION_CLONE)",
+        "EVAL-C-20(MUTATION_CLONE)"
+      ],
+      "rejectionReasons": [
+        "동일 배치 내 MUTATION_CLONE 변이 복제 (EVAL-C-04, EVAL-C-12, EVAL-C-20)"
+      ],
+      "humanReviewReasons": [
+        "동일 배치 내 MUTATION_CLONE 변이 복제 (EVAL-C-04, EVAL-C-12, EVAL-C-20)"
+      ],
+      "oldDecision": "REJECT",
+      "oldRejectionReasons": [
+        "추적표(stepTrace)와 정답 불일치"
+      ]
+    },
+    {
+      "evaluationId": "EVAL-C-29",
+      "targetConcept": "조건 분기형 재귀 함수",
+      "answer": "9",
+      "codeSnippet": "#include <stdio.h> int solve(int n) { if (n <= 1) return 1; ...",
+      "decision": "REJECT",
+      "generationRejected": true,
+      "humanReviewRecommended": true,
+      "stepTraceStatus": "MATCH",
+      "explanationStatus": "MATCH",
+      "selfCorrectionDetected": false,
+      "cloneType": "IDENTICAL",
+      "clonedWithPeers": [
+        "EVAL-C-05(IDENTICAL)",
+        "EVAL-C-21(IDENTICAL)"
+      ],
+      "rejectionReasons": [
+        "동일 배치 내 IDENTICAL 코드 중복 (EVAL-C-05, EVAL-C-21)"
+      ],
+      "humanReviewReasons": [
+        "동일 배치 내 IDENTICAL 코드 중복 (EVAL-C-05, EVAL-C-21)"
+      ],
+      "oldDecision": "PASS",
+      "oldRejectionReasons": []
+    },
+    {
+      "evaluationId": "EVAL-C-30",
+      "targetConcept": "구조체와 화살표(->) 연산자",
+      "answer": "68",
+      "codeSnippet": "#include <stdio.h> struct Data { int id; int score; }; int m...",
+      "decision": "PASS",
+      "generationRejected": false,
+      "humanReviewRecommended": false,
+      "stepTraceStatus": "MATCH",
+      "explanationStatus": "MATCH",
+      "selfCorrectionDetected": false,
+      "cloneType": "NONE",
+      "clonedWithPeers": [],
+      "rejectionReasons": [],
+      "humanReviewReasons": [],
+      "oldDecision": "PASS",
+      "oldRejectionReasons": []
+    }
+  ]
+}

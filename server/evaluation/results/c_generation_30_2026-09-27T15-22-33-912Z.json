@@ -1,0 +1,2116 @@
+{
+  "summary": {
+    "targetCount": 30,
+    "requestedCount": 30,
+    "successCount": 30,
+    "failureCount": 0,
+    "retryCount": 0,
+    "mockFallbackCount": 0,
+    "evaluatedAt": "2026-09-27T15:22:33.912Z",
+    "modelUsed": "gemini-3.5-flash-lite"
+  },
+  "metrics": {
+    "schemaPassRate": 1,
+    "highNoveltyRate": 0.067,
+    "mediumNoveltyRate": 0.767,
+    "lowNoveltyRate": 0.167,
+    "nearDuplicateExistingRate": 0.167,
+    "nearDuplicatePeerRate": 0.667,
+    "codeSyntaxPassRate": 1,
+    "answerExplanationConsistencyRate": 0.867,
+    "humanReviewRate": 0.633
+  },
+  "conceptDistribution": {
+    "포인터와 1차원 배열": 4,
+    "포인터 증감 연산자": 4,
+    "함수와 포인터 (Call by Reference)": 4,
+    "문자열 포인터와 널문자": 4,
+    "조건 분기형 재귀 함수": 4,
+    "구조체와 화살표(->) 연산자": 4,
+    "비트 연산자 (Bitwise)": 3,
+    "정적 변수(static)와 스코프": 3
+  },
+  "difficultyDistribution": {
+    "하": 2,
+    "중": 14,
+    "중상": 12,
+    "상": 2
+  },
+  "peerDuplicates": [
+    {
+      "pair": [
+        "EVAL-C-03",
+        "EVAL-C-19"
+      ],
+      "similarity": 0.75,
+      "reason": "유사도 75.0% (개념: 함수와 포인터 (Call by Reference) vs 함수와 포인터 (Call by Reference))"
+    },
+    {
+      "pair": [
+        "EVAL-C-04",
+        "EVAL-C-09"
+      ],
+      "similarity": 1,
+      "reason": "유사도 100.0% (개념: 문자열 포인터와 널문자 vs 포인터와 1차원 배열)"
+    },
+    {
+      "pair": [
+        "EVAL-C-04",
+        "EVAL-C-10"
+      ],
+      "similarity": 1,
+      "reason": "유사도 100.0% (개념: 문자열 포인터와 널문자 vs 포인터 증감 연산자)"
+    },
+    {
+      "pair": [
+        "EVAL-C-04",
+        "EVAL-C-15"
+      ],
+      "similarity": 1,
+      "reason": "유사도 100.0% (개념: 문자열 포인터와 널문자 vs 비트 연산자 (Bitwise))"
+    },
+    {
+      "pair": [
+        "EVAL-C-04",
+        "EVAL-C-20"
+      ],
+      "similarity": 1,
+      "reason": "유사도 100.0% (개념: 문자열 포인터와 널문자 vs 문자열 포인터와 널문자)"
+    },
+    {
+      "pair": [
+        "EVAL-C-04",
+        "EVAL-C-24"
+      ],
+      "similarity": 1,
+      "reason": "유사도 100.0% (개념: 문자열 포인터와 널문자 vs 정적 변수(static)와 스코프)"
+    },
+    {
+      "pair": [
+        "EVAL-C-04",
+        "EVAL-C-28"
+      ],
+      "similarity": 1,
+      "reason": "유사도 100.0% (개념: 문자열 포인터와 널문자 vs 문자열 포인터와 널문자)"
+    },
+    {
+      "pair": [
+        "EVAL-C-05",
+        "EVAL-C-21"
+      ],
+      "similarity": 0.842,
+      "reason": "유사도 84.2% (개념: 조건 분기형 재귀 함수 vs 조건 분기형 재귀 함수)"
+    },
+    {
+      "pair": [
+        "EVAL-C-06",
+        "EVAL-C-14"
+      ],
+      "similarity": 0.935,
+      "reason": "유사도 93.5% (개념: 구조체와 화살표(->) 연산자 vs 구조체와 화살표(->) 연산자)"
+    },
+    {
+      "pair": [
+        "EVAL-C-06",
+        "EVAL-C-22"
+      ],
+      "similarity": 0.758,
+      "reason": "유사도 75.8% (개념: 구조체와 화살표(->) 연산자 vs 구조체와 화살표(->) 연산자)"
+    },
+    {
+      "pair": [
+        "EVAL-C-06",
+        "EVAL-C-30"
+      ],
+      "similarity": 0.75,
+      "reason": "유사도 75.0% (개념: 구조체와 화살표(->) 연산자 vs 구조체와 화살표(->) 연산자)"
+    },
+    {
+      "pair": [
+        "EVAL-C-07",
+        "EVAL-C-13"
+      ],
+      "similarity": 1,
+      "reason": "유사도 100.0% (개념: 비트 연산자 (Bitwise) vs 조건 분기형 재귀 함수)"
+    },
+    {
+      "pair": [
+        "EVAL-C-07",
+        "EVAL-C-17"
+      ],
+      "similarity": 1,
+      "reason": "유사도 100.0% (개념: 비트 연산자 (Bitwise) vs 포인터와 1차원 배열)"
+    },
+    {
+      "pair": [
+        "EVAL-C-07",
+        "EVAL-C-26"
+      ],
+      "similarity": 1,
+      "reason": "유사도 100.0% (개념: 비트 연산자 (Bitwise) vs 포인터 증감 연산자)"
+    },
+    {
+      "pair": [
+        "EVAL-C-07",
+        "EVAL-C-29"
+      ],
+      "similarity": 1,
+      "reason": "유사도 100.0% (개념: 비트 연산자 (Bitwise) vs 조건 분기형 재귀 함수)"
+    },
+    {
+      "pair": [
+        "EVAL-C-09",
+        "EVAL-C-10"
+      ],
+      "similarity": 1,
+      "reason": "유사도 100.0% (개념: 포인터와 1차원 배열 vs 포인터 증감 연산자)"
+    },
+    {
+      "pair": [
+        "EVAL-C-09",
+        "EVAL-C-15"
+      ],
+      "similarity": 1,
+      "reason": "유사도 100.0% (개념: 포인터와 1차원 배열 vs 비트 연산자 (Bitwise))"
+    },
+    {
+      "pair": [
+        "EVAL-C-09",
+        "EVAL-C-20"
+      ],
+      "similarity": 1,
+      "reason": "유사도 100.0% (개념: 포인터와 1차원 배열 vs 문자열 포인터와 널문자)"
+    },
+    {
+      "pair": [
+        "EVAL-C-09",
+        "EVAL-C-24"
+      ],
+      "similarity": 1,
+      "reason": "유사도 100.0% (개념: 포인터와 1차원 배열 vs 정적 변수(static)와 스코프)"
+    },
+    {
+      "pair": [
+        "EVAL-C-09",
+        "EVAL-C-28"
+      ],
+      "similarity": 1,
+      "reason": "유사도 100.0% (개념: 포인터와 1차원 배열 vs 문자열 포인터와 널문자)"
+    },
+    {
+      "pair": [
+        "EVAL-C-10",
+        "EVAL-C-15"
+      ],
+      "similarity": 1,
+      "reason": "유사도 100.0% (개념: 포인터 증감 연산자 vs 비트 연산자 (Bitwise))"
+    },
+    {
+      "pair": [
+        "EVAL-C-10",
+        "EVAL-C-20"
+      ],
+      "similarity": 1,
+      "reason": "유사도 100.0% (개념: 포인터 증감 연산자 vs 문자열 포인터와 널문자)"
+    },
+    {
+      "pair": [
+        "EVAL-C-10",
+        "EVAL-C-24"
+      ],
+      "similarity": 1,
+      "reason": "유사도 100.0% (개념: 포인터 증감 연산자 vs 정적 변수(static)와 스코프)"
+    },
+    {
+      "pair": [
+        "EVAL-C-10",
+        "EVAL-C-28"
+      ],
+      "similarity": 1,
+      "reason": "유사도 100.0% (개념: 포인터 증감 연산자 vs 문자열 포인터와 널문자)"
+    },
+    {
+      "pair": [
+        "EVAL-C-13",
+        "EVAL-C-17"
+      ],
+      "similarity": 1,
+      "reason": "유사도 100.0% (개념: 조건 분기형 재귀 함수 vs 포인터와 1차원 배열)"
+    },
+    {
+      "pair": [
+        "EVAL-C-13",
+        "EVAL-C-26"
+      ],
+      "similarity": 1,
+      "reason": "유사도 100.0% (개념: 조건 분기형 재귀 함수 vs 포인터 증감 연산자)"
+    },
+    {
+      "pair": [
+        "EVAL-C-13",
+        "EVAL-C-29"
+      ],
+      "similarity": 1,
+      "reason": "유사도 100.0% (개념: 조건 분기형 재귀 함수 vs 조건 분기형 재귀 함수)"
+    },
+    {
+      "pair": [
+        "EVAL-C-14",
+        "EVAL-C-22"
+      ],
+      "similarity": 0.813,
+      "reason": "유사도 81.3% (개념: 구조체와 화살표(->) 연산자 vs 구조체와 화살표(->) 연산자)"
+    },
+    {
+      "pair": [
+        "EVAL-C-14",
+        "EVAL-C-30"
+      ],
+      "similarity": 0.75,
+      "reason": "유사도 75.0% (개념: 구조체와 화살표(->) 연산자 vs 구조체와 화살표(->) 연산자)"
+    },
+    {
+      "pair": [
+        "EVAL-C-15",
+        "EVAL-C-20"
+      ],
+      "similarity": 1,
+      "reason": "유사도 100.0% (개념: 비트 연산자 (Bitwise) vs 문자열 포인터와 널문자)"
+    },
+    {
+      "pair": [
+        "EVAL-C-15",
+        "EVAL-C-24"
+      ],
+      "similarity": 1,
+      "reason": "유사도 100.0% (개념: 비트 연산자 (Bitwise) vs 정적 변수(static)와 스코프)"
+    },
+    {
+      "pair": [
+        "EVAL-C-15",
+        "EVAL-C-28"
+      ],
+      "similarity": 1,
+      "reason": "유사도 100.0% (개념: 비트 연산자 (Bitwise) vs 문자열 포인터와 널문자)"
+    },
+    {
+      "pair": [
+        "EVAL-C-17",
+        "EVAL-C-26"
+      ],
+      "similarity": 1,
+      "reason": "유사도 100.0% (개념: 포인터와 1차원 배열 vs 포인터 증감 연산자)"
+    },
+    {
+      "pair": [
+        "EVAL-C-17",
+        "EVAL-C-29"
+      ],
+      "similarity": 1,
+      "reason": "유사도 100.0% (개념: 포인터와 1차원 배열 vs 조건 분기형 재귀 함수)"
+    },
+    {
+      "pair": [
+        "EVAL-C-20",
+        "EVAL-C-24"
+      ],
+      "similarity": 1,
+      "reason": "유사도 100.0% (개념: 문자열 포인터와 널문자 vs 정적 변수(static)와 스코프)"
+    },
+    {
+      "pair": [
+        "EVAL-C-20",
+        "EVAL-C-28"
+      ],
+      "similarity": 1,
+      "reason": "유사도 100.0% (개념: 문자열 포인터와 널문자 vs 문자열 포인터와 널문자)"
+    },
+    {
+      "pair": [
+        "EVAL-C-22",
+        "EVAL-C-30"
+      ],
+      "similarity": 0.8,
+      "reason": "유사도 80.0% (개념: 구조체와 화살표(->) 연산자 vs 구조체와 화살표(->) 연산자)"
+    },
+    {
+      "pair": [
+        "EVAL-C-24",
+        "EVAL-C-28"
+      ],
+      "similarity": 1,
+      "reason": "유사도 100.0% (개념: 정적 변수(static)와 스코프 vs 문자열 포인터와 널문자)"
+    },
+    {
+      "pair": [
+        "EVAL-C-26",
+        "EVAL-C-29"
+      ],
+      "similarity": 1,
+      "reason": "유사도 100.0% (개념: 포인터 증감 연산자 vs 조건 분기형 재귀 함수)"
+    }
+  ],
+  "humanReviewItems": [
+    "EVAL-C-03",
+    "EVAL-C-04",
+    "EVAL-C-05",
+    "EVAL-C-06",
+    "EVAL-C-07",
+    "EVAL-C-08",
+    "EVAL-C-09",
+    "EVAL-C-10",
+    "EVAL-C-11",
+    "EVAL-C-13",
+    "EVAL-C-14",
+    "EVAL-C-15",
+    "EVAL-C-17",
+    "EVAL-C-20",
+    "EVAL-C-22",
+    "EVAL-C-24",
+    "EVAL-C-25",
+    "EVAL-C-26",
+    "EVAL-C-29"
+  ],
+  "sampleQuestions": {
+    "highestNovelty": [
+      {
+        "evaluationId": "EVAL-C-12",
+        "generatedAt": "2026-09-27T15:18:28.359Z",
+        "attempt": 1,
+        "questionText": "다음 C 언어로 구현된 프로그램을 분석하여 그 실행 결과를 쓰시오.",
+        "code": "#include <stdio.h>\n\nint main(void) {\n    char str[] = \"Info_2024\";\n    char *p = str;\n\n    while (*p != '\\0') {\n        if (*p >= 'a' && *p <= 'z') {\n            *p = *p - 32;\n        } else if (*p >= 'A' && *p <= 'Z') {\n            *p = *p + 32;\n        }\n        p++;\n    }\n\n    printf(\"%s\\n\", str);\n    return 0;\n}",
+        "answer": "iNFO_2024",
+        "explanation": "이 문제는 문자열 포인터와 아스키코드(ASCII)의 대소문자 변환 원리를 평가하기 위한 문제입니다. 1) 'I'(대문자)는 소문자 'i'(+32)로 변환됩니다. 2) 'n', 'f', 'o'(소문자)는 각각 대문자 'N', 'F', 'O'(-32)로 변환됩니다. 3) 밑줄('_')과 숫자('2', '0', '2', '4')는 알파벳 조건(a~z, A~Z)에 해당하지 않으므로 변경되지 않고 그대로 유지됩니다. 따라서 최종 출력 결과는 'iNFO_2024'가 됩니다.",
+        "targetConcept": "문자열 포인터와 널문자",
+        "skill": "char* 포인터 이동과 '\\0' 판별 및 문자 코드 변환",
+        "difficulty": "MEDIUM",
+        "estimatedDifficulty": "중",
+        "generationStrategy": "INDEPENDENT_DESIGN",
+        "model": "gemini-3.5-flash-lite",
+        "sourceType": "INDEPENDENT_EVALUATION",
+        "structuralPass": true,
+        "structuralIssues": [],
+        "nearestExistingSimilarity": 0.395,
+        "nearestExistingQuestionCode": "AI-000059",
+        "nearestExistingQuestionId": "q_imp_1790518323792_my6d",
+        "maxPeerSimilarity": 0.692,
+        "independentNovelty": "HIGH",
+        "learningValueScore": {
+          "hasPointerOrArray": true,
+          "hasControlFlow": true,
+          "hasStateMutation": true,
+          "cSyntaxValid": true
+        },
+        "codeSyntaxCheck": {
+          "balancedBraces": true,
+          "balancedParens": true,
+          "hasMain": true,
+          "hasReturn": true,
+          "notes": []
+        },
+        "consistencyCheck": {
+          "answerInExplanation": true,
+          "stepTraceMatchesAnswer": false,
+          "riskFlags": []
+        },
+        "humanReviewRecommended": false,
+        "humanReviewReasons": [],
+        "mostSimilarPeerId": "EVAL-C-18"
+      },
+      {
+        "evaluationId": "EVAL-C-18",
+        "generatedAt": "2026-09-27T15:20:12.791Z",
+        "attempt": 1,
+        "questionText": "다음 C 언어로 구현된 프로그램을 분석하여 그 실행 결과를 쓰시오.",
+        "code": "#include <stdio.h>\n\nint main(void) {\n    char s[] = \"C7-PRO\";\n    char *p = s;\n    \n    while (*p != '\\0') {\n        if (*p >= 'A' && *p <= 'Z') {\n            (*p)++;\n        } else if (*p >= '0' && *p <= '9') {\n            *p += 2;\n        }\n        p++;\n    }\n    \n    printf(\"%s\\n\", s);\n    return 0;\n}",
+        "answer": "D9-QSP",
+        "explanation": "1. 문자열 배열 s는 'C', '7', '-', 'P', 'R', 'O', '\\0' 로 초기화됩니다.\n2. 포인터 p는 s의 시작 주소를 가리킵니다.\n3. while 문은 널 문자('\\0')를 만날 때까지 반복합니다.\n- 첫 번째 반복 ('C'): 대문자이므로 'C'('67')에 (*p)++를 적용하여 'D'('68')가 되고, 이후 p++로 다음 주소로 이동합니다.\n- 두 번째 반복 ('7'): 숫자이므로 '7'('55')에 *p += 2를 적용하여 '9'('57')가 되고, p++로 이동합니다.\n- 세 번째 반복 ('-'): 조건식에 해당하지 않아 값은 그대로 유지되고, p++로 이동합니다.\n- 네 번째, 다섯 번째, 여섯 번째 반복 ('P', 'R', 'O'): 모두 대문자이므로 각각 'Q', 'S', 'P'로 값이 1씩 증가합니다.\n4. 최종 변환된 문자열 s는 \"D9-QSP\"가 되며, printf를 통해 그대로 출력됩니다.\n※ 주의: *p++는 후위 연산자로 우선순위에 의해 포인터 이동이 값 참조 이후에 일어나므로, (*p)++와 구별하여 정확히 연산 순서를 파악해야 합니다.",
+        "targetConcept": "포인터 증감 연산자",
+        "skill": "전위/후위 증감 연산자와 포인터 역참조 결합 우선순위 (*p++, (*p)++)",
+        "difficulty": "HARD",
+        "estimatedDifficulty": "중상",
+        "generationStrategy": "INDEPENDENT_DESIGN",
+        "model": "gemini-3.5-flash-lite",
+        "sourceType": "INDEPENDENT_EVALUATION",
+        "structuralPass": true,
+        "structuralIssues": [],
+        "nearestExistingSimilarity": 0.432,
+        "nearestExistingQuestionCode": "AI-000059",
+        "nearestExistingQuestionId": "q_imp_1790518323792_my6d",
+        "maxPeerSimilarity": 0.692,
+        "independentNovelty": "HIGH",
+        "learningValueScore": {
+          "hasPointerOrArray": true,
+          "hasControlFlow": true,
+          "hasStateMutation": true,
+          "cSyntaxValid": true
+        },
+        "codeSyntaxCheck": {
+          "balancedBraces": true,
+          "balancedParens": true,
+          "hasMain": true,
+          "hasReturn": true,
+          "notes": []
+        },
+        "consistencyCheck": {
+          "answerInExplanation": true,
+          "stepTraceMatchesAnswer": false,
+          "riskFlags": []
+        },
+        "humanReviewRecommended": false,
+        "humanReviewReasons": [],
+        "mostSimilarPeerId": "EVAL-C-12"
+      }
+    ],
+    "highestSimilarity": [
+      {
+        "evaluationId": "EVAL-C-29",
+        "generatedAt": "2026-09-27T15:14:38.478Z",
+        "attempt": 1,
+        "questionText": "다음 C 언어로 구현된 프로그램을 분석하여 그 실행 결과를 쓰시오.",
+        "code": "#include <stdio.h>\n\nint main(void) {\n    int arr[] = { 10, 20, 30, 40, 50 };\n    int *p = arr;\n    int sum = 0;\n\n    sum += *p++;\n    sum += *(p + 2);\n    sum += *++p;\n\n    printf(\"%d\", sum);\n    return 0;\n}",
+        "answer": "80",
+        "explanation": "1. `int *p = arr;`: p는 arr[0](10)을 가리킵니다.\n2. `sum += *p++;`: 후위 증감 연산자이므로 현재 p가 가리키는 arr[0]의 값 10을 sum에 더하고(sum=10), p는 arr[1]을 가리키도록 증가합니다.\n3. `sum += *(p + 2);`: p가 arr[1]이므로 p+2는 arr[3]입니다. arr[3]의 값 40을 sum에 더하므로 sum = 10 + 40 = 50이 됩니다.\n4. `sum += *++p;`: 전위 증감 연산자이므로 p를 먼저 arr[2]로 이동시킨 후 역참조하여 arr[2]의 값 30을 sum에 더합니다. sum = 50 + 30 = 80이 됩니다.\n따라서 최종 출력값은 80입니다.",
+        "targetConcept": "조건 분기형 재귀 함수",
+        "skill": "함수 호출 스택 깊이 추적 및 기저 조건(Base case) 반환값 누적",
+        "difficulty": "HARD",
+        "estimatedDifficulty": "상",
+        "generationStrategy": "INDEPENDENT_DESIGN",
+        "model": "gemini-3.8-flash",
+        "sourceType": "INDEPENDENT_EVALUATION",
+        "structuralPass": true,
+        "structuralIssues": [],
+        "nearestExistingSimilarity": 0.8,
+        "nearestExistingQuestionCode": "AI-000005",
+        "nearestExistingQuestionId": "q_imp_1790477570479_emf6",
+        "maxPeerSimilarity": 1,
+        "independentNovelty": "LOW",
+        "learningValueScore": {
+          "hasPointerOrArray": true,
+          "hasControlFlow": false,
+          "hasStateMutation": true,
+          "cSyntaxValid": true
+        },
+        "codeSyntaxCheck": {
+          "balancedBraces": true,
+          "balancedParens": true,
+          "hasMain": true,
+          "hasReturn": true,
+          "notes": []
+        },
+        "consistencyCheck": {
+          "answerInExplanation": true,
+          "stepTraceMatchesAnswer": true,
+          "riskFlags": []
+        },
+        "humanReviewRecommended": true,
+        "humanReviewReasons": [
+          "기존 문항(AI-000005)과 유사도 과다( 80.0% )"
+        ],
+        "mostSimilarPeerId": "EVAL-C-07"
+      },
+      {
+        "evaluationId": "EVAL-C-26",
+        "generatedAt": "2026-09-27T15:14:38.478Z",
+        "attempt": 1,
+        "questionText": "다음 C 언어로 구현된 프로그램을 분석하여 그 실행 결과를 쓰시오.",
+        "code": "#include <stdio.h>\n\nint main(void) {\n    int arr[] = { 10, 20, 30, 40, 50 };\n    int *p = arr;\n    int sum = 0;\n\n    sum += *p++;\n    sum += *(p + 2);\n    sum += *++p;\n\n    printf(\"%d\", sum);\n    return 0;\n}",
+        "answer": "80",
+        "explanation": "1. `int *p = arr;`: p는 arr[0](10)을 가리킵니다.\n2. `sum += *p++;`: 후위 증감 연산자이므로 현재 p가 가리키는 arr[0]의 값 10을 sum에 더하고(sum=10), p는 arr[1]을 가리키도록 증가합니다.\n3. `sum += *(p + 2);`: p가 arr[1]이므로 p+2는 arr[3]입니다. arr[3]의 값 40을 sum에 더하므로 sum = 10 + 40 = 50이 됩니다.\n4. `sum += *++p;`: 전위 증감 연산자이므로 p를 먼저 arr[2]로 이동시킨 후 역참조하여 arr[2]의 값 30을 sum에 더합니다. sum = 50 + 30 = 80이 됩니다.\n따라서 최종 출력값은 80입니다.",
+        "targetConcept": "포인터 증감 연산자",
+        "skill": "전위/후위 증감 연산자와 포인터 역참조 결합 우선순위 (*p++, (*p)++)",
+        "difficulty": "HARD",
+        "estimatedDifficulty": "중상",
+        "generationStrategy": "INDEPENDENT_DESIGN",
+        "model": "gemini-3.8-flash",
+        "sourceType": "INDEPENDENT_EVALUATION",
+        "structuralPass": true,
+        "structuralIssues": [],
+        "nearestExistingSimilarity": 0.8,
+        "nearestExistingQuestionCode": "AI-000005",
+        "nearestExistingQuestionId": "q_imp_1790477570479_emf6",
+        "maxPeerSimilarity": 1,
+        "independentNovelty": "LOW",
+        "learningValueScore": {
+          "hasPointerOrArray": true,
+          "hasControlFlow": false,
+          "hasStateMutation": true,
+          "cSyntaxValid": true
+        },
+        "codeSyntaxCheck": {
+          "balancedBraces": true,
+          "balancedParens": true,
+          "hasMain": true,
+          "hasReturn": true,
+          "notes": []
+        },
+        "consistencyCheck": {
+          "answerInExplanation": true,
+          "stepTraceMatchesAnswer": true,
+          "riskFlags": []
+        },
+        "humanReviewRecommended": true,
+        "humanReviewReasons": [
+          "기존 문항(AI-000005)과 유사도 과다( 80.0% )"
+        ],
+        "mostSimilarPeerId": "EVAL-C-07"
+      }
+    ],
+    "hardest": [
+      {
+        "evaluationId": "EVAL-C-13",
+        "generatedAt": "2026-09-27T15:14:38.478Z",
+        "attempt": 1,
+        "questionText": "다음 C 언어로 구현된 프로그램을 분석하여 그 실행 결과를 쓰시오.",
+        "code": "#include <stdio.h>\n\nint main(void) {\n    int arr[] = { 10, 20, 30, 40, 50 };\n    int *p = arr;\n    int sum = 0;\n\n    sum += *p++;\n    sum += *(p + 2);\n    sum += *++p;\n\n    printf(\"%d\", sum);\n    return 0;\n}",
+        "answer": "80",
+        "explanation": "1. `int *p = arr;`: p는 arr[0](10)을 가리킵니다.\n2. `sum += *p++;`: 후위 증감 연산자이므로 현재 p가 가리키는 arr[0]의 값 10을 sum에 더하고(sum=10), p는 arr[1]을 가리키도록 증가합니다.\n3. `sum += *(p + 2);`: p가 arr[1]이므로 p+2는 arr[3]입니다. arr[3]의 값 40을 sum에 더하므로 sum = 10 + 40 = 50이 됩니다.\n4. `sum += *++p;`: 전위 증감 연산자이므로 p를 먼저 arr[2]로 이동시킨 후 역참조하여 arr[2]의 값 30을 sum에 더합니다. sum = 50 + 30 = 80이 됩니다.\n따라서 최종 출력값은 80입니다.",
+        "targetConcept": "조건 분기형 재귀 함수",
+        "skill": "함수 호출 스택 깊이 추적 및 기저 조건(Base case) 반환값 누적",
+        "difficulty": "HARD",
+        "estimatedDifficulty": "상",
+        "generationStrategy": "INDEPENDENT_DESIGN",
+        "model": "gemini-3.8-flash",
+        "sourceType": "INDEPENDENT_EVALUATION",
+        "structuralPass": true,
+        "structuralIssues": [],
+        "nearestExistingSimilarity": 0.8,
+        "nearestExistingQuestionCode": "AI-000005",
+        "nearestExistingQuestionId": "q_imp_1790477570479_emf6",
+        "maxPeerSimilarity": 1,
+        "independentNovelty": "LOW",
+        "learningValueScore": {
+          "hasPointerOrArray": true,
+          "hasControlFlow": false,
+          "hasStateMutation": true,
+          "cSyntaxValid": true
+        },
+        "codeSyntaxCheck": {
+          "balancedBraces": true,
+          "balancedParens": true,
+          "hasMain": true,
+          "hasReturn": true,
+          "notes": []
+        },
+        "consistencyCheck": {
+          "answerInExplanation": true,
+          "stepTraceMatchesAnswer": true,
+          "riskFlags": []
+        },
+        "humanReviewRecommended": true,
+        "humanReviewReasons": [
+          "기존 문항(AI-000005)과 유사도 과다( 80.0% )"
+        ],
+        "mostSimilarPeerId": "EVAL-C-07"
+      },
+      {
+        "evaluationId": "EVAL-C-29",
+        "generatedAt": "2026-09-27T15:14:38.478Z",
+        "attempt": 1,
+        "questionText": "다음 C 언어로 구현된 프로그램을 분석하여 그 실행 결과를 쓰시오.",
+        "code": "#include <stdio.h>\n\nint main(void) {\n    int arr[] = { 10, 20, 30, 40, 50 };\n    int *p = arr;\n    int sum = 0;\n\n    sum += *p++;\n    sum += *(p + 2);\n    sum += *++p;\n\n    printf(\"%d\", sum);\n    return 0;\n}",
+        "answer": "80",
+        "explanation": "1. `int *p = arr;`: p는 arr[0](10)을 가리킵니다.\n2. `sum += *p++;`: 후위 증감 연산자이므로 현재 p가 가리키는 arr[0]의 값 10을 sum에 더하고(sum=10), p는 arr[1]을 가리키도록 증가합니다.\n3. `sum += *(p + 2);`: p가 arr[1]이므로 p+2는 arr[3]입니다. arr[3]의 값 40을 sum에 더하므로 sum = 10 + 40 = 50이 됩니다.\n4. `sum += *++p;`: 전위 증감 연산자이므로 p를 먼저 arr[2]로 이동시킨 후 역참조하여 arr[2]의 값 30을 sum에 더합니다. sum = 50 + 30 = 80이 됩니다.\n따라서 최종 출력값은 80입니다.",
+        "targetConcept": "조건 분기형 재귀 함수",
+        "skill": "함수 호출 스택 깊이 추적 및 기저 조건(Base case) 반환값 누적",
+        "difficulty": "HARD",
+        "estimatedDifficulty": "상",
+        "generationStrategy": "INDEPENDENT_DESIGN",
+        "model": "gemini-3.8-flash",
+        "sourceType": "INDEPENDENT_EVALUATION",
+        "structuralPass": true,
+        "structuralIssues": [],
+        "nearestExistingSimilarity": 0.8,
+        "nearestExistingQuestionCode": "AI-000005",
+        "nearestExistingQuestionId": "q_imp_1790477570479_emf6",
+        "maxPeerSimilarity": 1,
+        "independentNovelty": "LOW",
+        "learningValueScore": {
+          "hasPointerOrArray": true,
+          "hasControlFlow": false,
+          "hasStateMutation": true,
+          "cSyntaxValid": true
+        },
+        "codeSyntaxCheck": {
+          "balancedBraces": true,
+          "balancedParens": true,
+          "hasMain": true,
+          "hasReturn": true,
+          "notes": []
+        },
+        "consistencyCheck": {
+          "answerInExplanation": true,
+          "stepTraceMatchesAnswer": true,
+          "riskFlags": []
+        },
+        "humanReviewRecommended": true,
+        "humanReviewReasons": [
+          "기존 문항(AI-000005)과 유사도 과다( 80.0% )"
+        ],
+        "mostSimilarPeerId": "EVAL-C-07"
+      }
+    ],
+    "easiest": [
+      {
+        "evaluationId": "EVAL-C-08",
+        "generatedAt": "2026-09-27T15:17:07.748Z",
+        "attempt": 1,
+        "questionText": "다음 C 언어로 작성된 프로그램을 분석하여 그 실행 결과를 쓰시오.",
+        "code": "#include <stdio.h>\n\nint total = 0;\n\nint accumulate(int n) {\n    static int s = 0;\n    int r = 0;\n    s += n;\n    r += n;\n    total += r;\n    return s;\n}\n\nint main(void) {\n    int a = 0;\n    a += accumulate(2);\n    a += accumulate(3);\n    a += accumulate(4);\n    printf(\"%d, %d\\n\", a, total);\n    return 0;\n}",
+        "answer": "25, 9",
+        "explanation": "1. 전역 변수 total은 프로그램 전체에서 공유되며, accumulate 함수 내의 static 변수 s는 함수가 종료되어도 메모리에 남아 값이 유지됩니다. 반면 일반 지역 변수 r은 함수가 호출될 때마다 0으로 초기화됩니다.\n2. main() 함수에서 accumulate(2) 호출: s = 0 + 2 = 2, r = 2, total = 0 + 2 = 2, 반환값 2. a는 2가 됨.\n3. accumulate(3) 호출: static 변수 s는 이전 값 2를 유지하므로 s = 2 + 3 = 5, r = 3, total = 2 + 3 = 5, 반환값 5. a는 2 + 5 = 7이 됨.\n4. accumulate(4) 호출: static 변수 s는 이전 값 5를 유지하므로 s = 5 + 4 = 9, r = 4, total = 5 + 4 = 9, 반환값 9. a는 7 + 9 = 16이 됨.\n5. 마지막에 a의 값은 2 + 5 + 9 = 16이 아니라 main에서 a += accumulate(...)로 누적되었으므로 2 + 5 + 9 = 16이 맞습니다. (잠깐, a += 2 -> a=2, a += 5 -> a=7, a += 9 -> a=16. 최종 a=16이 되며, total은 9가 됩니다. 정답은 16, 9 입니다.) 수정: accumulate(2) 반환값 2 (a=2, total=2), accumulate(3) 반환값 5 (a=7, total=5), accumulate(4) 반환값 9 (a=16, total=9). 따라서 출력 결과는 16, 9 입니다.",
+        "targetConcept": "정적 변수(static)와 스코프",
+        "skill": "함수 재호출 시 static 지역 변수의 값 유지 및 전역 변수와의 상호작용",
+        "difficulty": "MEDIUM",
+        "estimatedDifficulty": "하",
+        "generationStrategy": "INDEPENDENT_DESIGN",
+        "model": "gemini-3.5-flash-lite",
+        "sourceType": "INDEPENDENT_EVALUATION",
+        "structuralPass": true,
+        "structuralIssues": [],
+        "nearestExistingSimilarity": 0.519,
+        "nearestExistingQuestionCode": "AI-000001",
+        "nearestExistingQuestionId": "q_var_c_2d_01",
+        "maxPeerSimilarity": 0.5,
+        "independentNovelty": "MEDIUM",
+        "learningValueScore": {
+          "hasPointerOrArray": false,
+          "hasControlFlow": false,
+          "hasStateMutation": true,
+          "cSyntaxValid": true
+        },
+        "codeSyntaxCheck": {
+          "balancedBraces": true,
+          "balancedParens": true,
+          "hasMain": true,
+          "hasReturn": true,
+          "notes": []
+        },
+        "consistencyCheck": {
+          "answerInExplanation": false,
+          "stepTraceMatchesAnswer": false,
+          "riskFlags": [
+            "해설 본문에 정답 수치/키워드가 직접적으로 언급되지 않음"
+          ]
+        },
+        "humanReviewRecommended": true,
+        "humanReviewReasons": [
+          "해설 본문에 정답 수치/키워드가 직접적으로 언급되지 않음"
+        ],
+        "mostSimilarPeerId": "EVAL-C-03"
+      },
+      {
+        "evaluationId": "EVAL-C-16",
+        "generatedAt": "2026-09-27T15:19:41.621Z",
+        "attempt": 1,
+        "questionText": "다음 C 언어로 구현된 프로그램을 분석하여 그 실행 결과를 쓰시오.",
+        "code": "#include <stdio.h>\n\nint total = 10;\n\nint accumulator(int add) {\n    static int count = 0;\n    count += add;\n    return count;\n}\n\nint main(void) {\n    for (int i = 1; i <= 3; i++) {\n        total += accumulator(i);\n    }\n    printf(\"%d\", total);\n    return 0;\n}",
+        "answer": "20",
+        "explanation": "1. 전역 변수 'total'은 프로그램 시작 시 10으로 초기화됩니다.\n2. 'accumulator' 함수 내의 'static int count = 0;'은 프로그램 실행 중 최초 호출 시에만 실행되며, 함수가 종료되어도 메모리에서 사라지지 않고 값이 유지됩니다.\n3. 반복문이 실행되면서 i가 1, 2, 3일 때 각각 accumulator(1), accumulator(2), accumulator(3)이 호출됩니다.\n   - i=1일 때: count는 0에서 시작하여 1이 더해져 1을 반환합니다. total은 10 + 1 = 11이 됩니다.\n   - i=2일 때: static 변수이므로 count는 이전 값인 1을 유지하고 있으며, 여기에 2가 더해져 3을 반환합니다. total은 11 + 3 = 14가 됩니다.\n   - i=3일 때: count는 이전 값인 3을 유지하고 있으며, 여기에 3이 더해져 6을 반환합니다. total은 14 + 6 = 20이 됩니다.\n4. 최종적으로 printf를 통해 'total'의 값인 20이 출력됩니다.",
+        "targetConcept": "정적 변수(static)와 스코프",
+        "skill": "함수 재호출 시 static 지역 변수의 값 유지 및 전역 변수와의 상호작용",
+        "difficulty": "MEDIUM",
+        "estimatedDifficulty": "하",
+        "generationStrategy": "INDEPENDENT_DESIGN",
+        "model": "gemini-3.5-flash-lite",
+        "sourceType": "INDEPENDENT_EVALUATION",
+        "structuralPass": true,
+        "structuralIssues": [],
+        "nearestExistingSimilarity": 0.458,
+        "nearestExistingQuestionCode": "AI-000007",
+        "nearestExistingQuestionId": "q_drill_1790496846153_0pisl",
+        "maxPeerSimilarity": 0.536,
+        "independentNovelty": "MEDIUM",
+        "learningValueScore": {
+          "hasPointerOrArray": false,
+          "hasControlFlow": true,
+          "hasStateMutation": true,
+          "cSyntaxValid": true
+        },
+        "codeSyntaxCheck": {
+          "balancedBraces": true,
+          "balancedParens": true,
+          "hasMain": true,
+          "hasReturn": true,
+          "notes": []
+        },
+        "consistencyCheck": {
+          "answerInExplanation": true,
+          "stepTraceMatchesAnswer": true,
+          "riskFlags": []
+        },
+        "humanReviewRecommended": false,
+        "humanReviewReasons": [],
+        "mostSimilarPeerId": "EVAL-C-11"
+      }
+    ]
+  },
+  "items": [
+    {
+      "evaluationId": "EVAL-C-01",
+      "generatedAt": "2026-09-27T15:14:54.907Z",
+      "attempt": 1,
+      "questionText": "다음 C 언어로 작성된 프로그램을 분석하여 그 실행 결과를 쓰시오.",
+      "code": "#include <stdio.h>\n\nint main(void) {\n    int a[] = {2, 4, 6, 8, 10};\n    int *p = a;\n    int sum = 0;\n    int temp;\n\n    for(int i = 0; i < 2; i++) {\n        temp = *(p + i);\n        *(p + i) = *(p + 4 - i);\n        *(p + 4 - i) = temp;\n    }\n\n    for(int i = 0; i < 5; i++) {\n        sum += *(a + i);\n    }\n\n    printf(\"%d\", sum);\n    return 0;\n}",
+      "answer": "30",
+      "explanation": "이 문제는 1차원 배열과 포인터의 연산 관계, 그리고 *(arr + i) 형태의 역참조 연산자를 활용한 배열 요소 제어 능력을 평가합니다.\n1. int a[] = {2, 4, 6, 8, 10}; 배열이 선언되고, 포인터 변수 p는 배열의 시작 주소(a[0])를 가리킵니다.\n2. 첫 번째 for 루프(i = 0부터 1까지)는 포인터 연산을 통해 배열의 대칭 위치에 있는 값들을 서로 교환(Reverse)합니다.\n   - i = 0 일 때: a[0]과 a[4]의 값이 교환되어 배열은 {10, 4, 6, 8, 2}가 됩니다.\n   - i = 1 일 때: a[1]과 a[3]의 값이 교환되어 배열은 {10, 8, 6, 4, 2}가 됩니다.\n3. 두 번째 for 루프에서는 *(a + i)를 이용하여 배열의 모든 요소(10, 8, 6, 4, 2)를 순회하며 sum에 누적합니다.\n4. 따라서 sum의 최종 값은 30이 되며, printf를 통해 '30'이 출력됩니다.",
+      "targetConcept": "포인터와 1차원 배열",
+      "skill": "배열명 포인터 변환 및 *(arr + i) 역참조 연산 순서 추적",
+      "difficulty": "MEDIUM",
+      "estimatedDifficulty": "중",
+      "generationStrategy": "INDEPENDENT_DESIGN",
+      "model": "gemini-3.5-flash-lite",
+      "sourceType": "INDEPENDENT_EVALUATION",
+      "structuralPass": true,
+      "structuralIssues": [],
+      "nearestExistingSimilarity": 0.577,
+      "nearestExistingQuestionCode": "AI-000057",
+      "nearestExistingQuestionId": "q_imp_1790518323792_hzj2",
+      "maxPeerSimilarity": 0.679,
+      "independentNovelty": "MEDIUM",
+      "learningValueScore": {
+        "hasPointerOrArray": true,
+        "hasControlFlow": true,
+        "hasStateMutation": true,
+        "cSyntaxValid": true
+      },
+      "codeSyntaxCheck": {
+        "balancedBraces": true,
+        "balancedParens": true,
+        "hasMain": true,
+        "hasReturn": true,
+        "notes": []
+      },
+      "consistencyCheck": {
+        "answerInExplanation": true,
+        "stepTraceMatchesAnswer": true,
+        "riskFlags": []
+      },
+      "humanReviewRecommended": false,
+      "humanReviewReasons": [],
+      "mostSimilarPeerId": "EVAL-C-25"
+    },
+    {
+      "evaluationId": "EVAL-C-02",
+      "generatedAt": "2026-09-27T15:15:16.701Z",
+      "attempt": 1,
+      "questionText": "다음 C 언어로 구현된 프로그램을 분석하여 그 실행 결과를 쓰시오.",
+      "code": "#include <stdio.h>\n\nint main(void) {\n    char arr[] = \"CodeR\";\n    char *p = arr;\n    \n    while(*p != '\\0') {\n        if(*p % 2 == 0) {\n            (*p)++;\n        } else {\n            *p++;\n        }\n        p++;\n    }\n    \n    printf(\"%s\", arr);\n    return 0;\n}",
+      "answer": "DpeF$",
+      "explanation": "1. arr 배열에는 'C', 'o', 'd', 'e', 'R', '\\0' 문자가 저장됩니다. (각각 ASCII: 67, 111, 103, 101, 82)\n2. *p는 arr[0]인 'C'(67)를 가리킵니다.\n3. 첫 번째 반복 (p -> 'C'): *p(67)는 홀수이므로 else 블록의 *p++가 실행됩니다. 여기서 연산자 우선순위에 의해 포인터 p가 가리키는 대상의 값은 변하지 않고, 포인터 p만 다음 주소로 이동합니다. (단, 코드 내에 마지막에 p++가 또 있으므로 결과적으로 2칸 이동하게 됨에 주의)\n정밀 추적:\n- 'C'(67, 홀수): *p++ 실행 후 p는 'o'를 가리킴, 이후 루프 끝의 p++로 인해 'd'를 가리키게 됨.\n- 'd'(100, 짝수): (*p)++ 실행으로 'e'(101)로 변경, p++로 'e'를 가리킴.\n- 'e'(101, 홀수): *p++ 실행 후 p는 'R'을 가리킴, 이후 p++로 '\\0'을 가리킴.\n- 최종적으로 각 문자의 변환 결과와 포인터 이동 규칙을 엄밀히 적용하면 출력 결과는 'DpeF$'가 됩니다.",
+      "targetConcept": "포인터 증감 연산자",
+      "skill": "전위/후위 증감 연산자와 포인터 역참조 결합 우선순위 (*p++, (*p)++)",
+      "difficulty": "HARD",
+      "estimatedDifficulty": "중상",
+      "generationStrategy": "INDEPENDENT_DESIGN",
+      "model": "gemini-3.5-flash-lite",
+      "sourceType": "INDEPENDENT_EVALUATION",
+      "structuralPass": true,
+      "structuralIssues": [],
+      "nearestExistingSimilarity": 0.478,
+      "nearestExistingQuestionCode": "AI-000065",
+      "nearestExistingQuestionId": "q_imp_1790518323794_i14b",
+      "maxPeerSimilarity": 0.667,
+      "independentNovelty": "MEDIUM",
+      "learningValueScore": {
+        "hasPointerOrArray": true,
+        "hasControlFlow": true,
+        "hasStateMutation": true,
+        "cSyntaxValid": true
+      },
+      "codeSyntaxCheck": {
+        "balancedBraces": true,
+        "balancedParens": true,
+        "hasMain": true,
+        "hasReturn": true,
+        "notes": []
+      },
+      "consistencyCheck": {
+        "answerInExplanation": true,
+        "stepTraceMatchesAnswer": false,
+        "riskFlags": []
+      },
+      "humanReviewRecommended": false,
+      "humanReviewReasons": [],
+      "mostSimilarPeerId": "EVAL-C-18"
+    },
+    {
+      "evaluationId": "EVAL-C-03",
+      "generatedAt": "2026-09-27T15:15:32.518Z",
+      "attempt": 1,
+      "questionText": "다음 C 언어로 구현된 프로그램을 분석하여 그 실행 결과를 쓰시오.",
+      "code": "#include <stdio.h>\n\nvoid update(int *a, int b, int *arr) {\n    *a += b;\n    arr[0] += *a;\n    arr[1] += b;\n}\n\nint main(void) {\n    int x = 10;\n    int y = 20;\n    int arr[3] = {1, 2, 3};\n\n    update(&x, y, arr);\n\n    printf(\"%d %d %d\\n\", x, arr[0], arr[1]);\n    return 0;\n}",
+      "answer": "30 31 22",
+      "explanation": "1. main 함수에서 변수 x는 10, y는 20, 배열 arr은 {1, 2, 3}으로 초기화됩니다.\n2. update(&x, y, arr) 함수가 호출될 때, x의 메모리 주소가 포인터 a로 전달되고, y의 값 20이 b로 복사되며, 배열 arr의 시작 주소가 전달됩니다.\n3. update 함수 내에서 *a += b는 *a가 가리키는 원본 변수 x의 값을 10에서 30으로 변경합니다.\n4. arr[0] += *a는 arr[0](기존 1)에 30을 더해 31이 됩니다.\n5. arr[1] += b는 arr[1](기존 2)에 y의 값인 20을 더해 22가 됩니다.\n6. 최종적으로 main 함수에서 printf를 통해 x, arr[0], arr[1]의 값인 '30 31 22'가 출력됩니다.",
+      "targetConcept": "함수와 포인터 (Call by Reference)",
+      "skill": "주소 전달을 통한 원본 변수 값 변경 및 매개변수 포인터 추적",
+      "difficulty": "MEDIUM",
+      "estimatedDifficulty": "중",
+      "generationStrategy": "INDEPENDENT_DESIGN",
+      "model": "gemini-3.5-flash-lite",
+      "sourceType": "INDEPENDENT_EVALUATION",
+      "structuralPass": true,
+      "structuralIssues": [],
+      "nearestExistingSimilarity": 0.577,
+      "nearestExistingQuestionCode": "AI-000003",
+      "nearestExistingQuestionId": "q_imp_1790477529441_5hoa",
+      "maxPeerSimilarity": 0.75,
+      "independentNovelty": "MEDIUM",
+      "learningValueScore": {
+        "hasPointerOrArray": true,
+        "hasControlFlow": false,
+        "hasStateMutation": true,
+        "cSyntaxValid": true
+      },
+      "codeSyntaxCheck": {
+        "balancedBraces": true,
+        "balancedParens": true,
+        "hasMain": true,
+        "hasReturn": true,
+        "notes": []
+      },
+      "consistencyCheck": {
+        "answerInExplanation": true,
+        "stepTraceMatchesAnswer": true,
+        "riskFlags": []
+      },
+      "humanReviewRecommended": true,
+      "humanReviewReasons": [
+        "동일 배치 내 EVAL-C-19와 높은 코드 유사도(75.0%)"
+      ],
+      "mostSimilarPeerId": "EVAL-C-19"
+    },
+    {
+      "evaluationId": "EVAL-C-04",
+      "generatedAt": "2026-09-27T15:14:38.479Z",
+      "attempt": 1,
+      "questionText": "다음 C 언어로 구현된 프로그램을 분석하여 그 실행 결과를 쓰시오.",
+      "code": "#include <stdio.h>\n\nvoid process(int *a, int *b) {\n    int temp = *a;\n    *a = *a + *b;\n    *b = temp * 2;\n}\n\nint main(void) {\n    int x = 5, y = 3;\n    process(&x, &y);\n    printf(\"%d %d\", x, y);\n    return 0;\n}",
+      "answer": "8 10",
+      "explanation": "1. `main` 함수에서 `x = 5, y = 3`으로 초기화됩니다.\n2. `process(&x, &y)`를 호출하여 x와 y의 메모리 주소를 전달합니다 (Call by Reference).\n3. `process` 함수 내부:\n   - `int temp = *a;`: temp에 x의 원래 값 5가 저장됩니다.\n   - `*a = *a + *b;`: x의 주소가 가리키는 값을 5 + 3 = 8로 변경합니다.\n   - `*b = temp * 2;`: y의 주소가 가리키는 값을 temp(5) * 2 = 10으로 변경합니다.\n4. `printf(\"%d %d\", x, y);` 실행 시 x는 8, y는 10이므로 `8 10`이 출력됩니다.",
+      "targetConcept": "문자열 포인터와 널문자",
+      "skill": "char* 포인터 이동과 '\\0' 판별 및 문자 코드 변환",
+      "difficulty": "MEDIUM",
+      "estimatedDifficulty": "중",
+      "generationStrategy": "INDEPENDENT_DESIGN",
+      "model": "gemini-3.8-flash",
+      "sourceType": "INDEPENDENT_EVALUATION",
+      "structuralPass": true,
+      "structuralIssues": [],
+      "nearestExistingSimilarity": 0.65,
+      "nearestExistingQuestionCode": "AI-001029",
+      "nearestExistingQuestionId": "q_imp_1790499988055_hgjz",
+      "maxPeerSimilarity": 1,
+      "independentNovelty": "MEDIUM",
+      "learningValueScore": {
+        "hasPointerOrArray": true,
+        "hasControlFlow": false,
+        "hasStateMutation": true,
+        "cSyntaxValid": true
+      },
+      "codeSyntaxCheck": {
+        "balancedBraces": true,
+        "balancedParens": true,
+        "hasMain": true,
+        "hasReturn": true,
+        "notes": []
+      },
+      "consistencyCheck": {
+        "answerInExplanation": true,
+        "stepTraceMatchesAnswer": false,
+        "riskFlags": []
+      },
+      "humanReviewRecommended": true,
+      "humanReviewReasons": [
+        "동일 배치 내 EVAL-C-09와 높은 코드 유사도(100.0%)"
+      ],
+      "mostSimilarPeerId": "EVAL-C-09"
+    },
+    {
+      "evaluationId": "EVAL-C-05",
+      "generatedAt": "2026-09-27T15:16:10.723Z",
+      "attempt": 1,
+      "questionText": "다음 C 언어로 구현된 프로그램을 분석하여 그 실행 결과를 쓰시오.",
+      "code": "#include <stdio.h>\n\nint solve(int n) {\n    if (n <= 1) {\n        return 1;\n    }\n    if (n % 2 == 0) {\n        return n + solve(n - 2);\n    } else {\n        return n * solve(n - 1);\n    }\n}\n\nint main(void) {\n    int result = solve(6);\n    printf(\"%d\", result);\n    return 0;\n}",
+      "answer": "13",
+      "explanation": "1. main 함수에서 solve(6)을 호출합니다.\n2. solve(6)은 n=6으로 짝수이므로 6 + solve(4)를 반환합니다.\n3. solve(4)는 n=4로 짝수이므로 4 + solve(2)를 반환합니다.\n4. solve(2)는 n=2로 짝수이므로 2 + solve(0)을 반환합니다.\n5. solve(0)은 n <= 1 조건을 만족하므로 기저 조건(Base case)에 의해 1을 반환합니다.\n6. 따라서 계산 과정은 6 + (4 + (2 + 1))이 되어 최종적으로 13이 출력됩니다.",
+      "targetConcept": "조건 분기형 재귀 함수",
+      "skill": "함수 호출 스택 깊이 추적 및 기저 조건(Base case) 반환값 누적",
+      "difficulty": "HARD",
+      "estimatedDifficulty": "중상",
+      "generationStrategy": "INDEPENDENT_DESIGN",
+      "model": "gemini-3.5-flash-lite",
+      "sourceType": "INDEPENDENT_EVALUATION",
+      "structuralPass": true,
+      "structuralIssues": [],
+      "nearestExistingSimilarity": 0.565,
+      "nearestExistingQuestionCode": "AI-000058",
+      "nearestExistingQuestionId": "q_imp_1790518323792_7ngo",
+      "maxPeerSimilarity": 0.842,
+      "independentNovelty": "MEDIUM",
+      "learningValueScore": {
+        "hasPointerOrArray": true,
+        "hasControlFlow": true,
+        "hasStateMutation": true,
+        "cSyntaxValid": true
+      },
+      "codeSyntaxCheck": {
+        "balancedBraces": true,
+        "balancedParens": true,
+        "hasMain": true,
+        "hasReturn": true,
+        "notes": []
+      },
+      "consistencyCheck": {
+        "answerInExplanation": true,
+        "stepTraceMatchesAnswer": true,
+        "riskFlags": []
+      },
+      "humanReviewRecommended": true,
+      "humanReviewReasons": [
+        "동일 배치 내 EVAL-C-21와 높은 코드 유사도(84.2%)"
+      ],
+      "mostSimilarPeerId": "EVAL-C-21"
+    },
+    {
+      "evaluationId": "EVAL-C-06",
+      "generatedAt": "2026-09-27T15:16:28.729Z",
+      "attempt": 1,
+      "questionText": "다음 C 언어로 구현된 프로그램을 분석하여 그 실행 결과를 쓰시오.",
+      "code": "#include <stdio.h>\n\nstruct Data {\n    int id;\n    int score;\n};\n\nint main(void) {\n    struct Data items[3] = {{1, 50}, {2, 70}, {3, 90}};\n    struct Data *p = items;\n    int total = 0;\n\n    for (int i = 0; i < 2; i++) {\n        if (p->score < 60) {\n            p->score += 20;\n            p++;\n        } else {\n            (++p)->score -= 10;\n        }\n    }\n\n    for (int i = 0; i < 3; i++) {\n        total += items[i].score;\n    }\n\n    printf(\"%d\", total);\n    return 0;\n}",
+      "answer": "220",
+      "explanation": "1. 구조체 배열 `items`는 각각 `{1, 50}`, `{2, 70}`, `{3, 90}`으로 초기화됩니다.\n2. 포인터 `p`는 `items` 배열의 시작 주소를 가리키므로 `items[0]`을 가리킵니다.\n3. 첫 번째 반복 (`i = 0`):\n   - `p->score`는 `items[0].score`인 50입니다.\n   - `50 < 60` 조건이 참이므로 `p->score += 20`에 의해 `items[0].score`는 70이 됩니다.\n   - `p++`에 의해 포인터 `p`는 `items[1]`을 가리키게 됩니다.\n4. 두 번째 반복 (`i = 1`):\n   - 현재 `p`는 `items[1]`을 가리키고 있으며, `p->score`는 70입니다.\n   - `70 < 60` 조건이 거짓이므로 `else` 블록인 `(++p)->score -= 10`이 실행됩니다.\n   - 전위증가 연산자 `++p`가 먼저 실행되어 `p`는 `items[2]`를 가리키게 되고, `items[2].score`인 90에서 10을 빼어 `items[2].score`는 80이 됩니다.\n5. 루프 종료 후 배열의 각 `score` 값:\n   - `items[0].score` = 70\n   - `items[1].score` = 70\n   - `items[2].score` = 80\n6. 최종 `total`은 `70 + 70 + 80 = 220`이 되며 콘솔에 220이 출력됩니다.",
+      "targetConcept": "구조체와 화살표(->) 연산자",
+      "skill": "구조체 포인터를 통한 멤버 접근 및 데이터 갱신",
+      "difficulty": "HARD",
+      "estimatedDifficulty": "중상",
+      "generationStrategy": "INDEPENDENT_DESIGN",
+      "model": "gemini-3.5-flash-lite",
+      "sourceType": "INDEPENDENT_EVALUATION",
+      "structuralPass": true,
+      "structuralIssues": [],
+      "nearestExistingSimilarity": 0.457,
+      "nearestExistingQuestionCode": "AI-000054",
+      "nearestExistingQuestionId": "q_imp_1790518323790_ri1d",
+      "maxPeerSimilarity": 0.935,
+      "independentNovelty": "MEDIUM",
+      "learningValueScore": {
+        "hasPointerOrArray": true,
+        "hasControlFlow": true,
+        "hasStateMutation": true,
+        "cSyntaxValid": true
+      },
+      "codeSyntaxCheck": {
+        "balancedBraces": true,
+        "balancedParens": true,
+        "hasMain": true,
+        "hasReturn": true,
+        "notes": []
+      },
+      "consistencyCheck": {
+        "answerInExplanation": true,
+        "stepTraceMatchesAnswer": true,
+        "riskFlags": []
+      },
+      "humanReviewRecommended": true,
+      "humanReviewReasons": [
+        "동일 배치 내 EVAL-C-14와 높은 코드 유사도(93.5%)"
+      ],
+      "mostSimilarPeerId": "EVAL-C-14"
+    },
+    {
+      "evaluationId": "EVAL-C-07",
+      "generatedAt": "2026-09-27T15:14:38.478Z",
+      "attempt": 1,
+      "questionText": "다음 C 언어로 구현된 프로그램을 분석하여 그 실행 결과를 쓰시오.",
+      "code": "#include <stdio.h>\n\nint main(void) {\n    int arr[] = { 10, 20, 30, 40, 50 };\n    int *p = arr;\n    int sum = 0;\n\n    sum += *p++;\n    sum += *(p + 2);\n    sum += *++p;\n\n    printf(\"%d\", sum);\n    return 0;\n}",
+      "answer": "80",
+      "explanation": "1. `int *p = arr;`: p는 arr[0](10)을 가리킵니다.\n2. `sum += *p++;`: 후위 증감 연산자이므로 현재 p가 가리키는 arr[0]의 값 10을 sum에 더하고(sum=10), p는 arr[1]을 가리키도록 증가합니다.\n3. `sum += *(p + 2);`: p가 arr[1]이므로 p+2는 arr[3]입니다. arr[3]의 값 40을 sum에 더하므로 sum = 10 + 40 = 50이 됩니다.\n4. `sum += *++p;`: 전위 증감 연산자이므로 p를 먼저 arr[2]로 이동시킨 후 역참조하여 arr[2]의 값 30을 sum에 더합니다. sum = 50 + 30 = 80이 됩니다.\n따라서 최종 출력값은 80입니다.",
+      "targetConcept": "비트 연산자 (Bitwise)",
+      "skill": "비트 AND(&), OR(|), XOR(^), 시프트(<<, >>) 연산 결합",
+      "difficulty": "MEDIUM",
+      "estimatedDifficulty": "중상",
+      "generationStrategy": "INDEPENDENT_DESIGN",
+      "model": "gemini-3.8-flash",
+      "sourceType": "INDEPENDENT_EVALUATION",
+      "structuralPass": true,
+      "structuralIssues": [],
+      "nearestExistingSimilarity": 0.8,
+      "nearestExistingQuestionCode": "AI-000005",
+      "nearestExistingQuestionId": "q_imp_1790477570479_emf6",
+      "maxPeerSimilarity": 1,
+      "independentNovelty": "LOW",
+      "learningValueScore": {
+        "hasPointerOrArray": true,
+        "hasControlFlow": false,
+        "hasStateMutation": true,
+        "cSyntaxValid": true
+      },
+      "codeSyntaxCheck": {
+        "balancedBraces": true,
+        "balancedParens": true,
+        "hasMain": true,
+        "hasReturn": true,
+        "notes": []
+      },
+      "consistencyCheck": {
+        "answerInExplanation": true,
+        "stepTraceMatchesAnswer": true,
+        "riskFlags": []
+      },
+      "humanReviewRecommended": true,
+      "humanReviewReasons": [
+        "기존 문항(AI-000005)과 유사도 과다( 80.0% )"
+      ],
+      "mostSimilarPeerId": "EVAL-C-13"
+    },
+    {
+      "evaluationId": "EVAL-C-08",
+      "generatedAt": "2026-09-27T15:17:07.748Z",
+      "attempt": 1,
+      "questionText": "다음 C 언어로 작성된 프로그램을 분석하여 그 실행 결과를 쓰시오.",
+      "code": "#include <stdio.h>\n\nint total = 0;\n\nint accumulate(int n) {\n    static int s = 0;\n    int r = 0;\n    s += n;\n    r += n;\n    total += r;\n    return s;\n}\n\nint main(void) {\n    int a = 0;\n    a += accumulate(2);\n    a += accumulate(3);\n    a += accumulate(4);\n    printf(\"%d, %d\\n\", a, total);\n    return 0;\n}",
+      "answer": "25, 9",
+      "explanation": "1. 전역 변수 total은 프로그램 전체에서 공유되며, accumulate 함수 내의 static 변수 s는 함수가 종료되어도 메모리에 남아 값이 유지됩니다. 반면 일반 지역 변수 r은 함수가 호출될 때마다 0으로 초기화됩니다.\n2. main() 함수에서 accumulate(2) 호출: s = 0 + 2 = 2, r = 2, total = 0 + 2 = 2, 반환값 2. a는 2가 됨.\n3. accumulate(3) 호출: static 변수 s는 이전 값 2를 유지하므로 s = 2 + 3 = 5, r = 3, total = 2 + 3 = 5, 반환값 5. a는 2 + 5 = 7이 됨.\n4. accumulate(4) 호출: static 변수 s는 이전 값 5를 유지하므로 s = 5 + 4 = 9, r = 4, total = 5 + 4 = 9, 반환값 9. a는 7 + 9 = 16이 됨.\n5. 마지막에 a의 값은 2 + 5 + 9 = 16이 아니라 main에서 a += accumulate(...)로 누적되었으므로 2 + 5 + 9 = 16이 맞습니다. (잠깐, a += 2 -> a=2, a += 5 -> a=7, a += 9 -> a=16. 최종 a=16이 되며, total은 9가 됩니다. 정답은 16, 9 입니다.) 수정: accumulate(2) 반환값 2 (a=2, total=2), accumulate(3) 반환값 5 (a=7, total=5), accumulate(4) 반환값 9 (a=16, total=9). 따라서 출력 결과는 16, 9 입니다.",
+      "targetConcept": "정적 변수(static)와 스코프",
+      "skill": "함수 재호출 시 static 지역 변수의 값 유지 및 전역 변수와의 상호작용",
+      "difficulty": "MEDIUM",
+      "estimatedDifficulty": "하",
+      "generationStrategy": "INDEPENDENT_DESIGN",
+      "model": "gemini-3.5-flash-lite",
+      "sourceType": "INDEPENDENT_EVALUATION",
+      "structuralPass": true,
+      "structuralIssues": [],
+      "nearestExistingSimilarity": 0.519,
+      "nearestExistingQuestionCode": "AI-000001",
+      "nearestExistingQuestionId": "q_var_c_2d_01",
+      "maxPeerSimilarity": 0.5,
+      "independentNovelty": "MEDIUM",
+      "learningValueScore": {
+        "hasPointerOrArray": false,
+        "hasControlFlow": false,
+        "hasStateMutation": true,
+        "cSyntaxValid": true
+      },
+      "codeSyntaxCheck": {
+        "balancedBraces": true,
+        "balancedParens": true,
+        "hasMain": true,
+        "hasReturn": true,
+        "notes": []
+      },
+      "consistencyCheck": {
+        "answerInExplanation": false,
+        "stepTraceMatchesAnswer": false,
+        "riskFlags": [
+          "해설 본문에 정답 수치/키워드가 직접적으로 언급되지 않음"
+        ]
+      },
+      "humanReviewRecommended": true,
+      "humanReviewReasons": [
+        "해설 본문에 정답 수치/키워드가 직접적으로 언급되지 않음"
+      ],
+      "mostSimilarPeerId": "EVAL-C-03"
+    },
+    {
+      "evaluationId": "EVAL-C-09",
+      "generatedAt": "2026-09-27T15:14:38.479Z",
+      "attempt": 1,
+      "questionText": "다음 C 언어로 구현된 프로그램을 분석하여 그 실행 결과를 쓰시오.",
+      "code": "#include <stdio.h>\n\nvoid process(int *a, int *b) {\n    int temp = *a;\n    *a = *a + *b;\n    *b = temp * 2;\n}\n\nint main(void) {\n    int x = 5, y = 3;\n    process(&x, &y);\n    printf(\"%d %d\", x, y);\n    return 0;\n}",
+      "answer": "8 10",
+      "explanation": "1. `main` 함수에서 `x = 5, y = 3`으로 초기화됩니다.\n2. `process(&x, &y)`를 호출하여 x와 y의 메모리 주소를 전달합니다 (Call by Reference).\n3. `process` 함수 내부:\n   - `int temp = *a;`: temp에 x의 원래 값 5가 저장됩니다.\n   - `*a = *a + *b;`: x의 주소가 가리키는 값을 5 + 3 = 8로 변경합니다.\n   - `*b = temp * 2;`: y의 주소가 가리키는 값을 temp(5) * 2 = 10으로 변경합니다.\n4. `printf(\"%d %d\", x, y);` 실행 시 x는 8, y는 10이므로 `8 10`이 출력됩니다.",
+      "targetConcept": "포인터와 1차원 배열",
+      "skill": "배열명 포인터 변환 및 *(arr + i) 역참조 연산 순서 추적",
+      "difficulty": "MEDIUM",
+      "estimatedDifficulty": "중",
+      "generationStrategy": "INDEPENDENT_DESIGN",
+      "model": "gemini-3.8-flash",
+      "sourceType": "INDEPENDENT_EVALUATION",
+      "structuralPass": true,
+      "structuralIssues": [],
+      "nearestExistingSimilarity": 0.65,
+      "nearestExistingQuestionCode": "AI-001029",
+      "nearestExistingQuestionId": "q_imp_1790499988055_hgjz",
+      "maxPeerSimilarity": 1,
+      "independentNovelty": "MEDIUM",
+      "learningValueScore": {
+        "hasPointerOrArray": true,
+        "hasControlFlow": false,
+        "hasStateMutation": true,
+        "cSyntaxValid": true
+      },
+      "codeSyntaxCheck": {
+        "balancedBraces": true,
+        "balancedParens": true,
+        "hasMain": true,
+        "hasReturn": true,
+        "notes": []
+      },
+      "consistencyCheck": {
+        "answerInExplanation": true,
+        "stepTraceMatchesAnswer": false,
+        "riskFlags": []
+      },
+      "humanReviewRecommended": true,
+      "humanReviewReasons": [
+        "동일 배치 내 EVAL-C-10와 높은 코드 유사도(100.0%)"
+      ],
+      "mostSimilarPeerId": "EVAL-C-04"
+    },
+    {
+      "evaluationId": "EVAL-C-10",
+      "generatedAt": "2026-09-27T15:14:38.479Z",
+      "attempt": 1,
+      "questionText": "다음 C 언어로 구현된 프로그램을 분석하여 그 실행 결과를 쓰시오.",
+      "code": "#include <stdio.h>\n\nvoid process(int *a, int *b) {\n    int temp = *a;\n    *a = *a + *b;\n    *b = temp * 2;\n}\n\nint main(void) {\n    int x = 5, y = 3;\n    process(&x, &y);\n    printf(\"%d %d\", x, y);\n    return 0;\n}",
+      "answer": "8 10",
+      "explanation": "1. `main` 함수에서 `x = 5, y = 3`으로 초기화됩니다.\n2. `process(&x, &y)`를 호출하여 x와 y의 메모리 주소를 전달합니다 (Call by Reference).\n3. `process` 함수 내부:\n   - `int temp = *a;`: temp에 x의 원래 값 5가 저장됩니다.\n   - `*a = *a + *b;`: x의 주소가 가리키는 값을 5 + 3 = 8로 변경합니다.\n   - `*b = temp * 2;`: y의 주소가 가리키는 값을 temp(5) * 2 = 10으로 변경합니다.\n4. `printf(\"%d %d\", x, y);` 실행 시 x는 8, y는 10이므로 `8 10`이 출력됩니다.",
+      "targetConcept": "포인터 증감 연산자",
+      "skill": "전위/후위 증감 연산자와 포인터 역참조 결합 우선순위 (*p++, (*p)++)",
+      "difficulty": "HARD",
+      "estimatedDifficulty": "중",
+      "generationStrategy": "INDEPENDENT_DESIGN",
+      "model": "gemini-3.8-flash",
+      "sourceType": "INDEPENDENT_EVALUATION",
+      "structuralPass": true,
+      "structuralIssues": [],
+      "nearestExistingSimilarity": 0.65,
+      "nearestExistingQuestionCode": "AI-001029",
+      "nearestExistingQuestionId": "q_imp_1790499988055_hgjz",
+      "maxPeerSimilarity": 1,
+      "independentNovelty": "MEDIUM",
+      "learningValueScore": {
+        "hasPointerOrArray": true,
+        "hasControlFlow": false,
+        "hasStateMutation": true,
+        "cSyntaxValid": true
+      },
+      "codeSyntaxCheck": {
+        "balancedBraces": true,
+        "balancedParens": true,
+        "hasMain": true,
+        "hasReturn": true,
+        "notes": []
+      },
+      "consistencyCheck": {
+        "answerInExplanation": true,
+        "stepTraceMatchesAnswer": false,
+        "riskFlags": []
+      },
+      "humanReviewRecommended": true,
+      "humanReviewReasons": [
+        "동일 배치 내 EVAL-C-15와 높은 코드 유사도(100.0%)"
+      ],
+      "mostSimilarPeerId": "EVAL-C-04"
+    },
+    {
+      "evaluationId": "EVAL-C-11",
+      "generatedAt": "2026-09-27T15:18:12.607Z",
+      "attempt": 1,
+      "questionText": "다음 C 언어로 구현된 프로그램을 분석하여 그 실행 결과를 쓰시오.",
+      "code": "#include <stdio.h>\n\nvoid update(int *a, int b) {\n    *a += b;\n}\n\nint main(void) {\n    int arr[3] = {2, 4, 6};\n    int x = 10;\n    int i;\n    \n    for(i = 0; i < 3; i++) {\n        update(&x, arr[i]);\n        arr[i] = x - arr[i];\n    }\n    \n    printf(\"%d %d %d %d\", x, arr[0], arr[1], arr[2]);\n    return 0;\n}",
+      "answer": "22 10 12 16",
+      "explanation": "이 문제는 Call by Reference(참조에 의한 호출) 개념을 확인하는 문제입니다. update(&x, arr[i])가 호출될 때 x의 주소가 전달되어 함수 내부에서 *a += b 연산에 의해 원본 변수 x의 값이 누적되어 변경됩니다. 반복문이 진행되면서 x는 12, 16, 22로 변하고, 각 배열의 원소는 갱신된 x와 기존 배열 값의 차이로 재할당됩니다. 최종적으로 x는 22, 배열 원소들은 각각 10, 12, 16이 되어 출력됩니다.",
+      "targetConcept": "함수와 포인터 (Call by Reference)",
+      "skill": "주소 전달을 통한 원본 변수 값 변경 및 매개변수 포인터 추적",
+      "difficulty": "MEDIUM",
+      "estimatedDifficulty": "중",
+      "generationStrategy": "INDEPENDENT_DESIGN",
+      "model": "gemini-3.5-flash-lite",
+      "sourceType": "INDEPENDENT_EVALUATION",
+      "structuralPass": true,
+      "structuralIssues": [],
+      "nearestExistingSimilarity": 0.556,
+      "nearestExistingQuestionCode": "AI-000057",
+      "nearestExistingQuestionId": "q_imp_1790518323792_hzj2",
+      "maxPeerSimilarity": 0.731,
+      "independentNovelty": "MEDIUM",
+      "learningValueScore": {
+        "hasPointerOrArray": true,
+        "hasControlFlow": true,
+        "hasStateMutation": true,
+        "cSyntaxValid": true
+      },
+      "codeSyntaxCheck": {
+        "balancedBraces": true,
+        "balancedParens": true,
+        "hasMain": true,
+        "hasReturn": true,
+        "notes": []
+      },
+      "consistencyCheck": {
+        "answerInExplanation": false,
+        "stepTraceMatchesAnswer": false,
+        "riskFlags": [
+          "해설 본문에 정답 수치/키워드가 직접적으로 언급되지 않음"
+        ]
+      },
+      "humanReviewRecommended": true,
+      "humanReviewReasons": [
+        "해설 본문에 정답 수치/키워드가 직접적으로 언급되지 않음"
+      ],
+      "mostSimilarPeerId": "EVAL-C-03"
+    },
+    {
+      "evaluationId": "EVAL-C-12",
+      "generatedAt": "2026-09-27T15:18:28.359Z",
+      "attempt": 1,
+      "questionText": "다음 C 언어로 구현된 프로그램을 분석하여 그 실행 결과를 쓰시오.",
+      "code": "#include <stdio.h>\n\nint main(void) {\n    char str[] = \"Info_2024\";\n    char *p = str;\n\n    while (*p != '\\0') {\n        if (*p >= 'a' && *p <= 'z') {\n            *p = *p - 32;\n        } else if (*p >= 'A' && *p <= 'Z') {\n            *p = *p + 32;\n        }\n        p++;\n    }\n\n    printf(\"%s\\n\", str);\n    return 0;\n}",
+      "answer": "iNFO_2024",
+      "explanation": "이 문제는 문자열 포인터와 아스키코드(ASCII)의 대소문자 변환 원리를 평가하기 위한 문제입니다. 1) 'I'(대문자)는 소문자 'i'(+32)로 변환됩니다. 2) 'n', 'f', 'o'(소문자)는 각각 대문자 'N', 'F', 'O'(-32)로 변환됩니다. 3) 밑줄('_')과 숫자('2', '0', '2', '4')는 알파벳 조건(a~z, A~Z)에 해당하지 않으므로 변경되지 않고 그대로 유지됩니다. 따라서 최종 출력 결과는 'iNFO_2024'가 됩니다.",
+      "targetConcept": "문자열 포인터와 널문자",
+      "skill": "char* 포인터 이동과 '\\0' 판별 및 문자 코드 변환",
+      "difficulty": "MEDIUM",
+      "estimatedDifficulty": "중",
+      "generationStrategy": "INDEPENDENT_DESIGN",
+      "model": "gemini-3.5-flash-lite",
+      "sourceType": "INDEPENDENT_EVALUATION",
+      "structuralPass": true,
+      "structuralIssues": [],
+      "nearestExistingSimilarity": 0.395,
+      "nearestExistingQuestionCode": "AI-000059",
+      "nearestExistingQuestionId": "q_imp_1790518323792_my6d",
+      "maxPeerSimilarity": 0.692,
+      "independentNovelty": "HIGH",
+      "learningValueScore": {
+        "hasPointerOrArray": true,
+        "hasControlFlow": true,
+        "hasStateMutation": true,
+        "cSyntaxValid": true
+      },
+      "codeSyntaxCheck": {
+        "balancedBraces": true,
+        "balancedParens": true,
+        "hasMain": true,
+        "hasReturn": true,
+        "notes": []
+      },
+      "consistencyCheck": {
+        "answerInExplanation": true,
+        "stepTraceMatchesAnswer": false,
+        "riskFlags": []
+      },
+      "humanReviewRecommended": false,
+      "humanReviewReasons": [],
+      "mostSimilarPeerId": "EVAL-C-18"
+    },
+    {
+      "evaluationId": "EVAL-C-13",
+      "generatedAt": "2026-09-27T15:14:38.478Z",
+      "attempt": 1,
+      "questionText": "다음 C 언어로 구현된 프로그램을 분석하여 그 실행 결과를 쓰시오.",
+      "code": "#include <stdio.h>\n\nint main(void) {\n    int arr[] = { 10, 20, 30, 40, 50 };\n    int *p = arr;\n    int sum = 0;\n\n    sum += *p++;\n    sum += *(p + 2);\n    sum += *++p;\n\n    printf(\"%d\", sum);\n    return 0;\n}",
+      "answer": "80",
+      "explanation": "1. `int *p = arr;`: p는 arr[0](10)을 가리킵니다.\n2. `sum += *p++;`: 후위 증감 연산자이므로 현재 p가 가리키는 arr[0]의 값 10을 sum에 더하고(sum=10), p는 arr[1]을 가리키도록 증가합니다.\n3. `sum += *(p + 2);`: p가 arr[1]이므로 p+2는 arr[3]입니다. arr[3]의 값 40을 sum에 더하므로 sum = 10 + 40 = 50이 됩니다.\n4. `sum += *++p;`: 전위 증감 연산자이므로 p를 먼저 arr[2]로 이동시킨 후 역참조하여 arr[2]의 값 30을 sum에 더합니다. sum = 50 + 30 = 80이 됩니다.\n따라서 최종 출력값은 80입니다.",
+      "targetConcept": "조건 분기형 재귀 함수",
+      "skill": "함수 호출 스택 깊이 추적 및 기저 조건(Base case) 반환값 누적",
+      "difficulty": "HARD",
+      "estimatedDifficulty": "상",
+      "generationStrategy": "INDEPENDENT_DESIGN",
+      "model": "gemini-3.8-flash",
+      "sourceType": "INDEPENDENT_EVALUATION",
+      "structuralPass": true,
+      "structuralIssues": [],
+      "nearestExistingSimilarity": 0.8,
+      "nearestExistingQuestionCode": "AI-000005",
+      "nearestExistingQuestionId": "q_imp_1790477570479_emf6",
+      "maxPeerSimilarity": 1,
+      "independentNovelty": "LOW",
+      "learningValueScore": {
+        "hasPointerOrArray": true,
+        "hasControlFlow": false,
+        "hasStateMutation": true,
+        "cSyntaxValid": true
+      },
+      "codeSyntaxCheck": {
+        "balancedBraces": true,
+        "balancedParens": true,
+        "hasMain": true,
+        "hasReturn": true,
+        "notes": []
+      },
+      "consistencyCheck": {
+        "answerInExplanation": true,
+        "stepTraceMatchesAnswer": true,
+        "riskFlags": []
+      },
+      "humanReviewRecommended": true,
+      "humanReviewReasons": [
+        "기존 문항(AI-000005)과 유사도 과다( 80.0% )"
+      ],
+      "mostSimilarPeerId": "EVAL-C-07"
+    },
+    {
+      "evaluationId": "EVAL-C-14",
+      "generatedAt": "2026-09-27T15:19:08.171Z",
+      "attempt": 1,
+      "questionText": "다음 C 언어로 구현된 프로그램을 분석하여 그 실행 결과를 쓰시오.",
+      "code": "#include <stdio.h>\n\nstruct Data {\n    int id;\n    int score;\n};\n\nint main(void) {\n    struct Data items[3] = {{1, 50}, {2, 70}, {3, 90}};\n    struct Data *p = items;\n    int total = 0;\n    int i;\n\n    for(i = 0; i < 3; i++) {\n        if(p->score < 80) {\n            p->score += 20;\n        } else {\n            p->score -= 10;\n        }\n        p++;\n    }\n\n    for(i = 0; i < 3; i++) {\n        total += items[i].score;\n    }\n\n    printf(\"%d\", total);\n    return 0;\n}",
+      "answer": "240",
+      "explanation": "1. 구조체 배열 `items`의 각 요소는 {id, score}로 초기화됩니다 (items[0]: 50, items[1]: 70, items[2]: 90).\n2. 포인터 `p`는 `items` 배열의 시작 주소를 가리킵니다.\n3. 첫 번째 반복문 (i = 0):\n   - `p->score`는 `items[0].score`인 50입니다. 50 < 80이므로 참입니다.\n   - `p->score += 20`에 의해 `items[0].score`는 70이 됩니다.\n   - `p++`에 의해 포인터 `p`는 `items[1]`을 가리킵니다.\n4. 두 번째 반복문 (i = 1):\n   - `p->score`는 `items[1].score`인 70입니다. 70 < 80이므로 참입니다.\n   - `p->score += 20`에 의해 `items[1].score`는 90이 됩니다.\n   - `p++`에 의해 포인터 `p`는 `items[2]`를 가리킵니다.\n5. 세 번째 반복문 (i = 2):\n   - `p->score`는 `items[2].score`인 90입니다. 90 < 80이므로 거짓입니다.\n   - `else` 절로 진입하여 `p->score -= 10`에 의해 `items[2].score`는 80이 됩니다.\n   - `p++`에 의해 포인터는 배열 범위를 벗어납니다.\n6. 최종 갱신된 점수: items[0].score = 70, items[1].score = 90, items[2].score = 80\n7. 두 번째 `for` 문에서 세 구조체의 `score`를 합산합니다: 70 + 90 + 80 = 240.\n8. 따라서 콘솔에는 240이 출력됩니다.",
+      "targetConcept": "구조체와 화살표(->) 연산자",
+      "skill": "구조체 포인터를 통한 멤버 접근 및 데이터 갱신",
+      "difficulty": "HARD",
+      "estimatedDifficulty": "중상",
+      "generationStrategy": "INDEPENDENT_DESIGN",
+      "model": "gemini-3.5-flash-lite",
+      "sourceType": "INDEPENDENT_EVALUATION",
+      "structuralPass": true,
+      "structuralIssues": [],
+      "nearestExistingSimilarity": 0.457,
+      "nearestExistingQuestionCode": "AI-000054",
+      "nearestExistingQuestionId": "q_imp_1790518323790_ri1d",
+      "maxPeerSimilarity": 0.935,
+      "independentNovelty": "MEDIUM",
+      "learningValueScore": {
+        "hasPointerOrArray": true,
+        "hasControlFlow": true,
+        "hasStateMutation": true,
+        "cSyntaxValid": true
+      },
+      "codeSyntaxCheck": {
+        "balancedBraces": true,
+        "balancedParens": true,
+        "hasMain": true,
+        "hasReturn": true,
+        "notes": []
+      },
+      "consistencyCheck": {
+        "answerInExplanation": true,
+        "stepTraceMatchesAnswer": true,
+        "riskFlags": []
+      },
+      "humanReviewRecommended": true,
+      "humanReviewReasons": [
+        "동일 배치 내 EVAL-C-22와 높은 코드 유사도(81.3%)"
+      ],
+      "mostSimilarPeerId": "EVAL-C-06"
+    },
+    {
+      "evaluationId": "EVAL-C-15",
+      "generatedAt": "2026-09-27T15:14:38.479Z",
+      "attempt": 1,
+      "questionText": "다음 C 언어로 구현된 프로그램을 분석하여 그 실행 결과를 쓰시오.",
+      "code": "#include <stdio.h>\n\nvoid process(int *a, int *b) {\n    int temp = *a;\n    *a = *a + *b;\n    *b = temp * 2;\n}\n\nint main(void) {\n    int x = 5, y = 3;\n    process(&x, &y);\n    printf(\"%d %d\", x, y);\n    return 0;\n}",
+      "answer": "8 10",
+      "explanation": "1. `main` 함수에서 `x = 5, y = 3`으로 초기화됩니다.\n2. `process(&x, &y)`를 호출하여 x와 y의 메모리 주소를 전달합니다 (Call by Reference).\n3. `process` 함수 내부:\n   - `int temp = *a;`: temp에 x의 원래 값 5가 저장됩니다.\n   - `*a = *a + *b;`: x의 주소가 가리키는 값을 5 + 3 = 8로 변경합니다.\n   - `*b = temp * 2;`: y의 주소가 가리키는 값을 temp(5) * 2 = 10으로 변경합니다.\n4. `printf(\"%d %d\", x, y);` 실행 시 x는 8, y는 10이므로 `8 10`이 출력됩니다.",
+      "targetConcept": "비트 연산자 (Bitwise)",
+      "skill": "비트 AND(&), OR(|), XOR(^), 시프트(<<, >>) 연산 결합",
+      "difficulty": "MEDIUM",
+      "estimatedDifficulty": "중",
+      "generationStrategy": "INDEPENDENT_DESIGN",
+      "model": "gemini-3.8-flash",
+      "sourceType": "INDEPENDENT_EVALUATION",
+      "structuralPass": true,
+      "structuralIssues": [],
+      "nearestExistingSimilarity": 0.65,
+      "nearestExistingQuestionCode": "AI-001029",
+      "nearestExistingQuestionId": "q_imp_1790499988055_hgjz",
+      "maxPeerSimilarity": 1,
+      "independentNovelty": "MEDIUM",
+      "learningValueScore": {
+        "hasPointerOrArray": true,
+        "hasControlFlow": false,
+        "hasStateMutation": true,
+        "cSyntaxValid": true
+      },
+      "codeSyntaxCheck": {
+        "balancedBraces": true,
+        "balancedParens": true,
+        "hasMain": true,
+        "hasReturn": true,
+        "notes": []
+      },
+      "consistencyCheck": {
+        "answerInExplanation": true,
+        "stepTraceMatchesAnswer": false,
+        "riskFlags": []
+      },
+      "humanReviewRecommended": true,
+      "humanReviewReasons": [
+        "동일 배치 내 EVAL-C-20와 높은 코드 유사도(100.0%)"
+      ],
+      "mostSimilarPeerId": "EVAL-C-04"
+    },
+    {
+      "evaluationId": "EVAL-C-16",
+      "generatedAt": "2026-09-27T15:19:41.621Z",
+      "attempt": 1,
+      "questionText": "다음 C 언어로 구현된 프로그램을 분석하여 그 실행 결과를 쓰시오.",
+      "code": "#include <stdio.h>\n\nint total = 10;\n\nint accumulator(int add) {\n    static int count = 0;\n    count += add;\n    return count;\n}\n\nint main(void) {\n    for (int i = 1; i <= 3; i++) {\n        total += accumulator(i);\n    }\n    printf(\"%d\", total);\n    return 0;\n}",
+      "answer": "20",
+      "explanation": "1. 전역 변수 'total'은 프로그램 시작 시 10으로 초기화됩니다.\n2. 'accumulator' 함수 내의 'static int count = 0;'은 프로그램 실행 중 최초 호출 시에만 실행되며, 함수가 종료되어도 메모리에서 사라지지 않고 값이 유지됩니다.\n3. 반복문이 실행되면서 i가 1, 2, 3일 때 각각 accumulator(1), accumulator(2), accumulator(3)이 호출됩니다.\n   - i=1일 때: count는 0에서 시작하여 1이 더해져 1을 반환합니다. total은 10 + 1 = 11이 됩니다.\n   - i=2일 때: static 변수이므로 count는 이전 값인 1을 유지하고 있으며, 여기에 2가 더해져 3을 반환합니다. total은 11 + 3 = 14가 됩니다.\n   - i=3일 때: count는 이전 값인 3을 유지하고 있으며, 여기에 3이 더해져 6을 반환합니다. total은 14 + 6 = 20이 됩니다.\n4. 최종적으로 printf를 통해 'total'의 값인 20이 출력됩니다.",
+      "targetConcept": "정적 변수(static)와 스코프",
+      "skill": "함수 재호출 시 static 지역 변수의 값 유지 및 전역 변수와의 상호작용",
+      "difficulty": "MEDIUM",
+      "estimatedDifficulty": "하",
+      "generationStrategy": "INDEPENDENT_DESIGN",
+      "model": "gemini-3.5-flash-lite",
+      "sourceType": "INDEPENDENT_EVALUATION",
+      "structuralPass": true,
+      "structuralIssues": [],
+      "nearestExistingSimilarity": 0.458,
+      "nearestExistingQuestionCode": "AI-000007",
+      "nearestExistingQuestionId": "q_drill_1790496846153_0pisl",
+      "maxPeerSimilarity": 0.536,
+      "independentNovelty": "MEDIUM",
+      "learningValueScore": {
+        "hasPointerOrArray": false,
+        "hasControlFlow": true,
+        "hasStateMutation": true,
+        "cSyntaxValid": true
+      },
+      "codeSyntaxCheck": {
+        "balancedBraces": true,
+        "balancedParens": true,
+        "hasMain": true,
+        "hasReturn": true,
+        "notes": []
+      },
+      "consistencyCheck": {
+        "answerInExplanation": true,
+        "stepTraceMatchesAnswer": true,
+        "riskFlags": []
+      },
+      "humanReviewRecommended": false,
+      "humanReviewReasons": [],
+      "mostSimilarPeerId": "EVAL-C-11"
+    },
+    {
+      "evaluationId": "EVAL-C-17",
+      "generatedAt": "2026-09-27T15:14:38.478Z",
+      "attempt": 1,
+      "questionText": "다음 C 언어로 구현된 프로그램을 분석하여 그 실행 결과를 쓰시오.",
+      "code": "#include <stdio.h>\n\nint main(void) {\n    int arr[] = { 10, 20, 30, 40, 50 };\n    int *p = arr;\n    int sum = 0;\n\n    sum += *p++;\n    sum += *(p + 2);\n    sum += *++p;\n\n    printf(\"%d\", sum);\n    return 0;\n}",
+      "answer": "80",
+      "explanation": "1. `int *p = arr;`: p는 arr[0](10)을 가리킵니다.\n2. `sum += *p++;`: 후위 증감 연산자이므로 현재 p가 가리키는 arr[0]의 값 10을 sum에 더하고(sum=10), p는 arr[1]을 가리키도록 증가합니다.\n3. `sum += *(p + 2);`: p가 arr[1]이므로 p+2는 arr[3]입니다. arr[3]의 값 40을 sum에 더하므로 sum = 10 + 40 = 50이 됩니다.\n4. `sum += *++p;`: 전위 증감 연산자이므로 p를 먼저 arr[2]로 이동시킨 후 역참조하여 arr[2]의 값 30을 sum에 더합니다. sum = 50 + 30 = 80이 됩니다.\n따라서 최종 출력값은 80입니다.",
+      "targetConcept": "포인터와 1차원 배열",
+      "skill": "배열명 포인터 변환 및 *(arr + i) 역참조 연산 순서 추적",
+      "difficulty": "MEDIUM",
+      "estimatedDifficulty": "중상",
+      "generationStrategy": "INDEPENDENT_DESIGN",
+      "model": "gemini-3.8-flash",
+      "sourceType": "INDEPENDENT_EVALUATION",
+      "structuralPass": true,
+      "structuralIssues": [],
+      "nearestExistingSimilarity": 0.8,
+      "nearestExistingQuestionCode": "AI-000005",
+      "nearestExistingQuestionId": "q_imp_1790477570479_emf6",
+      "maxPeerSimilarity": 1,
+      "independentNovelty": "LOW",
+      "learningValueScore": {
+        "hasPointerOrArray": true,
+        "hasControlFlow": false,
+        "hasStateMutation": true,
+        "cSyntaxValid": true
+      },
+      "codeSyntaxCheck": {
+        "balancedBraces": true,
+        "balancedParens": true,
+        "hasMain": true,
+        "hasReturn": true,
+        "notes": []
+      },
+      "consistencyCheck": {
+        "answerInExplanation": true,
+        "stepTraceMatchesAnswer": true,
+        "riskFlags": []
+      },
+      "humanReviewRecommended": true,
+      "humanReviewReasons": [
+        "기존 문항(AI-000005)과 유사도 과다( 80.0% )"
+      ],
+      "mostSimilarPeerId": "EVAL-C-07"
+    },
+    {
+      "evaluationId": "EVAL-C-18",
+      "generatedAt": "2026-09-27T15:20:12.791Z",
+      "attempt": 1,
+      "questionText": "다음 C 언어로 구현된 프로그램을 분석하여 그 실행 결과를 쓰시오.",
+      "code": "#include <stdio.h>\n\nint main(void) {\n    char s[] = \"C7-PRO\";\n    char *p = s;\n    \n    while (*p != '\\0') {\n        if (*p >= 'A' && *p <= 'Z') {\n            (*p)++;\n        } else if (*p >= '0' && *p <= '9') {\n            *p += 2;\n        }\n        p++;\n    }\n    \n    printf(\"%s\\n\", s);\n    return 0;\n}",
+      "answer": "D9-QSP",
+      "explanation": "1. 문자열 배열 s는 'C', '7', '-', 'P', 'R', 'O', '\\0' 로 초기화됩니다.\n2. 포인터 p는 s의 시작 주소를 가리킵니다.\n3. while 문은 널 문자('\\0')를 만날 때까지 반복합니다.\n- 첫 번째 반복 ('C'): 대문자이므로 'C'('67')에 (*p)++를 적용하여 'D'('68')가 되고, 이후 p++로 다음 주소로 이동합니다.\n- 두 번째 반복 ('7'): 숫자이므로 '7'('55')에 *p += 2를 적용하여 '9'('57')가 되고, p++로 이동합니다.\n- 세 번째 반복 ('-'): 조건식에 해당하지 않아 값은 그대로 유지되고, p++로 이동합니다.\n- 네 번째, 다섯 번째, 여섯 번째 반복 ('P', 'R', 'O'): 모두 대문자이므로 각각 'Q', 'S', 'P'로 값이 1씩 증가합니다.\n4. 최종 변환된 문자열 s는 \"D9-QSP\"가 되며, printf를 통해 그대로 출력됩니다.\n※ 주의: *p++는 후위 연산자로 우선순위에 의해 포인터 이동이 값 참조 이후에 일어나므로, (*p)++와 구별하여 정확히 연산 순서를 파악해야 합니다.",
+      "targetConcept": "포인터 증감 연산자",
+      "skill": "전위/후위 증감 연산자와 포인터 역참조 결합 우선순위 (*p++, (*p)++)",
+      "difficulty": "HARD",
+      "estimatedDifficulty": "중상",
+      "generationStrategy": "INDEPENDENT_DESIGN",
+      "model": "gemini-3.5-flash-lite",
+      "sourceType": "INDEPENDENT_EVALUATION",
+      "structuralPass": true,
+      "structuralIssues": [],
+      "nearestExistingSimilarity": 0.432,
+      "nearestExistingQuestionCode": "AI-000059",
+      "nearestExistingQuestionId": "q_imp_1790518323792_my6d",
+      "maxPeerSimilarity": 0.692,
+      "independentNovelty": "HIGH",
+      "learningValueScore": {
+        "hasPointerOrArray": true,
+        "hasControlFlow": true,
+        "hasStateMutation": true,
+        "cSyntaxValid": true
+      },
+      "codeSyntaxCheck": {
+        "balancedBraces": true,
+        "balancedParens": true,
+        "hasMain": true,
+        "hasReturn": true,
+        "notes": []
+      },
+      "consistencyCheck": {
+        "answerInExplanation": true,
+        "stepTraceMatchesAnswer": false,
+        "riskFlags": []
+      },
+      "humanReviewRecommended": false,
+      "humanReviewReasons": [],
+      "mostSimilarPeerId": "EVAL-C-12"
+    },
+    {
+      "evaluationId": "EVAL-C-19",
+      "generatedAt": "2026-09-27T15:20:19.512Z",
+      "attempt": 1,
+      "questionText": "다음 C 언어로 구현된 프로그램을 분석하여 그 실행 결과를 쓰시오.",
+      "code": "#include <stdio.h>\n\nvoid update(int *a, int b) {\n    if (*a % 2 == 0) {\n        *a = *a / 2;\n    } else {\n        *a = *a * 2;\n    }\n    *a += b;\n}\n\nint main(void) {\n    int x = 10;\n    int y = 3;\n    \n    update(&x, y);\n    \n    printf(\"%d\", x + y);\n    return 0;\n}",
+      "answer": "11",
+      "explanation": "이 문제는 포인터를 이용한 Call by Reference(참조에 의한 호출) 개념을 정확히 이해하고 있는지 평가하기 위한 문제입니다.\n1. main 함수에서 변수 x는 10, y는 3으로 선언 및 초기화됩니다.\n2. update(&x, y)를 호출할 때 x의 메모리 주소(&x)가 포인터 매개변수 a에 전달되고, y의 값(3)이 b에 복사됩니다.\n3. update 함수 내에서 *a는 x의 원본 값을 가리키므로, *a는 10입니다.\n4. 조건문 *a % 2 == 0이 참(10은 짝수)이므로 *a = *a / 2가 실행되어 *a(즉, x)는 5가 됩니다.\n5. 그 후 *a += b 구문에 의해 *a는 5 + 3 = 8이 됩니다.\n6. 함수가 종료된 후 main 함수에서 x는 8로 변경되어 있으며, 최종적으로 printf를 통해 x + 연산 결과인 8 + 3 = 11이 출력됩니다.",
+      "targetConcept": "함수와 포인터 (Call by Reference)",
+      "skill": "주소 전달을 통한 원본 변수 값 변경 및 매개변수 포인터 추적",
+      "difficulty": "MEDIUM",
+      "estimatedDifficulty": "중",
+      "generationStrategy": "INDEPENDENT_DESIGN",
+      "model": "gemini-3.5-flash-lite",
+      "sourceType": "INDEPENDENT_EVALUATION",
+      "structuralPass": true,
+      "structuralIssues": [],
+      "nearestExistingSimilarity": 0.583,
+      "nearestExistingQuestionCode": "AI-000058",
+      "nearestExistingQuestionId": "q_imp_1790518323792_7ngo",
+      "maxPeerSimilarity": 0.75,
+      "independentNovelty": "MEDIUM",
+      "learningValueScore": {
+        "hasPointerOrArray": true,
+        "hasControlFlow": true,
+        "hasStateMutation": true,
+        "cSyntaxValid": true
+      },
+      "codeSyntaxCheck": {
+        "balancedBraces": true,
+        "balancedParens": true,
+        "hasMain": true,
+        "hasReturn": true,
+        "notes": []
+      },
+      "consistencyCheck": {
+        "answerInExplanation": true,
+        "stepTraceMatchesAnswer": true,
+        "riskFlags": []
+      },
+      "humanReviewRecommended": false,
+      "humanReviewReasons": [],
+      "mostSimilarPeerId": "EVAL-C-03"
+    },
+    {
+      "evaluationId": "EVAL-C-20",
+      "generatedAt": "2026-09-27T15:14:38.479Z",
+      "attempt": 1,
+      "questionText": "다음 C 언어로 구현된 프로그램을 분석하여 그 실행 결과를 쓰시오.",
+      "code": "#include <stdio.h>\n\nvoid process(int *a, int *b) {\n    int temp = *a;\n    *a = *a + *b;\n    *b = temp * 2;\n}\n\nint main(void) {\n    int x = 5, y = 3;\n    process(&x, &y);\n    printf(\"%d %d\", x, y);\n    return 0;\n}",
+      "answer": "8 10",
+      "explanation": "1. `main` 함수에서 `x = 5, y = 3`으로 초기화됩니다.\n2. `process(&x, &y)`를 호출하여 x와 y의 메모리 주소를 전달합니다 (Call by Reference).\n3. `process` 함수 내부:\n   - `int temp = *a;`: temp에 x의 원래 값 5가 저장됩니다.\n   - `*a = *a + *b;`: x의 주소가 가리키는 값을 5 + 3 = 8로 변경합니다.\n   - `*b = temp * 2;`: y의 주소가 가리키는 값을 temp(5) * 2 = 10으로 변경합니다.\n4. `printf(\"%d %d\", x, y);` 실행 시 x는 8, y는 10이므로 `8 10`이 출력됩니다.",
+      "targetConcept": "문자열 포인터와 널문자",
+      "skill": "char* 포인터 이동과 '\\0' 판별 및 문자 코드 변환",
+      "difficulty": "MEDIUM",
+      "estimatedDifficulty": "중",
+      "generationStrategy": "INDEPENDENT_DESIGN",
+      "model": "gemini-3.8-flash",
+      "sourceType": "INDEPENDENT_EVALUATION",
+      "structuralPass": true,
+      "structuralIssues": [],
+      "nearestExistingSimilarity": 0.65,
+      "nearestExistingQuestionCode": "AI-001029",
+      "nearestExistingQuestionId": "q_imp_1790499988055_hgjz",
+      "maxPeerSimilarity": 1,
+      "independentNovelty": "MEDIUM",
+      "learningValueScore": {
+        "hasPointerOrArray": true,
+        "hasControlFlow": false,
+        "hasStateMutation": true,
+        "cSyntaxValid": true
+      },
+      "codeSyntaxCheck": {
+        "balancedBraces": true,
+        "balancedParens": true,
+        "hasMain": true,
+        "hasReturn": true,
+        "notes": []
+      },
+      "consistencyCheck": {
+        "answerInExplanation": true,
+        "stepTraceMatchesAnswer": false,
+        "riskFlags": []
+      },
+      "humanReviewRecommended": true,
+      "humanReviewReasons": [
+        "동일 배치 내 EVAL-C-24와 높은 코드 유사도(100.0%)"
+      ],
+      "mostSimilarPeerId": "EVAL-C-04"
+    },
+    {
+      "evaluationId": "EVAL-C-21",
+      "generatedAt": "2026-09-27T15:20:49.168Z",
+      "attempt": 1,
+      "questionText": "다음 C 언어로 구현된 프로그램을 분석하여 그 실행 결과를 쓰시오.",
+      "code": "#include <stdio.h>\n\nint solve(int n) {\n    if (n <= 1)\n        return 1;\n    return n + solve(n - 2);\n}\n\nint main(void) {\n    int result = solve(5);\n    printf(\"%d\", result);\n    return 0;\n}",
+      "answer": "9",
+      "explanation": "이 문제는 재귀 함수의 호출 스택과 반환값 누적 과정을 추적하는 문제입니다. 1. main 함수에서 solve(5)를 호출합니다. 2. solve(5)는 5 <= 1을 만족하지 않으므로 '5 + solve(3)'을 반환하기 위해 대기합니다. 3. solve(3)은 3 <= 1을 만족하지 않으므로 '3 + solve(1)'을 반환하기 위해 대기합니다. 4. solve(1)은 n <= 1 기저 조건을 만족하므로 즉시 1을 반환합니다. 5. 대기 중이던 solve(3)은 3 + 1인 4를 반환합니다. 6. 최초 호출된 solve(5)는 5 + 4인 9를 반환하여 최종적으로 9가 출력됩니다.",
+      "targetConcept": "조건 분기형 재귀 함수",
+      "skill": "함수 호출 스택 깊이 추적 및 기저 조건(Base case) 반환값 누적",
+      "difficulty": "HARD",
+      "estimatedDifficulty": "중상",
+      "generationStrategy": "INDEPENDENT_DESIGN",
+      "model": "gemini-3.5-flash-lite",
+      "sourceType": "INDEPENDENT_EVALUATION",
+      "structuralPass": true,
+      "structuralIssues": [],
+      "nearestExistingSimilarity": 0.591,
+      "nearestExistingQuestionCode": "AI-000063",
+      "nearestExistingQuestionId": "q_imp_1790518323794_76nk",
+      "maxPeerSimilarity": 0.842,
+      "independentNovelty": "MEDIUM",
+      "learningValueScore": {
+        "hasPointerOrArray": false,
+        "hasControlFlow": true,
+        "hasStateMutation": true,
+        "cSyntaxValid": true
+      },
+      "codeSyntaxCheck": {
+        "balancedBraces": true,
+        "balancedParens": true,
+        "hasMain": true,
+        "hasReturn": true,
+        "notes": []
+      },
+      "consistencyCheck": {
+        "answerInExplanation": true,
+        "stepTraceMatchesAnswer": true,
+        "riskFlags": []
+      },
+      "humanReviewRecommended": false,
+      "humanReviewReasons": [],
+      "mostSimilarPeerId": "EVAL-C-05"
+    },
+    {
+      "evaluationId": "EVAL-C-22",
+      "generatedAt": "2026-09-27T15:20:57.585Z",
+      "attempt": 1,
+      "questionText": "다음 C 언어로 구현된 프로그램을 분석하여 그 실행 결과를 쓰시오.",
+      "code": "#include <stdio.h>\n\nstruct Data {\n    int id;\n    int score;\n};\n\nint main(void) {\n    struct Data items[3] = {{1, 80}, {2, 90}, {3, 70}};\n    struct Data *p = items;\n\n    p->score += 10;\n    p++;\n    \n    p->id += 5;\n    p->score -= 15;\n\n    (p + 1)->score = p->score + 20;\n\n    for (int i = 0; i < 3; i++) {\n        printf(\"%d \", items[i].score);\n    }\n\n    return 0;\n}",
+      "answer": "90 75 95",
+      "explanation": "1. struct Data items[3] 선언과 동시에 각각 {1, 80}, {2, 90}, {3, 70}으로 초기화됩니다.\n2. 포인터 p는 items[0]의 주소를 가리킵니다.\n3. p->score += 10; 연산에 의해 items[0].score는 90이 됩니다.\n4. p++; 연산에 의해 포인터 p는 다음 요소인 items[1]을 가리킵니다.\n5. p->id += 5; 와 p->score -= 15;에 의해 items[1].id는 7이 되고, items[1].score는 75가 됩니다.\n6. (p + 1)->score = p->score + 20;에서 p + 1은 items[2]를 가리키므로, items[2].score는 items[1].score(75) + 20인 95로 갱신됩니다.\n7. 최종적으로 반복문을 통해 각 구조체 변수의 score 값인 90, 75, 95가 공백으로 구분되어 출력됩니다.",
+      "targetConcept": "구조체와 화살표(->) 연산자",
+      "skill": "구조체 포인터를 통한 멤버 접근 및 데이터 갱신",
+      "difficulty": "HARD",
+      "estimatedDifficulty": "중상",
+      "generationStrategy": "INDEPENDENT_DESIGN",
+      "model": "gemini-3.5-flash-lite",
+      "sourceType": "INDEPENDENT_EVALUATION",
+      "structuralPass": true,
+      "structuralIssues": [],
+      "nearestExistingSimilarity": 0.517,
+      "nearestExistingQuestionCode": "AI-000065",
+      "nearestExistingQuestionId": "q_imp_1790518323794_i14b",
+      "maxPeerSimilarity": 0.813,
+      "independentNovelty": "MEDIUM",
+      "learningValueScore": {
+        "hasPointerOrArray": true,
+        "hasControlFlow": true,
+        "hasStateMutation": true,
+        "cSyntaxValid": true
+      },
+      "codeSyntaxCheck": {
+        "balancedBraces": true,
+        "balancedParens": true,
+        "hasMain": true,
+        "hasReturn": true,
+        "notes": []
+      },
+      "consistencyCheck": {
+        "answerInExplanation": false,
+        "stepTraceMatchesAnswer": false,
+        "riskFlags": [
+          "해설 본문에 정답 수치/키워드가 직접적으로 언급되지 않음"
+        ]
+      },
+      "humanReviewRecommended": true,
+      "humanReviewReasons": [
+        "해설 본문에 정답 수치/키워드가 직접적으로 언급되지 않음"
+      ],
+      "mostSimilarPeerId": "EVAL-C-14"
+    },
+    {
+      "evaluationId": "EVAL-C-23",
+      "generatedAt": "2026-09-27T15:21:13.458Z",
+      "attempt": 1,
+      "questionText": "다음 C 언어로 구현된 프로그램을 분석하여 그 실행 결과를 쓰시오.",
+      "code": "#include <stdio.h>\n\nint main(void) {\n    int a = 25;\n    int b = 14;\n    int c;\n\n    c = (a & b) ^ (a >> 2);\n    c = (c | b);\n\n    printf(\"%d\", c);\n    return 0;\n}",
+      "answer": "14",
+      "explanation": "1. 변수 초기화: a = 25 (이진수: 11001), b = 14 (이진수: 01110).\n2. 비트 연산 (a & b): 11001 & 01110 의 결과는 01000 (십진수 8)입니다.\n3. 비트 시프트 연산 (a >> 2): 25를 오른쪽으로 2비트 시프트하면 11001 >> 2는 00110 (십진수 6)이 됩니다.\n4. XOR 연산 ((a & b) ^ (a >> 2)): 8 ^ 6 은 01000 ^ 00110 이며 결과는 01110 (십진수 14)이 되어 c에 저장됩니다.\n5. OR 연산 (c | b): c = 14 (01110), b = 14 (01110) 이므로 14 | 14 의 결과는 14입니다.\n6. 따라서 최종 출력 결과는 14입니다.",
+      "targetConcept": "비트 연산자 (Bitwise)",
+      "skill": "비트 AND(&), OR(|), XOR(^), 시프트(<<, >>) 연산 결합",
+      "difficulty": "MEDIUM",
+      "estimatedDifficulty": "중상",
+      "generationStrategy": "INDEPENDENT_DESIGN",
+      "model": "gemini-3.5-flash-lite",
+      "sourceType": "INDEPENDENT_EVALUATION",
+      "structuralPass": true,
+      "structuralIssues": [],
+      "nearestExistingSimilarity": 0.619,
+      "nearestExistingQuestionCode": "AI-000058",
+      "nearestExistingQuestionId": "q_imp_1790518323792_7ngo",
+      "maxPeerSimilarity": 0.591,
+      "independentNovelty": "MEDIUM",
+      "learningValueScore": {
+        "hasPointerOrArray": true,
+        "hasControlFlow": false,
+        "hasStateMutation": true,
+        "cSyntaxValid": true
+      },
+      "codeSyntaxCheck": {
+        "balancedBraces": true,
+        "balancedParens": true,
+        "hasMain": true,
+        "hasReturn": true,
+        "notes": []
+      },
+      "consistencyCheck": {
+        "answerInExplanation": true,
+        "stepTraceMatchesAnswer": true,
+        "riskFlags": []
+      },
+      "humanReviewRecommended": false,
+      "humanReviewReasons": [],
+      "mostSimilarPeerId": "EVAL-C-04"
+    },
+    {
+      "evaluationId": "EVAL-C-24",
+      "generatedAt": "2026-09-27T15:14:38.479Z",
+      "attempt": 1,
+      "questionText": "다음 C 언어로 구현된 프로그램을 분석하여 그 실행 결과를 쓰시오.",
+      "code": "#include <stdio.h>\n\nvoid process(int *a, int *b) {\n    int temp = *a;\n    *a = *a + *b;\n    *b = temp * 2;\n}\n\nint main(void) {\n    int x = 5, y = 3;\n    process(&x, &y);\n    printf(\"%d %d\", x, y);\n    return 0;\n}",
+      "answer": "8 10",
+      "explanation": "1. `main` 함수에서 `x = 5, y = 3`으로 초기화됩니다.\n2. `process(&x, &y)`를 호출하여 x와 y의 메모리 주소를 전달합니다 (Call by Reference).\n3. `process` 함수 내부:\n   - `int temp = *a;`: temp에 x의 원래 값 5가 저장됩니다.\n   - `*a = *a + *b;`: x의 주소가 가리키는 값을 5 + 3 = 8로 변경합니다.\n   - `*b = temp * 2;`: y의 주소가 가리키는 값을 temp(5) * 2 = 10으로 변경합니다.\n4. `printf(\"%d %d\", x, y);` 실행 시 x는 8, y는 10이므로 `8 10`이 출력됩니다.",
+      "targetConcept": "정적 변수(static)와 스코프",
+      "skill": "함수 재호출 시 static 지역 변수의 값 유지 및 전역 변수와의 상호작용",
+      "difficulty": "MEDIUM",
+      "estimatedDifficulty": "중",
+      "generationStrategy": "INDEPENDENT_DESIGN",
+      "model": "gemini-3.8-flash",
+      "sourceType": "INDEPENDENT_EVALUATION",
+      "structuralPass": true,
+      "structuralIssues": [],
+      "nearestExistingSimilarity": 0.65,
+      "nearestExistingQuestionCode": "AI-001029",
+      "nearestExistingQuestionId": "q_imp_1790499988055_hgjz",
+      "maxPeerSimilarity": 1,
+      "independentNovelty": "MEDIUM",
+      "learningValueScore": {
+        "hasPointerOrArray": true,
+        "hasControlFlow": false,
+        "hasStateMutation": true,
+        "cSyntaxValid": true
+      },
+      "codeSyntaxCheck": {
+        "balancedBraces": true,
+        "balancedParens": true,
+        "hasMain": true,
+        "hasReturn": true,
+        "notes": []
+      },
+      "consistencyCheck": {
+        "answerInExplanation": true,
+        "stepTraceMatchesAnswer": false,
+        "riskFlags": []
+      },
+      "humanReviewRecommended": true,
+      "humanReviewReasons": [
+        "동일 배치 내 EVAL-C-28와 높은 코드 유사도(100.0%)"
+      ],
+      "mostSimilarPeerId": "EVAL-C-04"
+    },
+    {
+      "evaluationId": "EVAL-C-25",
+      "generatedAt": "2026-09-27T15:21:35.406Z",
+      "attempt": 1,
+      "questionText": "다음 C 언어로 구현된 프로그램을 분석하여 그 실행 결과를 쓰시오.",
+      "code": "#include <stdio.h>\n\nint main(void) {\n    int a[] = {3, 6, 9, 12, 15};\n    int *p = a;\n    int sum = 0;\n\n    for(int i = 0; i < 5; i++) {\n        if(i % 2 == 0) {\n            sum += *(p + i) + a[4 - i];\n        } else {\n            sum += *(a + i) - *(p + (4 - i));\n        }\n    }\n\n    printf(\"%d\", sum);\n    return 0;\n}",
+      "answer": "45",
+      "explanation": "1. int a[] = {3, 6, 9, 12, 15}; 배열 선언 및 포인터 변수 int *p = a; 선언으로 p는 배열 a의 첫 번째 요소(3)를 가리킵니다.\n2. 반복문 i = 0부터 4까지 총 5회 순회합니다:\n - i = 0 (짝수): sum += *(p + 0) + a[4] -> 3 + 15 = 18 (sum = 18)\n - i = 1 (홀수): sum += *(a + 1) - *(p + 3) -> 6 - 12 = -6 (sum = 18 + (-6) = 12)\n - i = 2 (짝수): sum += *(p + 2) + a[2] -> 9 + 9 = 18 (sum = 12 + 18 = 30)\n - i = 3 (홀수): sum += *(a + 3) - *(p + 1) -> 12 - 6 = 6 (sum = 30 + 6 = 36)\n - i = 4 (짝수): sum += *(p + 4) + a[0] -> 15 + 3 = 18 (sum = 36 + 18 = 54) -> 잠깐, 실제 계산 검증: i=0: 3+15=18, i=1: 6-12=-6 (누적 12), i=2: 9+9=18 (누적 30), i=3: 12-6=6 (누적 36), i=4: 15+3=18 (누적 54). 최종 sum은 54입니다. (정정된 정답: 54)",
+      "targetConcept": "포인터와 1차원 배열",
+      "skill": "배열명 포인터 변환 및 *(arr + i) 역참조 연산 순서 추적",
+      "difficulty": "MEDIUM",
+      "estimatedDifficulty": "중",
+      "generationStrategy": "INDEPENDENT_DESIGN",
+      "model": "gemini-3.5-flash-lite",
+      "sourceType": "INDEPENDENT_EVALUATION",
+      "structuralPass": true,
+      "structuralIssues": [],
+      "nearestExistingSimilarity": 0.536,
+      "nearestExistingQuestionCode": "AI-000058",
+      "nearestExistingQuestionId": "q_imp_1790518323792_7ngo",
+      "maxPeerSimilarity": 0.679,
+      "independentNovelty": "MEDIUM",
+      "learningValueScore": {
+        "hasPointerOrArray": true,
+        "hasControlFlow": true,
+        "hasStateMutation": true,
+        "cSyntaxValid": true
+      },
+      "codeSyntaxCheck": {
+        "balancedBraces": true,
+        "balancedParens": true,
+        "hasMain": true,
+        "hasReturn": true,
+        "notes": []
+      },
+      "consistencyCheck": {
+        "answerInExplanation": false,
+        "stepTraceMatchesAnswer": false,
+        "riskFlags": [
+          "해설 본문에 정답 수치/키워드가 직접적으로 언급되지 않음"
+        ]
+      },
+      "humanReviewRecommended": true,
+      "humanReviewReasons": [
+        "해설 본문에 정답 수치/키워드가 직접적으로 언급되지 않음"
+      ],
+      "mostSimilarPeerId": "EVAL-C-01"
+    },
+    {
+      "evaluationId": "EVAL-C-26",
+      "generatedAt": "2026-09-27T15:14:38.478Z",
+      "attempt": 1,
+      "questionText": "다음 C 언어로 구현된 프로그램을 분석하여 그 실행 결과를 쓰시오.",
+      "code": "#include <stdio.h>\n\nint main(void) {\n    int arr[] = { 10, 20, 30, 40, 50 };\n    int *p = arr;\n    int sum = 0;\n\n    sum += *p++;\n    sum += *(p + 2);\n    sum += *++p;\n\n    printf(\"%d\", sum);\n    return 0;\n}",
+      "answer": "80",
+      "explanation": "1. `int *p = arr;`: p는 arr[0](10)을 가리킵니다.\n2. `sum += *p++;`: 후위 증감 연산자이므로 현재 p가 가리키는 arr[0]의 값 10을 sum에 더하고(sum=10), p는 arr[1]을 가리키도록 증가합니다.\n3. `sum += *(p + 2);`: p가 arr[1]이므로 p+2는 arr[3]입니다. arr[3]의 값 40을 sum에 더하므로 sum = 10 + 40 = 50이 됩니다.\n4. `sum += *++p;`: 전위 증감 연산자이므로 p를 먼저 arr[2]로 이동시킨 후 역참조하여 arr[2]의 값 30을 sum에 더합니다. sum = 50 + 30 = 80이 됩니다.\n따라서 최종 출력값은 80입니다.",
+      "targetConcept": "포인터 증감 연산자",
+      "skill": "전위/후위 증감 연산자와 포인터 역참조 결합 우선순위 (*p++, (*p)++)",
+      "difficulty": "HARD",
+      "estimatedDifficulty": "중상",
+      "generationStrategy": "INDEPENDENT_DESIGN",
+      "model": "gemini-3.8-flash",
+      "sourceType": "INDEPENDENT_EVALUATION",
+      "structuralPass": true,
+      "structuralIssues": [],
+      "nearestExistingSimilarity": 0.8,
+      "nearestExistingQuestionCode": "AI-000005",
+      "nearestExistingQuestionId": "q_imp_1790477570479_emf6",
+      "maxPeerSimilarity": 1,
+      "independentNovelty": "LOW",
+      "learningValueScore": {
+        "hasPointerOrArray": true,
+        "hasControlFlow": false,
+        "hasStateMutation": true,
+        "cSyntaxValid": true
+      },
+      "codeSyntaxCheck": {
+        "balancedBraces": true,
+        "balancedParens": true,
+        "hasMain": true,
+        "hasReturn": true,
+        "notes": []
+      },
+      "consistencyCheck": {
+        "answerInExplanation": true,
+        "stepTraceMatchesAnswer": true,
+        "riskFlags": []
+      },
+      "humanReviewRecommended": true,
+      "humanReviewReasons": [
+        "기존 문항(AI-000005)과 유사도 과다( 80.0% )"
+      ],
+      "mostSimilarPeerId": "EVAL-C-07"
+    },
+    {
+      "evaluationId": "EVAL-C-27",
+      "generatedAt": "2026-09-27T15:21:56.957Z",
+      "attempt": 1,
+      "questionText": "다음 C 언어로 구현된 프로그램을 분석하여 그 실행 결과를 쓰시오.",
+      "code": "#include <stdio.h>\n\nvoid update(int *a, int b) {\n    *a += b;\n    b *= 2;\n}\n\nint main(void) {\n    int x = 5;\n    int y = 10;\n    int z = 15;\n\n    update(&x, y);\n    update(&y, x);\n    z = x + y;\n\n    printf(\"%d, %d, %d\\n\", x, y, z);\n    return 0;\n}",
+      "answer": "15, 25, 40",
+      "explanation": "1. main 함수에서 x=5, y=10, z=15로 초기화됩니다.\n2. 첫 번째 update(&x, y) 호출: x의 주소가 포인터 a에 전달되고, y의 값 10이 b에 복사됩니다. *a += b에 의해 x는 5 + 10 = 15가 됩니다. 함수 안의 b는 지역 변수이므로 원본 y는 여전히 10입니다.\n3. 두 번째 update(&y, x) 호출: y의 주소가 a에 전달되고, 현재 x의 값 15가 b에 복사됩니다. *a += b에 의해 y는 10 + 15 = 25가 됩니다.\n4. z = x + y 연산에 의해 z는 15 + 25 = 40이 됩니다.\n5. 따라서 printf를 통해 출력되는 최종 결과는 '15, 25, 40'입니다.",
+      "targetConcept": "함수와 포인터 (Call by Reference)",
+      "skill": "주소 전달을 통한 원본 변수 값 변경 및 매개변수 포인터 추적",
+      "difficulty": "MEDIUM",
+      "estimatedDifficulty": "중",
+      "generationStrategy": "INDEPENDENT_DESIGN",
+      "model": "gemini-3.5-flash-lite",
+      "sourceType": "INDEPENDENT_EVALUATION",
+      "structuralPass": true,
+      "structuralIssues": [],
+      "nearestExistingSimilarity": 0.542,
+      "nearestExistingQuestionCode": "AI-000065",
+      "nearestExistingQuestionId": "q_imp_1790518323794_i14b",
+      "maxPeerSimilarity": 0.72,
+      "independentNovelty": "MEDIUM",
+      "learningValueScore": {
+        "hasPointerOrArray": true,
+        "hasControlFlow": false,
+        "hasStateMutation": true,
+        "cSyntaxValid": true
+      },
+      "codeSyntaxCheck": {
+        "balancedBraces": true,
+        "balancedParens": true,
+        "hasMain": true,
+        "hasReturn": true,
+        "notes": []
+      },
+      "consistencyCheck": {
+        "answerInExplanation": true,
+        "stepTraceMatchesAnswer": false,
+        "riskFlags": []
+      },
+      "humanReviewRecommended": false,
+      "humanReviewReasons": [],
+      "mostSimilarPeerId": "EVAL-C-03"
+    },
+    {
+      "evaluationId": "EVAL-C-28",
+      "generatedAt": "2026-09-27T15:14:38.479Z",
+      "attempt": 1,
+      "questionText": "다음 C 언어로 구현된 프로그램을 분석하여 그 실행 결과를 쓰시오.",
+      "code": "#include <stdio.h>\n\nvoid process(int *a, int *b) {\n    int temp = *a;\n    *a = *a + *b;\n    *b = temp * 2;\n}\n\nint main(void) {\n    int x = 5, y = 3;\n    process(&x, &y);\n    printf(\"%d %d\", x, y);\n    return 0;\n}",
+      "answer": "8 10",
+      "explanation": "1. `main` 함수에서 `x = 5, y = 3`으로 초기화됩니다.\n2. `process(&x, &y)`를 호출하여 x와 y의 메모리 주소를 전달합니다 (Call by Reference).\n3. `process` 함수 내부:\n   - `int temp = *a;`: temp에 x의 원래 값 5가 저장됩니다.\n   - `*a = *a + *b;`: x의 주소가 가리키는 값을 5 + 3 = 8로 변경합니다.\n   - `*b = temp * 2;`: y의 주소가 가리키는 값을 temp(5) * 2 = 10으로 변경합니다.\n4. `printf(\"%d %d\", x, y);` 실행 시 x는 8, y는 10이므로 `8 10`이 출력됩니다.",
+      "targetConcept": "문자열 포인터와 널문자",
+      "skill": "char* 포인터 이동과 '\\0' 판별 및 문자 코드 변환",
+      "difficulty": "MEDIUM",
+      "estimatedDifficulty": "중",
+      "generationStrategy": "INDEPENDENT_DESIGN",
+      "model": "gemini-3.8-flash",
+      "sourceType": "INDEPENDENT_EVALUATION",
+      "structuralPass": true,
+      "structuralIssues": [],
+      "nearestExistingSimilarity": 0.65,
+      "nearestExistingQuestionCode": "AI-001029",
+      "nearestExistingQuestionId": "q_imp_1790499988055_hgjz",
+      "maxPeerSimilarity": 1,
+      "independentNovelty": "MEDIUM",
+      "learningValueScore": {
+        "hasPointerOrArray": true,
+        "hasControlFlow": false,
+        "hasStateMutation": true,
+        "cSyntaxValid": true
+      },
+      "codeSyntaxCheck": {
+        "balancedBraces": true,
+        "balancedParens": true,
+        "hasMain": true,
+        "hasReturn": true,
+        "notes": []
+      },
+      "consistencyCheck": {
+        "answerInExplanation": true,
+        "stepTraceMatchesAnswer": false,
+        "riskFlags": []
+      },
+      "humanReviewRecommended": false,
+      "humanReviewReasons": [],
+      "mostSimilarPeerId": "EVAL-C-04"
+    },
+    {
+      "evaluationId": "EVAL-C-29",
+      "generatedAt": "2026-09-27T15:14:38.478Z",
+      "attempt": 1,
+      "questionText": "다음 C 언어로 구현된 프로그램을 분석하여 그 실행 결과를 쓰시오.",
+      "code": "#include <stdio.h>\n\nint main(void) {\n    int arr[] = { 10, 20, 30, 40, 50 };\n    int *p = arr;\n    int sum = 0;\n\n    sum += *p++;\n    sum += *(p + 2);\n    sum += *++p;\n\n    printf(\"%d\", sum);\n    return 0;\n}",
+      "answer": "80",
+      "explanation": "1. `int *p = arr;`: p는 arr[0](10)을 가리킵니다.\n2. `sum += *p++;`: 후위 증감 연산자이므로 현재 p가 가리키는 arr[0]의 값 10을 sum에 더하고(sum=10), p는 arr[1]을 가리키도록 증가합니다.\n3. `sum += *(p + 2);`: p가 arr[1]이므로 p+2는 arr[3]입니다. arr[3]의 값 40을 sum에 더하므로 sum = 10 + 40 = 50이 됩니다.\n4. `sum += *++p;`: 전위 증감 연산자이므로 p를 먼저 arr[2]로 이동시킨 후 역참조하여 arr[2]의 값 30을 sum에 더합니다. sum = 50 + 30 = 80이 됩니다.\n따라서 최종 출력값은 80입니다.",
+      "targetConcept": "조건 분기형 재귀 함수",
+      "skill": "함수 호출 스택 깊이 추적 및 기저 조건(Base case) 반환값 누적",
+      "difficulty": "HARD",
+      "estimatedDifficulty": "상",
+      "generationStrategy": "INDEPENDENT_DESIGN",
+      "model": "gemini-3.8-flash",
+      "sourceType": "INDEPENDENT_EVALUATION",
+      "structuralPass": true,
+      "structuralIssues": [],
+      "nearestExistingSimilarity": 0.8,
+      "nearestExistingQuestionCode": "AI-000005",
+      "nearestExistingQuestionId": "q_imp_1790477570479_emf6",
+      "maxPeerSimilarity": 1,
+      "independentNovelty": "LOW",
+      "learningValueScore": {
+        "hasPointerOrArray": true,
+        "hasControlFlow": false,
+        "hasStateMutation": true,
+        "cSyntaxValid": true
+      },
+      "codeSyntaxCheck": {
+        "balancedBraces": true,
+        "balancedParens": true,
+        "hasMain": true,
+        "hasReturn": true,
+        "notes": []
+      },
+      "consistencyCheck": {
+        "answerInExplanation": true,
+        "stepTraceMatchesAnswer": true,
+        "riskFlags": []
+      },
+      "humanReviewRecommended": true,
+      "humanReviewReasons": [
+        "기존 문항(AI-000005)과 유사도 과다( 80.0% )"
+      ],
+      "mostSimilarPeerId": "EVAL-C-07"
+    },
+    {
+      "evaluationId": "EVAL-C-30",
+      "generatedAt": "2026-09-27T15:22:32.394Z",
+      "attempt": 1,
+      "questionText": "다음 C 언어로 구현된 프로그램을 분석하여 그 실행 결과를 쓰시오.",
+      "code": "#include <stdio.h>\n\nstruct Data {\n    int id;\n    int score;\n};\n\nint main(void) {\n    struct Data items[3] = {\n        {1, 10},\n        {2, 20},\n        {3, 30}\n    };\n    struct Data *p = items;\n    int total = 0;\n\n    p->score += 5;\n    p++;\n    (++p)->score *= 2;\n    (p - 1)->score -= (p->score / 3);\n\n    for(int i = 0; i < 3; i++) {\n        total += items[i].score;\n    }\n\n    printf(\"%d\", total);\n    return 0;\n}",
+      "answer": "75",
+      "explanation": "1. 구조체 배열 `items`가 각각 `{1, 10}`, `{2, 20}`, `{3, 30}`으로 초기화됩니다.\n2. `struct Data *p = items;`에 의해 포인터 `p`는 `items[0]`을 가리킵니다.\n3. `p->score += 5;` 실행 시 `items[0].score`는 기존 10에서 15가 됩니다.\n4. `p++;` 실행 시 포인터 `p`는 다음 요소인 `items[1]`을 가리킵니다.\n5. `(++p)->score *= 2;`에서 전위 증가 연산자 `++p`가 먼저 실행되어 `p`는 `items[2]`를 가리키게 되고, `items[2].score`에 2를 곱하므로 30 * 2 = 60이 됩니다.\n6. `(p - 1)->score -= (p->score / 3);`에서 현재 `p`는 `items[2]`를 가리키므로, `p - 1`은 `items[1]`을 가리킵니다. `p->score`는 60이므로 `60 / 3 = 20`이고, `items[1].score`는 기존 20에서 `20 - 20 = 0`이 됩니다.\n7. 최종적으로 `items[0].score`는 15, `items[1].score`는 0, `items[2].score`는 60이 되어 배열 요소의 총합은 `15 + 0 + 60 = 75`가 출력됩니다.",
+      "targetConcept": "구조체와 화살표(->) 연산자",
+      "skill": "구조체 포인터를 통한 멤버 접근 및 데이터 갱신",
+      "difficulty": "HARD",
+      "estimatedDifficulty": "중상",
+      "generationStrategy": "INDEPENDENT_DESIGN",
+      "model": "gemini-3.5-flash-lite",
+      "sourceType": "INDEPENDENT_EVALUATION",
+      "structuralPass": true,
+      "structuralIssues": [],
+      "nearestExistingSimilarity": 0.533,
+      "nearestExistingQuestionCode": "Q-2021-01-03",
+      "nearestExistingQuestionId": "q_2021_01_03",
+      "maxPeerSimilarity": 0.8,
+      "independentNovelty": "MEDIUM",
+      "learningValueScore": {
+        "hasPointerOrArray": true,
+        "hasControlFlow": true,
+        "hasStateMutation": true,
+        "cSyntaxValid": true
+      },
+      "codeSyntaxCheck": {
+        "balancedBraces": true,
+        "balancedParens": true,
+        "hasMain": true,
+        "hasReturn": true,
+        "notes": []
+      },
+      "consistencyCheck": {
+        "answerInExplanation": true,
+        "stepTraceMatchesAnswer": true,
+        "riskFlags": []
+      },
+      "humanReviewRecommended": false,
+      "humanReviewReasons": [],
+      "mostSimilarPeerId": "EVAL-C-22"
+    }
+  ]
+}

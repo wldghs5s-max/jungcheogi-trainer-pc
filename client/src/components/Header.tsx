@@ -8,9 +8,16 @@ interface HeaderProps {
   loading: boolean;
   error?: string;
   onRefresh: () => void;
+  onOpenReviewQueue?: () => void;
 }
 
-export const Header: React.FC<HeaderProps> = ({ health, loading, error, onRefresh }) => {
+export const Header: React.FC<HeaderProps> = ({
+  health,
+  loading,
+  error,
+  onRefresh,
+  onOpenReviewQueue,
+}) => {
   return (
     <header style={styles.header}>
       <div style={styles.container}>
@@ -30,6 +37,23 @@ export const Header: React.FC<HeaderProps> = ({ health, loading, error, onRefres
         </div>
 
         <div style={styles.statusRow}>
+          {onOpenReviewQueue && (
+            <button
+              onClick={onOpenReviewQueue}
+              style={{
+                backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                border: '1px solid rgba(59, 130, 246, 0.3)',
+                color: '#3B82F6',
+                borderRadius: '6px',
+                padding: '6px 12px',
+                fontSize: '13px',
+                fontWeight: 600,
+                cursor: 'pointer',
+              }}
+            >
+              검수 스테이징 관리
+            </button>
+          )}
           <HealthBadge health={health} loading={loading} error={error} onRefresh={onRefresh} />
         </div>
       </div>

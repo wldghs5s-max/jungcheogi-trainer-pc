@@ -10,11 +10,17 @@ import {
   normalizeVariationType,
   GroundTruthConflictStatus,
   GroundTruthConflictReport,
+  GeneratedIndependentQuestion,
+  IndependentGenerationContext,
 } from "@jungcheogi/shared";
 import { env } from "../config/env.js";
 import { MockQuestionVariationGenerator } from "./variationGenerator.js";
 import { VariationValidator } from "./variationValidator.js";
 import { evaluateCodeOutput } from "./codeExecutionEngine.js";
+import {
+  C_CORE_SKILLS,
+  MOCK_INDEPENDENT_C_QUESTIONS,
+} from "./independentGenerator.js";
 
 export const DISCONTINUED_MODEL_REGEX = /gemini-(?:1\.5|2\.0|2\.5)/i;
 
@@ -273,19 +279,136 @@ export interface IAIService {
   ): Promise<AIProgressiveHintsResponse>;
   explainCodeLine(context: CodeLineContext): Promise<AICodeLineResponse>;
   generateVariation(context: VariationContext): Promise<GeneratedVariation>;
+  generateIndependentQuestion(
+    context: IndependentGenerationContext,
+  ): Promise<GeneratedIndependentQuestion>;
 }
 
 /**
- * Clean and parse JSON string from LLM responses, stripping code fences if present.
+ * JSON 내부 문자열 리터럴에서 C 언어 특수 이스케이프(\0, \', \?, \a, \v 등)로 인한
+ * V8 파서의 'Bad escaped character' 에러를 무손실 복구하는 스캐너
  */
-function cleanAndParseJson<T>(raw: string): T {
+export function repairJsonEscapes(jsonStr: string): string {
+  let result = "";
+  let inString = false;
+  let i = 0;
+  const len = jsonStr.length;
+
+  while (i < len) {
+    const ch = jsonStr[i];
+
+    if (!inString) {
+      if (ch === '"') {
+        inString = true;
+      }
+      result += ch;
+      i++;
+      continue;
+    }
+
+    // 문자열 리터럴 내부
+    if (ch === '"') {
+      inString = false;
+      result += ch;
+      i++;
+      continue;
+    }
+
+    if (ch === "\\") {
+      if (i + 1 >= len) {
+        result += "\\\\";
+        i++;
+        continue;
+      }
+      const next = jsonStr[i + 1];
+
+      // 표준 JSON 허용 이스케이프: \", \\, \/, \b, \f, \n, \r, \t
+      if (
+        next === '"' ||
+        next === "\\" ||
+        next === "/" ||
+        next === "b" ||
+        next === "f" ||
+        next === "n" ||
+        next === "r" ||
+        next === "t"
+      ) {
+        result += ch + next;
+        i += 2;
+        continue;
+      }
+
+      // 유효 유니코드 이스케이프 \uXXXX
+      if (next === "u") {
+        const hex = jsonStr.slice(i + 2, i + 6);
+        if (/^[0-9a-fA-F]{4}$/.test(hex)) {
+          result += ch + next + hex;
+          i += 6;
+          continue;
+        }
+      }
+
+      // C 언어 특수 이스케이프(\0, \', \?, \a, \v 등) 및 미등록 백슬래시
+      // 백슬래시를 이스케이프하여 JSON.parse가 C 코드 상의 본래 백슬래시 문자를 온전히 복원하도록 보장
+      result += "\\\\" + next;
+      i += 2;
+      continue;
+    }
+
+    // 제어 문자(개행, 탭 등)가 문자열 리터럴 내에 날것으로 존재할 때 치환
+    const code = ch.charCodeAt(0);
+    if (code < 32) {
+      if (ch === "\n") {
+        result += "\\n";
+      } else if (ch === "\r") {
+        result += "\\r";
+      } else if (ch === "\t") {
+        result += "\\t";
+      }
+      i++;
+      continue;
+    }
+
+    result += ch;
+    i++;
+  }
+
+  return result;
+}
+
+/**
+ * Clean and parse JSON string from LLM responses, stripping code fences if present
+ * and recovering from C code escape artifacts without semantic distortion.
+ */
+export function cleanAndParseJson<T>(raw: string): T {
   let cleaned = raw.trim();
   if (cleaned.startsWith("```json")) {
     cleaned = cleaned.replace(/^```json\s*/, "").replace(/\s*```$/, "");
   } else if (cleaned.startsWith("```")) {
     cleaned = cleaned.replace(/^```\s*/, "").replace(/\s*```$/, "");
   }
-  return JSON.parse(cleaned);
+
+  // 1차: 표준 JSON.parse 시도
+  try {
+    return JSON.parse(cleaned);
+  } catch (initialErr) {
+    // 2차: C 언어 이스케이프(\0, \') 복구 후 재시도
+    const repaired = repairJsonEscapes(cleaned);
+    try {
+      return JSON.parse(repaired);
+    } catch (secondErr) {
+      // 3차: 후행 쉼표(trailing comma) 제거 및 잔여 제어문자 정규화
+      const relaxed = repaired
+        .replace(/,\s*([}\]])/g, "$1")
+        .replace(/[\x00-\x1F\x7F]/g, (ch) => {
+          if (ch === "\n") return "\\n";
+          if (ch === "\r") return "\\r";
+          if (ch === "\t") return "\\t";
+          return "";
+        });
+      return JSON.parse(relaxed);
+    }
+  }
 }
 
 /**
@@ -568,6 +691,47 @@ export class MockAIService implements IAIService {
 
     return variation;
   }
+
+  public async generateIndependentQuestion(
+    context: IndependentGenerationContext,
+  ): Promise<GeneratedIndependentQuestion> {
+    if (context.strictLive) {
+      throw new Error(
+        "LIVE_GENERATION_UNAVAILABLE: MockAIService called in strictLive mode",
+      );
+    }
+    const lang = (context.language || context.domain || "C").toUpperCase();
+    if (lang === "C" || lang.includes("C")) {
+      const candidates = MOCK_INDEPENDENT_C_QUESTIONS;
+      const idx = Math.floor(Math.random() * candidates.length);
+      const chosen: GeneratedIndependentQuestion = JSON.parse(
+        JSON.stringify(candidates[idx]),
+      );
+      chosen.correlationId = context.correlationId || `mock_${Date.now()}`;
+      chosen.generationMetadata = {
+        model: "mock",
+        generator: "MockAIService",
+        generatedAt: new Date().toISOString(),
+        strategy: "MOCK",
+      };
+      if (context.difficulty) {
+        chosen.difficulty = context.difficulty;
+        chosen.designMetadata.difficulty = context.difficulty;
+      }
+      return chosen;
+    }
+    const fallback: GeneratedIndependentQuestion = JSON.parse(
+      JSON.stringify(MOCK_INDEPENDENT_C_QUESTIONS[0]),
+    );
+    fallback.correlationId = context.correlationId || `mock_${Date.now()}`;
+    fallback.generationMetadata = {
+      model: "mock",
+      generator: "MockAIService",
+      generatedAt: new Date().toISOString(),
+      strategy: "MOCK",
+    };
+    return fallback;
+  }
 }
 
 /**
@@ -576,6 +740,7 @@ export class MockAIService implements IAIService {
  * =========================================================================
  */
 export class GeminiAIService implements IAIService {
+  public static quotaExhaustedModels = new Set<string>();
   private apiKey: string;
   private fallbackMock: MockAIService;
 
@@ -587,7 +752,7 @@ export class GeminiAIService implements IAIService {
   /**
    * Gemini API 호출:
    * - 503 UNAVAILABLE, 429 TOO_MANY_REQUESTS 발생 시 1회 지수 백오프(600ms) 후 재시도
-   * - 10초 타임아웃 제한 (AbortController)으로 UI 프리징 방지
+   * - 25초 타임아웃 제한 (AbortController)으로 복합 코드/해설 생성 안정화
    * - 우선순위 모델 리스트를 순회하며 3.8 실패 시 3.5 Flash-Lite로 폴백
    * - 전체 실패 시 예외를 던져 MockAIService로 원활하게 진입
    */
@@ -596,9 +761,13 @@ export class GeminiAIService implements IAIService {
     candidateModels: string[],
     expectJson: boolean = true,
   ): Promise<{ data: any; modelUsed: string }> {
-    const validModels = candidateModels.filter(
-      (m) => !DISCONTINUED_MODEL_REGEX.test(m),
+    let validModels = candidateModels.filter(
+      (m) => !DISCONTINUED_MODEL_REGEX.test(m) && !GeminiAIService.quotaExhaustedModels.has(m),
     );
+    // 모든 후보 모델이 quota 소진으로 제외된 경우 최소 1개는 시도
+    if (validModels.length === 0) {
+      validModels = candidateModels.filter((m) => !DISCONTINUED_MODEL_REGEX.test(m));
+    }
     let lastError: any = null;
 
     for (const model of validModels) {
@@ -618,7 +787,7 @@ export class GeminiAIService implements IAIService {
       // 최대 2회 시도 (초기 시도 + 일시적 오류 시 1회 재시도)
       for (let attempt = 0; attempt < 2; attempt++) {
         const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 10000); // 10초 타임아웃 제한
+        const timeoutId = setTimeout(() => controller.abort(), 45000); // 45초 타임아웃 제한 (복합 코드/추적표 생성 안정화)
 
         try {
           const response = await fetch(url, {
@@ -631,9 +800,14 @@ export class GeminiAIService implements IAIService {
 
           if (!response.ok) {
             const errText = await response.text();
-            // 503 UNAVAILABLE 또는 429 TOO_MANY_REQUESTS인 경우 1회 백오프 후 재시도
+            const isQuotaError = response.status === 429 && /quota/i.test(errText);
+            if (isQuotaError) {
+              GeminiAIService.quotaExhaustedModels.add(model);
+            }
+
+            // 503 UNAVAILABLE 또는 일시적 429인 경우만 1회 백오프 후 재시도 (할당량 소진은 즉시 다음 모델로)
             if (
-              (response.status === 503 || response.status === 429) &&
+              (response.status === 503 || (response.status === 429 && !isQuotaError)) &&
               attempt === 0
             ) {
               console.warn(
@@ -671,7 +845,7 @@ export class GeminiAIService implements IAIService {
           clearTimeout(timeoutId);
           const isTimeout = err?.name === "AbortError";
           console.warn(
-            `[GeminiAIService] Model ${model} fetch ${isTimeout ? "timed out (10s)" : "exception"}:`,
+            `[GeminiAIService] Model ${model} fetch ${isTimeout ? "timed out (45s)" : "exception"}:`,
             err?.message,
           );
           lastError = err;
@@ -1030,6 +1204,27 @@ ${surroundingLines}
         instructions,
       });
 
+      const isCQuestion = Boolean(
+        (question.language && question.language.toUpperCase() === "C") ||
+        (question.category && question.category.toLowerCase().includes("c")) ||
+        (question.code && /#include|printf/i.test(question.code))
+      );
+
+      const cGuidance = isCQuestion
+        ? `
+[C 프로그래밍 언어 실기 출제 핵심 가이드라인]
+- 단순 상수 숫자 바꾸기(예: 10을 20으로 변경) 수준의 피상적 변형은 절대 금지합니다.
+- 정보처리기사 실기 시험의 실질적 변별력인 'C 언어 핵심 메커니즘'을 적극 반영하십시오:
+  1) 포인터 연산 및 주소 이동 (*ptr, *(ptr + i), ptr++, *++ptr)
+  2) 문자열 포인터 순회 (while(*p), 널 문자 '\\0' 종료 조건, 문자 치환 및 역순 출력)
+  3) 1차원/2차원 배열과 포인터 관계 (arr[i] == *(arr + i), arr[i][j])
+  4) 재귀 함수(Recursive Function) 호출 스택과 탈출 조건
+  5) 구조체(struct)와 멤버 포인터 참조 (-> 연산자)
+  6) 비트 연산자 (&, |, ^, ~, <<, >>)와 시프트 복합 연산
+- 변형된 코드는 실제 C 컴파일러(GCC/Clang)에서 경고 없이 완벽히 컴파일되고 결정론적(deterministic) 출력을 내야 합니다.
+`
+        : "";
+
       const prompt = `
 당신은 대한민국 국가기술자격 '정보처리기사 실기' 출제위원급 AI 전문가입니다.
 기존 기출문제를 바탕으로, 핵심 평가 개념(${concept?.title || question.category})을 완벽히 유지하면서 신규 변형 문제를 생성하세요.
@@ -1039,7 +1234,7 @@ ${surroundingLines}
 2. 변형 유형(${canonicalType})의 목적에 충실하게 코드를 변형하되, 컴파일/문법 오류가 없는 완벽한 코드를 작성하십시오.
 3. 정답(groundTruthAnswer)은 코드 실행 시 100% 명확하게 도출되는 단일 값 또는 확정된 키워드여야 합니다.
 4. AI가 생성한 이 문제는 Staging 검수 대기열(staged_questions)에 격리 적재되며, 사람의 검수(APPROVED)를 거친 후 실서비스에 진입합니다.
-
+${cGuidance}
 [원본 문제 정보]
 - ID: ${question.id}
 - 과목: ${question.subject}
@@ -1087,7 +1282,7 @@ ${instructions ? `- 특별 요청사항: ${instructions}` : ""}
         options: result.options || question.options || undefined,
         groundTruthAnswer:
           result.groundTruthAnswer || question.groundTruthAnswer,
-        officialExplanation: question.officialExplanation,
+        officialExplanation: undefined, // AI 변형 문항은 공식 기출 해설 필드를 가질 수 없음
         aiExplanation: result.aiExplanation || "AI가 생성한 고품질 변형 해설",
         aiVariationNotes:
           result.aiVariationNotes ||
@@ -1115,6 +1310,120 @@ ${instructions ? `- 특별 요청사항: ${instructions}` : ""}
         err?.message,
       );
       return this.fallbackMock.generateVariation(context);
+    }
+  }
+
+  public async generateIndependentQuestion(
+    context: IndependentGenerationContext,
+  ): Promise<GeneratedIndependentQuestion> {
+    try {
+      const targetLang = (context.language || context.domain || "C").toUpperCase();
+      const difficulty = context.difficulty || "MEDIUM";
+
+      const isC = targetLang === "C" || targetLang.includes("C");
+      const skillCatalog = isC
+        ? C_CORE_SKILLS.map(
+            (s: any) =>
+              `- [${s.concept}] (${s.difficulty}): ${s.skill} (코드패턴 힌트: ${s.codePatternTip})`,
+          ).join("\n")
+        : "- 프로그래밍 언어의 제어 흐름, 함수 호출, 변수 스코프 및 클래스/객체 동작 원리 평가";
+
+      const prompt = `당신은 대한민국 '정보처리기사 실기 시험' 출제위원급 AI 전문가입니다.
+기존 문제의 변형이 아닌, **해당 영역에서 수험생이 진정으로 공부할 가치가 있는 새로운 독립형 실기 문제**를 직접 설계하고 생성해야 합니다.
+
+[출제 요구 조건]:
+1. 대상 언어/도메인: ${targetLang}
+2. 출제 난이도: ${difficulty}
+3. 핵심 출제 평가 요소 (아래 목록 중 1~2개 핵심 개념을 선별 및 결합):
+${skillCatalog}
+4. 문제 형식: 수험생이 코드를 추적(Trace)하여 콘솔 실행 결과를 주관식 단답형으로 작성하는 문제
+5. 단순 숫자나 변수명만 바꾸는 단순 변형을 엄격히 배제하며, 실제 출제 기준에 맞는 온전하고 컴파일 가능한 코드를 작성하세요.
+${context.instructions ? `6. 사용자 특별 지침: ${context.instructions}` : ""}
+${
+  context.avoidSnippets && context.avoidSnippets.length > 0
+    ? `7. 피해야 할 기존 패턴(중복 배제):\n${context.avoidSnippets.slice(0, 3).join("\n---\n")}`
+    : ""
+}
+
+[2-Phase 설계 및 상태 추적 필수]:
+먼저 문제의 '설계 의도(designMetadata)'를 수립하고, 코드의 단계별 변수/메모리 변화(stepByStepTrace)를 명확히 역추적하여 정답을 검증한 뒤 코드를 작성하세요.
+
+반드시 오직 유효한 JSON 객체만 반환하세요:
+{
+  "designMetadata": {
+    "concept": "핵심 출제 개념 (예: 포인터 증감 연산자와 배열 순회)",
+    "difficulty": "${difficulty}",
+    "skill": "출제 의도 및 평가 스킬 (예: *p++ 연산자 우선순위 및 메모리 주소 이동 추적)",
+    "questionDesign": "문제의 설계 요약 설명",
+    "stepByStepTrace": "변수 및 메모리의 단계별 값 변화 추적표 (예: 초기 arr[0]=10, p=&arr[0] -> 1단계 sum=10, p++ -> ...)"
+  },
+  "questionText": "다음 C 언어로 구현된 프로그램을 분석하여 그 실행 결과를 쓰시오.",
+  "code": "#include <stdio.h>\\n\\nint main(void) {\\n    ...\\n    return 0;\\n}",
+  "type": "CODE_TRACE",
+  "subject": "프로그래밍언어활용",
+  "category": "C 언어",
+  "groundTruthAnswer": "정확한 최종 콘솔 출력 문자열 (따옴표나 불필요한 줄바꿈 없이 실제 printf 출력 결과만)",
+  "officialExplanation": "수험생이 이해할 수 있는 단계별 상세 해설 및 주의해야 할 오답 포인트",
+  "keywords": ["핵심키워드1", "핵심키워드2"]
+}`;
+
+      const { data: parsed, modelUsed } = await this.callGeminiWithModels(
+        prompt,
+        GENERATOR_MODELS,
+        true,
+      );
+
+      if (!parsed || !parsed.code || !parsed.groundTruthAnswer) {
+        throw new Error("Invalid independent question schema from Gemini");
+      }
+
+      const correlationId =
+        context.correlationId ||
+        `gen_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
+
+      return {
+        correlationId,
+        questionText:
+          parsed.questionText ||
+          "다음 프로그램을 분석하여 그 실행 결과를 쓰시오.",
+        code: parsed.code,
+        language: targetLang,
+        type: parsed.type || "CODE_TRACE",
+        subject: parsed.subject || "프로그래밍언어활용",
+        category: parsed.category || `${targetLang} 언어`,
+        groundTruthAnswer: parsed.groundTruthAnswer,
+        officialExplanation: parsed.officialExplanation || "",
+        difficulty: (parsed.difficulty || difficulty) as any,
+        keywords: Array.isArray(parsed.keywords)
+          ? parsed.keywords
+          : [targetLang],
+        designMetadata: {
+          concept: parsed.designMetadata?.concept || "독립형 설계 개념",
+          difficulty: (parsed.designMetadata?.difficulty || difficulty) as any,
+          skill:
+            parsed.designMetadata?.skill ||
+            "코드 실행 추적 및 상태 분석",
+          questionDesign: parsed.designMetadata?.questionDesign || "",
+          stepByStepTrace: parsed.designMetadata?.stepByStepTrace || "",
+        },
+        generationMetadata: {
+          model: modelUsed,
+          generator: "GeminiAIService",
+          generatedAt: new Date().toISOString(),
+          strategy: "INDEPENDENT_DESIGN",
+        },
+      };
+    } catch (err: any) {
+      console.warn(
+        "[GeminiAIService] generateIndependentQuestion failed:",
+        err?.message,
+      );
+      if (context.strictLive) {
+        throw new Error(
+          `LIVE_GENERATION_FAILED: ${err?.message || "Unknown error during Gemini generation"}`,
+        );
+      }
+      return this.fallbackMock.generateIndependentQuestion(context);
     }
   }
 }

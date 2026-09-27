@@ -133,6 +133,7 @@ export const StudySessionModal: React.FC<StudySessionModalProps> = ({
 
   // Focus ref for inputs
   const firstInputRef = useRef<HTMLInputElement | null>(null);
+  const inputRefs = useRef<(HTMLInputElement | null)[]>([]);
 
   // Reset or initialize on open
   useEffect(() => {
@@ -183,8 +184,19 @@ export const StudySessionModal: React.FC<StudySessionModalProps> = ({
     setAiExplanationData(null);
     setAiExplanationError(null);
 
-    const isMulti = Array.isArray(currentQuestion.groundTruthAnswer);
-    const count = isMulti ? currentQuestion.groundTruthAnswer.length : 1;
+    let count = 1;
+    if (Array.isArray(currentQuestion.groundTruthAnswer)) {
+      count = currentQuestion.groundTruthAnswer.length;
+    } else if (
+      typeof currentQuestion.groundTruthAnswer === "string" &&
+      !currentQuestion.groundTruthAnswer.includes("->") &&
+      /[①-⑳]/.test(currentQuestion.groundTruthAnswer)
+    ) {
+      const parts = currentQuestion.groundTruthAnswer
+        .split(/[,;\n]+/)
+        .filter((p) => p.trim());
+      if (parts.length > 1) count = parts.length;
+    }
     setUserInputs(new Array(count).fill(""));
 
     // Start Question Timer
@@ -231,7 +243,9 @@ export const StudySessionModal: React.FC<StudySessionModalProps> = ({
   const handleSubmitAnswer = async () => {
     if (!session || !currentQuestion || isSubmitting) return;
 
-    const isMulti = Array.isArray(currentQuestion.groundTruthAnswer);
+    const isMulti =
+      userInputs.length > 1 ||
+      Array.isArray(currentQuestion.groundTruthAnswer);
     const finalAnswer = isMulti ? userInputs : userInputs[0] || "";
 
     // If multi, verify at least one keyword was entered
@@ -270,7 +284,9 @@ export const StudySessionModal: React.FC<StudySessionModalProps> = ({
         return;
       }
       setSubmitResult(drillRes.data);
-      handleLoadAIExplanation(drillRes.data);
+      if (!drillRes.data.isCorrect) {
+        handleLoadAIExplanation(drillRes.data);
+      }
       return;
     }
 
@@ -300,7 +316,9 @@ export const StudySessionModal: React.FC<StudySessionModalProps> = ({
           }
         : null,
     );
-    handleLoadAIExplanation(res.data);
+    if (!res.data.isCorrect) {
+      handleLoadAIExplanation(res.data);
+    }
   };
 
   // Handle "모르겠음" quick action
@@ -736,6 +754,38 @@ export const StudySessionModal: React.FC<StudySessionModalProps> = ({
                     AI 맞춤 변형 문제
                   </span>
                 )}
+                {(currentQuestion.questionCode || currentQuestion.id) && (
+                  <span
+                    onClick={() => {
+                      const code =
+                        currentQuestion.questionCode || currentQuestion.id;
+                      navigator.clipboard.writeText(code);
+                      alert(
+                        `문항 식별 코드 '${code}'가 클립보드에 복사되었습니다.`,
+                      );
+                    }}
+                    style={{
+                      cursor: "pointer",
+                      fontFamily: "monospace",
+                      fontSize: "12px",
+                      fontWeight: 700,
+                      backgroundColor: "rgba(59, 130, 246, 0.15)",
+                      color: "#60A5FA",
+                      border: "1px solid rgba(59, 130, 246, 0.4)",
+                      borderRadius: "4px",
+                      padding: "3px 8px",
+                      display: "inline-flex",
+                      alignItems: "center",
+                      gap: "4px",
+                    }}
+                    title="클릭하여 문항 식별 코드 복사"
+                  >
+                    <span>
+                      {currentQuestion.questionCode || currentQuestion.id}
+                    </span>
+                    <span style={{ fontSize: "10px", opacity: 0.8 }}>📋</span>
+                  </span>
+                )}
                 <span style={styles.qSubjectBadge}>
                   {currentQuestion.subject}
                 </span>
@@ -1042,8 +1092,8 @@ export const StudySessionModal: React.FC<StudySessionModalProps> = ({
                 <div style={styles.inputSection}>
                   <div style={styles.inputHeader}>
                     <label style={styles.inputLabel}>
-                      {Array.isArray(currentQuestion.groundTruthAnswer)
-                        ? `순서대로 정답 키워드 ${currentQuestion.groundTruthAnswer.length}개를 작성하세요`
+                      {userInputs.length > 1
+                        ? `순서대로 정답 키워드 ${userInputs.length}개를 작성하세요 (Enter로 다음 빈칸 이동)`
                         : "정답 키워드 또는 용어를 작성하세요 (Enter 제출)"}
                     </label>
                   </div>
@@ -1058,13 +1108,26 @@ export const StudySessionModal: React.FC<StudySessionModalProps> = ({
                           </span>
                         )}
                         <input
-                          ref={idx === 0 ? firstInputRef : null}
+                          ref={(el) => {
+                            inputRefs.current[idx] = el;
+                            if (idx === 0) firstInputRef.current = el;
+                          }}
                           type="text"
                           value={val}
                           onChange={(e) => {
                             const newInputs = [...userInputs];
                             newInputs[idx] = e.target.value;
                             setUserInputs(newInputs);
+                          }}
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter" && !e.shiftKey) {
+                              e.preventDefault();
+                              if (idx < userInputs.length - 1) {
+                                inputRefs.current[idx + 1]?.focus();
+                              } else {
+                                handleSubmitAnswer();
+                              }
+                            }
                           }}
                           placeholder={
                             userInputs.length > 1
@@ -1262,10 +1325,23 @@ export const StudySessionModal: React.FC<StudySessionModalProps> = ({
                         <button
                           type="button"
                           onClick={() => handleLoadAIExplanation()}
-                          style={styles.loadAIBtn}
+                          style={{
+                            ...styles.loadAIBtn,
+                            backgroundColor: submitResult?.isCorrect
+                              ? "rgba(59, 130, 246, 0.15)"
+                              : undefined,
+                            borderColor: submitResult?.isCorrect
+                              ? "rgba(59, 130, 246, 0.4)"
+                              : undefined,
+                            color: submitResult?.isCorrect ? "#60A5FA" : undefined,
+                          }}
                         >
                           <Sparkles size={14} />
-                          <span>AI 해설 요청하기</span>
+                          <span>
+                            {submitResult?.isCorrect
+                              ? "해설 필요 (AI 설명 요청)"
+                              : "AI 해설 요청하기"}
+                          </span>
                         </button>
                       )}
                       {aiExplanationData &&

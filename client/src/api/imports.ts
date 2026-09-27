@@ -49,7 +49,8 @@ export async function fetchImportBatches(): Promise<{
     if (!res.ok) {
       return { data: null, error: `HTTP ${res.status}: 배치 목록 조회 실패` };
     }
-    const data = (await res.json()) as ImportBatch[];
+    const json = await res.json();
+    const data = (Array.isArray(json) ? json : json.batches || []) as ImportBatch[];
     return { data };
   } catch (err) {
     const msg = err instanceof Error ? err.message : "네트워크 오류";
