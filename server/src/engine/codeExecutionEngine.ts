@@ -9,53 +9,23 @@ import * as fs from "node:fs/promises";
 import * as path from "node:path";
 import * as os from "node:os";
 
-/**
- * Deterministic Java simulation fallback for OOP recursion patterns.
- * Handles Parent / Child class compute() overriding patterns safely in-memory.
- */
-function trySimulateJavaRecursion(code: string): string | null {
-  try {
-    if (
-      /class\s+Parent\b[\s\S]*class\s+Child\s+extends\s+Parent\b/i.test(code) &&
-      /\bcompute\s*\(\s*int\s+num\s*\)/i.test(code)
-    ) {
-      const childMatch = code.match(
-        /class\s+Child[\s\S]*?int\s+compute\s*\(\s*int\s+num\s*\)\s*\{([\s\S]*?)\}/,
-      );
-      const callMatch = code.match(
-        /(?:p|c)\.compute\s*\(\s*(-?\d+)\s*\)/i,
-      );
+const HOST_EXECUTION_DISABLED_MESSAGE =
+  "격리된 코드 실행 환경이 없어 호스트에서 생성 코드를 실행하지 않습니다.";
 
-      if (childMatch && callMatch) {
-        const inputNum = parseInt(callMatch[1], 10);
-        const childCode = childMatch[1];
-        const subMatch = childCode.match(/compute\s*\(\s*num\s*-\s*(\d+)\s*\)/g);
-
-        if (subMatch && subMatch.length >= 2) {
-          const sub1 = parseInt(
-            (childCode.match(/compute\s*\(\s*num\s*-\s*(\d+)\s*\)/) || [])[1] || "1",
-            10,
-          );
-          const sub2Match = childCode.match(
-            /compute\s*\(\s*num\s*-\s*\d+\s*\)\s*\+\s*compute\s*\(\s*num\s*-\s*(\d+)\s*\)/,
-          );
-          const sub2 = sub2Match ? parseInt(sub2Match[1], 10) : 3;
-
-          const computeChild = (num: number, depth = 0): number => {
-            if (depth > 50) throw new Error("Recursion depth limit exceeded");
-            if (num <= 1) return num;
-            return computeChild(num - sub1, depth + 1) + computeChild(num - sub2, depth + 1);
-          };
-
-          const result = computeChild(inputNum);
-          return String(result);
-        }
-      }
-    }
-  } catch {
-    // fallback to normal execution
-  }
-  return null;
+function unavailable(
+  startTime: number,
+  language?: string,
+): CodeExecutionResult {
+  return {
+    status: "UNAVAILABLE",
+    stdout: "",
+    stderr: HOST_EXECUTION_DISABLED_MESSAGE,
+    exitCode: null,
+    executionTimeMs: Date.now() - startTime,
+    errorMessage: language
+      ? `${language} 실행 검증 불가: ${HOST_EXECUTION_DISABLED_MESSAGE}`
+      : HOST_EXECUTION_DISABLED_MESSAGE,
+  };
 }
 
 export class LightweightExecutionEngine implements ICodeExecutionEngine {
@@ -72,34 +42,43 @@ export class LightweightExecutionEngine implements ICodeExecutionEngine {
     const timeout = request.timeoutMs || this.timeoutMs;
     const lang = (request.language || "").toUpperCase();
 
-    // 1. Fast in-memory simulation check
-    if (lang === "JAVA") {
-      const simulated = trySimulateJavaRecursion(request.code);
-      if (simulated !== null) {
-        return {
-          status: "SUCCESS",
-          stdout: simulated,
-          stderr: "",
-          exitCode: 0,
-          executionTimeMs: Date.now() - startTime,
-        };
-      }
+    if (!request.allowHostExecution) {
+      return unavailable(startTime, request.language);
     }
 
-    // 2. Real process execution
     if (lang === "JAVA") {
       return this.executeJava(request.code, timeout, startTime);
-    } else if (lang === "PYTHON") {
+    }
+    if (lang === "PYTHON") {
       return this.executePython(request.code, timeout, startTime);
+    }
+    if (lang === "C") {
+      return this.executeC(request.code, timeout, startTime);
     }
 
     return {
       status: "UNSUPPORTED_LANGUAGE",
       stdout: "",
-      stderr: `Language ${request.language} execution is not supported by lightweight runner`,
+      stderr: `Language ${request.language} execution is not supported`,
       exitCode: null,
       executionTimeMs: Date.now() - startTime,
     };
+  }
+
+  private executionEnv(cwd: string): NodeJS.ProcessEnv {
+    return {
+      PATH: process.env.PATH || "/usr/bin:/bin:/usr/local/bin",
+      LANG: "C",
+      HOME: cwd,
+      TMPDIR: cwd,
+    };
+  }
+
+  private wrapCSource(code: string): string {
+    if (/int\s+main\s*\(/.test(code)) {
+      return code;
+    }
+    return `#include <stdio.h>\n\nint main(void) {\n${code}\n    return 0;\n}\n`;
   }
 
   private async executeJava(
@@ -125,9 +104,12 @@ export class LightweightExecutionEngine implements ICodeExecutionEngine {
         ["--release", "8", filePath],
         tempDir,
         timeoutMs,
-      ).catch(() =>
-        this.runCommand("javac", [filePath], tempDir, timeoutMs),
-      );
+      ).catch((err) => {
+        if (err?.code === "ENOENT") {
+          return this.runCommand("javac", [filePath], tempDir, timeoutMs);
+        }
+        throw err;
+      });
 
       if (compileResult.exitCode !== 0) {
         return {
@@ -156,6 +138,94 @@ export class LightweightExecutionEngine implements ICodeExecutionEngine {
         errorMessage: runResult.exitCode === 0 ? undefined : runResult.stderr,
       };
     } catch (err: any) {
+      if (err?.code === "ENOENT") {
+        return unavailable(startTime, "JAVA");
+      }
+      if (String(err?.message || "").includes("timed out")) {
+        return {
+          status: "TIMEOUT",
+          stdout: "",
+          stderr: err.message,
+          exitCode: null,
+          executionTimeMs: Date.now() - startTime,
+          errorMessage: err.message,
+        };
+      }
+      return {
+        status: "RUNTIME_ERROR",
+        stdout: "",
+        stderr: err?.message || String(err),
+        exitCode: -1,
+        executionTimeMs: Date.now() - startTime,
+        errorMessage: err?.message || String(err),
+      };
+    } finally {
+      await fs.rm(tempDir, { recursive: true, force: true }).catch(() => {});
+    }
+  }
+
+  private async executeC(
+    code: string,
+    timeoutMs: number,
+    startTime: number,
+  ): Promise<CodeExecutionResult> {
+    const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), "jcg-c-"));
+    try {
+      const filePath = path.join(tempDir, "main.c");
+      const binPath = path.join(tempDir, "prog");
+      await fs.writeFile(filePath, this.wrapCSource(code), "utf8");
+
+      const compileResult = await this.runCommand(
+        "clang",
+        ["-std=c11", "-O0", "-o", binPath, filePath],
+        tempDir,
+        timeoutMs,
+      ).catch((err) => {
+        if (err?.code === "ENOENT") {
+          return this.runCommand(
+            "gcc",
+            ["-std=c11", "-O0", "-o", binPath, filePath],
+            tempDir,
+            timeoutMs,
+          );
+        }
+        throw err;
+      });
+
+      if (compileResult.exitCode !== 0) {
+        return {
+          status: "COMPILE_ERROR",
+          stdout: compileResult.stdout,
+          stderr: compileResult.stderr,
+          exitCode: compileResult.exitCode,
+          executionTimeMs: Date.now() - startTime,
+          errorMessage: compileResult.stderr || "C compilation failed",
+        };
+      }
+
+      const runResult = await this.runCommand(binPath, [], tempDir, timeoutMs);
+      return {
+        status: runResult.exitCode === 0 ? "SUCCESS" : "RUNTIME_ERROR",
+        stdout: runResult.stdout.trim(),
+        stderr: runResult.stderr,
+        exitCode: runResult.exitCode,
+        executionTimeMs: Date.now() - startTime,
+        errorMessage: runResult.exitCode === 0 ? undefined : runResult.stderr,
+      };
+    } catch (err: any) {
+      if (err?.code === "ENOENT") {
+        return unavailable(startTime, "C");
+      }
+      if (String(err?.message || "").includes("timed out")) {
+        return {
+          status: "TIMEOUT",
+          stdout: "",
+          stderr: err.message,
+          exitCode: null,
+          executionTimeMs: Date.now() - startTime,
+          errorMessage: err.message,
+        };
+      }
       return {
         status: "RUNTIME_ERROR",
         stdout: "",
@@ -174,13 +244,21 @@ export class LightweightExecutionEngine implements ICodeExecutionEngine {
     timeoutMs: number,
     startTime: number,
   ): Promise<CodeExecutionResult> {
+    const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), "jcg-py-"));
     try {
+      const filePath = path.join(tempDir, "main.py");
+      await fs.writeFile(filePath, code, "utf8");
       const res = await this.runCommand(
-        "python",
-        ["-c", code],
-        process.cwd(),
+        "python3",
+        [filePath],
+        tempDir,
         timeoutMs,
-      );
+      ).catch((err) => {
+        if (err?.code === "ENOENT") {
+          return this.runCommand("python", [filePath], tempDir, timeoutMs);
+        }
+        throw err;
+      });
       return {
         status: res.exitCode === 0 ? "SUCCESS" : "RUNTIME_ERROR",
         stdout: res.stdout.trim(),
@@ -189,6 +267,19 @@ export class LightweightExecutionEngine implements ICodeExecutionEngine {
         executionTimeMs: Date.now() - startTime,
       };
     } catch (err: any) {
+      if (err?.code === "ENOENT") {
+        return unavailable(startTime, "PYTHON");
+      }
+      if (String(err?.message || "").includes("timed out")) {
+        return {
+          status: "TIMEOUT",
+          stdout: "",
+          stderr: err.message,
+          exitCode: null,
+          executionTimeMs: Date.now() - startTime,
+          errorMessage: err.message,
+        };
+      }
       return {
         status: "RUNTIME_ERROR",
         stdout: "",
@@ -196,6 +287,8 @@ export class LightweightExecutionEngine implements ICodeExecutionEngine {
         exitCode: -1,
         executionTimeMs: Date.now() - startTime,
       };
+    } finally {
+      await fs.rm(tempDir, { recursive: true, force: true }).catch(() => {});
     }
   }
 
@@ -206,11 +299,23 @@ export class LightweightExecutionEngine implements ICodeExecutionEngine {
     timeoutMs: number,
   ): Promise<{ stdout: string; stderr: string; exitCode: number | null }> {
     return new Promise((resolve, reject) => {
-      execFile(
+      const child = execFile(
         cmd,
         args,
-        { cwd, timeout: timeoutMs, maxBuffer: 1024 * 1024 },
+        {
+          cwd,
+          timeout: timeoutMs,
+          maxBuffer: 1024 * 1024,
+          env: this.executionEnv(cwd),
+        },
         (error, stdout, stderr) => {
+          if (error && (error as NodeJS.ErrnoException).code === "ENOENT") {
+            const err = new Error(`Command not found: ${cmd}`) as Error & {
+              code: string;
+            };
+            err.code = "ENOENT";
+            return reject(err);
+          }
           if (error && (error as any).killed) {
             return reject(new Error("Execution timed out"));
           }
@@ -225,19 +330,25 @@ export class LightweightExecutionEngine implements ICodeExecutionEngine {
           });
         },
       );
+      child.unref?.();
     });
   }
 }
 
 export const defaultExecutionEngine = new LightweightExecutionEngine();
 
-/**
- * Helper to safely evaluate code and return clean output or undefined
- */
+export type EvaluateCodeStatus =
+  | "SUCCESS"
+  | "ERROR"
+  | "SKIPPED"
+  | "UNAVAILABLE"
+  | "CONFLICT";
+
 export async function evaluateCodeOutput(
   code: string,
   language?: string,
-): Promise<{ status: "SUCCESS" | "ERROR" | "SKIPPED"; output?: string; error?: string }> {
+  options?: { allowHostExecution?: boolean },
+): Promise<{ status: EvaluateCodeStatus; output?: string; error?: string }> {
   if (!code || !language) {
     return { status: "SKIPPED" };
   }
@@ -246,10 +357,17 @@ export async function evaluateCodeOutput(
     const res = await defaultExecutionEngine.execute({
       code,
       language: language as CodeLanguage,
+      allowHostExecution: options?.allowHostExecution === true,
     });
 
     if (res.status === "SUCCESS") {
       return { status: "SUCCESS", output: res.stdout.trim() };
+    }
+    if (res.status === "UNAVAILABLE" || res.status === "UNSUPPORTED_LANGUAGE") {
+      return {
+        status: "UNAVAILABLE",
+        error: res.errorMessage || res.stderr,
+      };
     }
     return { status: "ERROR", error: res.errorMessage || res.stderr };
   } catch (err: any) {

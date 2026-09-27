@@ -8,6 +8,7 @@ import {
   AIGeminiVariationRequest,
   AIGeminiVariationResponse,
 } from '@jungcheogi/shared';
+import { apiFetch } from './http';
 
 /**
  * AI 맞춤형 심층 해설 요청 (오답 분석, 코드 트레이스, 함정, 암기 팁)
@@ -16,7 +17,7 @@ export async function fetchAIExplanation(
   req: AITutoringExplanationRequest
 ): Promise<{ data: AITutoringExplanationResponse | null; error?: string }> {
   try {
-    const res = await fetch('/api/ai/explanation', {
+    const res = await apiFetch('/api/ai/explanation', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(req),
@@ -41,7 +42,7 @@ export async function fetchAIProgressiveHints(
   req: AIProgressiveHintsRequest
 ): Promise<{ data: AIProgressiveHintsResponse | null; error?: string }> {
   try {
-    const res = await fetch('/api/ai/hints', {
+    const res = await apiFetch('/api/ai/hints', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(req),
@@ -66,7 +67,7 @@ export async function fetchAICodeLine(
   req: AICodeLineRequest
 ): Promise<{ data: AICodeLineResponse | null; error?: string }> {
   try {
-    const res = await fetch('/api/ai/code-line', {
+    const res = await apiFetch('/api/ai/code-line', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(req),
@@ -91,7 +92,7 @@ export async function generateAIVariation(
   req: AIGeminiVariationRequest
 ): Promise<{ data: AIGeminiVariationResponse | null; error?: string }> {
   try {
-    const res = await fetch('/api/ai/variation', {
+    const res = await apiFetch('/api/ai/variation', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(req),
@@ -116,7 +117,7 @@ export async function fetchAIVariationDrill(
   req: { parentQuestionId: string }
 ): Promise<{ data: { success: boolean; question: any; variation: any; message?: string } | null; error?: string }> {
   try {
-    const res = await fetch('/api/ai/variation-drill', {
+    const res = await apiFetch('/api/ai/variation-drill', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(req),
@@ -141,7 +142,7 @@ export async function stageAIVariationDrill(
   req: { variation: any }
 ): Promise<{ data: { success: boolean; stagedQuestionId: string; batchId: string; message?: string } | null; error?: string }> {
   try {
-    const res = await fetch('/api/ai/stage-drill-question', {
+    const res = await apiFetch('/api/ai/stage-drill-question', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(req),

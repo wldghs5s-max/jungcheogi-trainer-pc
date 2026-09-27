@@ -24,6 +24,7 @@ export interface CreateSessionRequest {
   subject?: string;
   count?: number; // 기본 5 ~ 10문제
   sourceType?: string;
+  questionIds?: string[];
 }
 
 export interface SessionSubmitRequest {
@@ -33,6 +34,8 @@ export interface SessionSubmitRequest {
   isUnknown?: boolean;
   hintUsed?: boolean;
   solutionRevealed?: boolean;
+  /** true면 채점/복습만 기록하고 세션 진행 인덱스는 올리지 않는다 (AI 드릴용) */
+  recordOnly?: boolean;
 }
 
 export interface SessionSubmitResponse {

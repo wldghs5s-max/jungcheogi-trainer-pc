@@ -11,6 +11,25 @@ import {
 } from "@jungcheogi/shared";
 import { getDatabase } from "../database";
 
+export function pickRandomIds(
+  ids: string[],
+  count: number,
+  rng: () => number = Math.random,
+): string[] {
+  const unique = [...new Set(ids.filter(Boolean))];
+  const take = Math.min(Math.max(count, 0), unique.length);
+  if (take === 0) return [];
+  const pool = [...unique];
+  const selected: string[] = [];
+  for (let i = 0; i < take; i++) {
+    const raw = rng();
+    const bounded = Number.isFinite(raw) ? Math.min(Math.max(raw, 0), 0.999999) : 0;
+    const idx = Math.floor(bounded * pool.length);
+    selected.push(pool.splice(idx, 1)[0]);
+  }
+  return selected;
+}
+
 interface QuestionRow {
   id: string;
   source_type: string;
@@ -292,6 +311,56 @@ export class QuestionRepository {
       limit,
       offset,
     };
+  }
+
+  public findCandidateIds(
+    filter: Pick<QuestionFilter, "subject" | "sourceType"> = {},
+  ): string[] {
+    const conditions: string[] = [];
+    const params: any[] = [];
+
+    if (filter.subject) {
+      conditions.push("subject = ?");
+      params.push(filter.subject);
+    }
+    if (filter.sourceType) {
+      conditions.push("source_type = ?");
+      params.push(filter.sourceType);
+    }
+
+    const whereClause =
+      conditions.length > 0 ? `WHERE ${conditions.join(" AND ")}` : "";
+    const query = `
+      SELECT id FROM questions
+      ${whereClause}
+      ORDER BY
+        CASE WHEN exam_year IS NOT NULL THEN exam_year ELSE 0 END DESC,
+        CASE WHEN exam_round IS NOT NULL THEN exam_round ELSE 0 END DESC,
+        CASE WHEN question_number IS NOT NULL THEN question_number ELSE 999 END ASC,
+        created_at DESC
+    `;
+    const rows = this.db.prepare(query).all(...params) as Array<{ id: string }>;
+    return rows.map((row) => row.id);
+  }
+
+  public pickRandom(
+    filter: Pick<QuestionFilter, "subject" | "sourceType">,
+    count: number,
+    rng: () => number = Math.random,
+  ): Question[] {
+    const ids = this.findCandidateIds(filter);
+    const picked = pickRandomIds(ids, count, rng);
+    const selected: Question[] = [];
+    const seen = new Set<string>();
+    for (const id of picked) {
+      if (seen.has(id)) continue;
+      const question = this.findById(id);
+      if (question) {
+        seen.add(id);
+        selected.push(question);
+      }
+    }
+    return selected;
   }
 
   public update(id: string, partial: Partial<Question>): Question | null {

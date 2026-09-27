@@ -882,13 +882,22 @@ export const ImportModal: React.FC<ImportModalProps> = ({
                             <>
                               <button
                                 type="button"
+                                disabled={hasErrors}
                                 onClick={() =>
                                   handleSetStatus(q.id, "APPROVED")
+                                }
+                                title={
+                                  hasErrors
+                                    ? "검증 ERROR가 있으면 승인할 수 없습니다"
+                                    : undefined
                                 }
                                 style={{
                                   ...styles.actionDecisionBtn,
                                   ...(q.reviewStatus === "APPROVED"
                                     ? styles.actionBtnActiveApprove
+                                    : {}),
+                                  ...(hasErrors
+                                    ? { opacity: 0.45, cursor: "not-allowed" }
                                     : {}),
                                 }}
                               >

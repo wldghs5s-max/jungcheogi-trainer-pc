@@ -16,16 +16,14 @@ import {
   Target,
   RotateCcw,
   CheckCircle,
-  CheckCircle2,
   Zap,
   Crosshair,
   TrendingUp,
-  X,
-  ShieldCheck,
 } from "lucide-react";
 import { Header } from "./components/Header";
 import { StudySessionModal } from "./components/study/StudySessionModal";
 import { ImportModal } from "./components/importer/ImportModal";
+import { VariationModal } from "./components/VariationModal";
 import { checkBackendHealth } from "./api/health";
 import { fetchQuestions, fetchQuestionDetail } from "./api/questions";
 import {
@@ -38,6 +36,8 @@ import {
   createConceptDrillSession,
   generateVariationApi,
 } from "./api/learning";
+import { createStudySession } from "./api/sessions";
+import { styles } from "./appStyles";
 import {
   HealthCheckResponse,
   Question,
@@ -112,6 +112,14 @@ export const App: React.FC = () => {
   } | null>(null);
   const [isStartingDailySession, setIsStartingDailySession] =
     useState<boolean>(false);
+  const [isStartingReviewQueue, setIsStartingReviewQueue] =
+    useState<boolean>(false);
+  const [sourceCounts, setSourceCounts] = useState({
+    fixture: 0,
+    real: 0,
+    ai: 0,
+    code: 0,
+  });
   const [drillLoadingConceptId, setDrillLoadingConceptId] = useState<
     string | null
   >(null);
@@ -160,6 +168,7 @@ export const App: React.FC = () => {
     if (selectedType) filter.type = selectedType;
     if (selectedConceptFilter) filter.conceptId = selectedConceptFilter;
     if (searchTerm.trim()) filter.search = searchTerm.trim();
+    filter.limit = 200;
 
     const result = await fetchQuestions(filter);
     if (result.data) {
@@ -180,19 +189,51 @@ export const App: React.FC = () => {
   ]);
 
   const loadLearningData = useCallback(async () => {
-    const [dashRes, weakRes, dueRes, queueRes, recsRes] = await Promise.all([
+    const [dashRes, weakRes, dueRes, queueRes, recsRes, statsRes] =
+      await Promise.all([
       fetchLearningDashboard(excludeTestFixtures),
       fetchWeakConcepts(5),
       fetchDueReviews(20),
       fetchDailyQueueSummary(excludeTestFixtures),
       fetchRecommendations({ limit: 6, excludeTestFixtures }),
+      fetchQuestions({ limit: 500 }),
     ]);
     if (dashRes.data) setDashboardSummary(dashRes.data);
     if (weakRes.data) setWeakConcepts(weakRes.data);
     if (dueRes.data) setDueReviews(dueRes.data);
     if (queueRes.data) setDailyQueue(queueRes.data);
     if (recsRes.data) setRecommendations(recsRes.data.items);
+    if (statsRes.data) {
+      setSourceCounts({
+        fixture: statsRes.data.items.filter((q) => q.sourceType === "TEST_FIXTURE")
+          .length,
+        real: statsRes.data.items.filter((q) => q.sourceType === "REAL_EXAM")
+          .length,
+        ai: statsRes.data.items.filter((q) => q.sourceType === "AI_VARIATION")
+          .length,
+        code: statsRes.data.items.filter((q) => q.type === "CODE_TRACE").length,
+      });
+    }
   }, [excludeTestFixtures]);
+
+  const handleStartReviewQueue = async () => {
+    if (dueReviews.length === 0) {
+      alert("오늘 복습할 문항이 없습니다.");
+      return;
+    }
+    setIsStartingReviewQueue(true);
+    const res = await createStudySession({
+      title: `오늘의 복습 큐 (${dueReviews.length}제)`,
+      questionIds: dueReviews.map((item) => item.question.id),
+    });
+    setIsStartingReviewQueue(false);
+    if (res.data) {
+      setInitialSessionData(res.data);
+      setIsStudySessionOpen(true);
+    } else {
+      alert(res.error || "복습 세션 생성에 실패했습니다.");
+    }
+  };
 
   const handleStartDailySession = async () => {
     setIsStartingDailySession(true);
@@ -259,18 +300,10 @@ export const App: React.FC = () => {
     }
   }, [selectedQuestionId, loadDetail]);
 
-  const fixtureCount = questions.filter(
-    (q) => q.sourceType === "TEST_FIXTURE",
-  ).length;
-  const realExamCount = questions.filter(
-    (q) => q.sourceType === "REAL_EXAM",
-  ).length;
-  const aiVariationCount = questions.filter(
-    (q) => q.sourceType === "AI_VARIATION",
-  ).length;
-  const codeQuestionCount = questions.filter(
-    (q) => q.type === "CODE_TRACE",
-  ).length;
+  const fixtureCount = sourceCounts.fixture;
+  const realExamCount = sourceCounts.real;
+  const aiVariationCount = sourceCounts.ai;
+  const codeQuestionCount = sourceCounts.code;
 
   return (
     <div style={styles.appContainer}>
@@ -365,9 +398,9 @@ export const App: React.FC = () => {
                 검증된 정답과 상세 해설이 포함된 실전 문항입니다.
               </p>
               <div style={styles.cardFooter}>
-                <span style={styles.footerLabel}>기출 및 연습:</span>
+                <span style={styles.footerLabel}>기출 / 연습:</span>
                 <span style={styles.statusOk}>
-                  {fixtureCount + realExamCount}문항
+                  {realExamCount} / {fixtureCount}문항
                 </span>
               </div>
             </div>
@@ -437,6 +470,7 @@ export const App: React.FC = () => {
             <div style={styles.sessionBannerActions}>
               <button
                 onClick={() => {
+                  setInitialSessionData(null);
                   setStudySessionSubject(selectedSubject);
                   setIsStudySessionOpen(true);
                 }}
@@ -446,14 +480,16 @@ export const App: React.FC = () => {
                 <span>집중 학습 세션 시작하기</span>
               </button>
               <button
-                onClick={() => {
-                  setStudySessionSubject("");
-                  setIsStudySessionOpen(true);
-                }}
+                onClick={handleStartReviewQueue}
+                disabled={isStartingReviewQueue || dueReviews.length === 0}
                 style={styles.reviewQueueBannerBtn}
               >
                 <Brain size={18} color="#A5B4FC" />
-                <span>오늘의 복습 큐 ({dueReviews.length}문항)</span>
+                <span>
+                  {isStartingReviewQueue
+                    ? "복습 세션 준비 중..."
+                    : `오늘의 복습 큐 (${dueReviews.length}문항)`}
+                </span>
               </button>
               <button
                 onClick={() => setIsImportModalOpen(true)}
@@ -969,10 +1005,8 @@ export const App: React.FC = () => {
                 )}
 
                 <button
-                  onClick={() => {
-                    setStudySessionSubject("");
-                    setIsStudySessionOpen(true);
-                  }}
+                  onClick={handleStartReviewQueue}
+                  disabled={isStartingReviewQueue || dueReviews.length === 0}
                   style={styles.startReviewSessionBtn}
                 >
                   <RotateCcw size={16} />
@@ -1197,6 +1231,7 @@ export const App: React.FC = () => {
                       )}
                       <button
                         onClick={() => {
+                          setInitialSessionData(null);
                           setStudySessionSubject(
                             questionDetail.question.subject,
                           );
@@ -1448,1602 +1483,21 @@ export const App: React.FC = () => {
         }}
       />
 
-      {/* Phase 7 AI 변형 문제 생성 및 Staging 검수 모달 */}
       {isVariationModalOpen && questionDetail && (
-        <div style={styles.varModalOverlay}>
-          <div style={styles.varModalContent}>
-            <div style={styles.varModalHeader}>
-              <div style={styles.varModalTitleGroup}>
-                <Sparkles size={20} color="#C084FC" />
-                <h3 style={styles.varModalTitle}>
-                  AI 변형 문제 생성 및 Staging 검수 파이프라인
-                </h3>
-              </div>
-              <button
-                onClick={() => setIsVariationModalOpen(false)}
-                style={styles.closeBtn}
-              >
-                <X size={18} />
-              </button>
-            </div>
-
-            <div style={styles.varModalBody}>
-              <div style={styles.varSourceBox}>
-                <div style={styles.varSourceHeader}>
-                  <span style={styles.varSourceId}>
-                    기준 원본: {questionDetail.question.id}
-                  </span>
-                  <span style={styles.varSourceSubject}>
-                    {questionDetail.question.subject}
-                  </span>
-                  {questionDetail.question.conceptId && (
-                    <span style={styles.varSourceConcept}>
-                      개념: {questionDetail.question.conceptId}
-                    </span>
-                  )}
-                </div>
-                <p style={styles.varSourceText}>
-                  {questionDetail.question.question}
-                </p>
-              </div>
-
-              {!generatedVarResult ? (
-                <div style={styles.varConfigSection}>
-                  <label style={styles.varLabel}>
-                    변형 문제 유형 선택 (Variation Type):
-                  </label>
-                  <select
-                    value={selectedVarType}
-                    onChange={(e) => setSelectedVarType(e.target.value)}
-                    style={styles.varSelect}
-                  >
-                    <option value="PARAMETER_VARIATION">
-                      1. PARAMETER_VARIATION (수치 / 변수 / 파라미터 변형)
-                    </option>
-                    <option value="CODE_VARIATION">
-                      2. CODE_VARIATION (코드 구조 / 제어문 / 연산자 변형)
-                    </option>
-                    <option value="SCENARIO_VARIATION">
-                      3. SCENARIO_VARIATION (실무 시나리오 / 적용 맥락 변형)
-                    </option>
-                    <option value="CONCEPT_VARIATION">
-                      4. CONCEPT_VARIATION (개념 재구성 / 역방향 핵심 평가)
-                    </option>
-                    <option value="DIFFICULTY_VARIATION">
-                      5. DIFFICULTY_VARIATION (다단계 제약 / 난이도 심화 조절)
-                    </option>
-                  </select>
-
-                  <div style={styles.varSafetyNotice}>
-                    <ShieldCheck size={16} color="#34D399" />
-                    <span>
-                      ★ 생성된 변형 문제는 Live DB에 즉시 삽입되지 않으며,{" "}
-                      <strong>staged_questions</strong>에{" "}
-                      <strong>PENDING</strong> 상태로 안전하게 격리 등록됩니다.
-                    </span>
-                  </div>
-
-                  <div style={styles.varModalFooter}>
-                    <button
-                      onClick={() => setIsVariationModalOpen(false)}
-                      style={styles.cancelBtn}
-                    >
-                      취소
-                    </button>
-                    <button
-                      onClick={handleGenerateVariation}
-                      disabled={isGeneratingVar}
-                      style={styles.executeVarBtn}
-                    >
-                      {isGeneratingVar
-                        ? "변형 문항 생성 및 검증 중..."
-                        : "변형 문제 생성 및 Staging 적재"}
-                    </button>
-                  </div>
-                </div>
-              ) : (
-                <div style={styles.varResultSection}>
-                  <div style={styles.varResultHeader}>
-                    <CheckCircle2 size={18} color="#34D399" />
-                    <span style={styles.varResultTitle}>
-                      변형 문제 생성 및 3단계 무결성 검증 완료 (Staging 등록됨)
-                    </span>
-                  </div>
-
-                  <div style={styles.varPreviewBox}>
-                    <div style={styles.varMetaRow}>
-                      <span style={styles.varMetaBadge}>
-                        유형: {generatedVarResult.variation?.variationType}
-                      </span>
-                      <span style={styles.varMetaBadge}>
-                        부모: {generatedVarResult.variation?.parentQuestionId}
-                      </span>
-                      {generatedVarResult.variation?.conceptId && (
-                        <span style={styles.varMetaBadge}>
-                          개념: {generatedVarResult.variation?.conceptId}
-                        </span>
-                      )}
-                      <span style={styles.varStatusBadge}>
-                        검수 상태: PENDING (검수 대기)
-                      </span>
-                    </div>
-
-                    <div style={styles.varFieldGroup}>
-                      <span style={styles.varFieldLabel}>변형 문제 지문:</span>
-                      <p style={styles.varFieldContent}>
-                        {generatedVarResult.variation?.prompt}
-                      </p>
-                    </div>
-
-                    {generatedVarResult.variation?.codeSnippet && (
-                      <div style={styles.varFieldGroup}>
-                        <span style={styles.varFieldLabel}>변형 소스코드:</span>
-                        <pre style={styles.varCodeSnippet}>
-                          <code>
-                            {generatedVarResult.variation?.codeSnippet}
-                          </code>
-                        </pre>
-                      </div>
-                    )}
-
-                    <div style={styles.varFieldGroup}>
-                      <span style={styles.varFieldLabel}>생성된 기준 정답:</span>
-                      <span style={styles.varAnswerValue}>
-                        {Array.isArray(
-                          generatedVarResult.variation?.groundTruthAnswer,
-                        )
-                          ? generatedVarResult.variation?.groundTruthAnswer.join(
-                              ", ",
-                            )
-                          : generatedVarResult.variation?.groundTruthAnswer}
-                      </span>
-                    </div>
-
-                    <div style={styles.varFieldGroup}>
-                      <span style={styles.varFieldLabel}>AI 보조 해설:</span>
-                      <p style={styles.varFieldContent}>
-                        {generatedVarResult.variation?.aiExplanation}
-                      </p>
-                    </div>
-
-                    <div style={styles.varFieldGroup}>
-                      <span style={styles.varFieldLabel}>변형 설계 의도:</span>
-                      <p style={styles.varFieldContent}>
-                        {generatedVarResult.variation?.aiVariationNotes}
-                      </p>
-                    </div>
-                  </div>
-
-                  <div style={styles.varModalFooter}>
-                    <button
-                      onClick={() => {
-                        setIsVariationModalOpen(false);
-                        setIsImportModalOpen(true);
-                      }}
-                      style={styles.openImportBtn}
-                    >
-                      검수 관리자 대시보드(ImportModal) 열기 &rarr;
-                    </button>
-                    <button
-                      onClick={() => setIsVariationModalOpen(false)}
-                      style={styles.primaryBtn}
-                    >
-                      확인
-                    </button>
-                  </div>
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
+        <VariationModal
+          question={questionDetail.question}
+          selectedVarType={selectedVarType}
+          isGeneratingVar={isGeneratingVar}
+          generatedVarResult={generatedVarResult}
+          onChangeVarType={setSelectedVarType}
+          onGenerate={handleGenerateVariation}
+          onClose={() => setIsVariationModalOpen(false)}
+          onOpenImport={() => {
+            setIsVariationModalOpen(false);
+            setIsImportModalOpen(true);
+          }}
+        />
       )}
     </div>
   );
-};
-
-const styles: Record<string, React.CSSProperties> = {
-  appContainer: {
-    minHeight: "100vh",
-    display: "flex",
-    flexDirection: "column",
-    backgroundColor: "var(--color-bg)",
-  },
-  mainContent: {
-    flex: 1,
-    maxWidth: "1280px",
-    width: "100%",
-    margin: "0 auto",
-    padding: "32px 24px",
-    display: "flex",
-    flexDirection: "column",
-    gap: "32px",
-  },
-  alertBanner: {
-    display: "flex",
-    alignItems: "flex-start",
-    gap: "14px",
-    padding: "16px 20px",
-    borderRadius: "10px",
-    backgroundColor: "var(--color-danger-bg)",
-    border: "1px solid var(--color-danger)",
-  },
-  alertContent: { flex: 1 },
-  alertTitle: {
-    fontWeight: "700",
-    fontSize: "14px",
-    color: "var(--color-danger)",
-    marginBottom: "4px",
-  },
-  alertDesc: {
-    fontSize: "13px",
-    color: "var(--color-text-muted)",
-    marginBottom: "10px",
-  },
-  commandBox: {
-    display: "inline-flex",
-    alignItems: "center",
-    gap: "10px",
-    backgroundColor: "var(--color-surface)",
-    padding: "6px 12px",
-    borderRadius: "6px",
-    fontSize: "12px",
-  },
-  heroSection: {
-    display: "flex",
-    flexDirection: "column",
-    gap: "24px",
-  },
-  heroHeader: {
-    display: "flex",
-    flexDirection: "column",
-    gap: "8px",
-  },
-  badgeRow: {
-    display: "flex",
-    alignItems: "center",
-    gap: "8px",
-    flexWrap: "wrap",
-  },
-  badgePrimary: {
-    fontSize: "12px",
-    fontWeight: "600",
-    backgroundColor: "rgba(59, 130, 246, 0.2)",
-    color: "#60A5FA",
-    padding: "4px 10px",
-    borderRadius: "20px",
-  },
-  badgeGreen: {
-    fontSize: "12px",
-    fontWeight: "600",
-    backgroundColor: "rgba(16, 185, 129, 0.2)",
-    color: "#34D399",
-    padding: "4px 10px",
-    borderRadius: "20px",
-  },
-  heroTitle: {
-    fontSize: "26px",
-    fontWeight: "800",
-    letterSpacing: "-0.5px",
-    color: "var(--color-text)",
-  },
-  heroSubtitle: {
-    fontSize: "15px",
-    color: "var(--color-text-muted)",
-    maxWidth: "780px",
-  },
-  grid4: {
-    display: "grid",
-    gridTemplateColumns: "repeat(auto-fit, minmax(250px, 1fr))",
-    gap: "16px",
-  },
-  card: {
-    backgroundColor: "var(--color-surface)",
-    border: "1px solid var(--color-border)",
-    borderRadius: "12px",
-    padding: "20px",
-    display: "flex",
-    flexDirection: "column",
-    gap: "12px",
-  },
-  cardHeader: {
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "space-between",
-  },
-  cardIconBox: {
-    width: "38px",
-    height: "38px",
-    borderRadius: "8px",
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  cardTag: {
-    fontSize: "11px",
-    color: "var(--color-text-muted)",
-    backgroundColor: "rgba(255, 255, 255, 0.06)",
-    padding: "2px 8px",
-    borderRadius: "4px",
-  },
-  cardTitle: {
-    fontSize: "16px",
-    fontWeight: "700",
-    color: "var(--color-text)",
-  },
-  cardDesc: {
-    fontSize: "13px",
-    color: "var(--color-text-muted)",
-    lineHeight: 1.5,
-    flex: 1,
-  },
-  cardFooter: {
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "space-between",
-    paddingTop: "10px",
-    borderTop: "1px solid rgba(255, 255, 255, 0.08)",
-    fontSize: "12px",
-  },
-  footerLabel: { color: "var(--color-text-muted)" },
-  statusOk: { color: "var(--color-success)", fontWeight: "600" },
-  statusInfo: { color: "#C084FC", fontWeight: "600" },
-  section: {
-    backgroundColor: "var(--color-surface)",
-    border: "1px solid var(--color-border)",
-    borderRadius: "12px",
-    padding: "24px",
-    display: "flex",
-    flexDirection: "column",
-    gap: "16px",
-  },
-  sectionTitleRow: {
-    display: "flex",
-    alignItems: "center",
-    gap: "10px",
-  },
-  sectionHeading: {
-    fontSize: "17px",
-    fontWeight: "700",
-    color: "var(--color-text)",
-  },
-  filterBar: {
-    display: "flex",
-    flexWrap: "wrap",
-    gap: "12px",
-    alignItems: "center",
-    justifyContent: "space-between",
-  },
-  searchWrapper: {
-    display: "flex",
-    alignItems: "center",
-    gap: "8px",
-    backgroundColor: "rgba(15, 23, 42, 0.6)",
-    border: "1px solid var(--color-border)",
-    borderRadius: "8px",
-    padding: "8px 14px",
-    flex: 1,
-    minWidth: "280px",
-  },
-  searchInput: {
-    background: "transparent",
-    border: "none",
-    outline: "none",
-    color: "var(--color-text)",
-    fontSize: "13px",
-    width: "100%",
-  },
-  filterGroup: {
-    display: "flex",
-    gap: "8px",
-    flexWrap: "wrap",
-  },
-  selectInput: {
-    backgroundColor: "rgba(15, 23, 42, 0.6)",
-    border: "1px solid var(--color-border)",
-    borderRadius: "8px",
-    color: "var(--color-text)",
-    fontSize: "13px",
-    padding: "8px 12px",
-    outline: "none",
-  },
-  browserLayout: {
-    display: "grid",
-    gridTemplateColumns: "360px 1fr",
-    gap: "20px",
-    minHeight: "600px",
-  },
-  listColumn: {
-    display: "flex",
-    flexDirection: "column",
-    gap: "10px",
-    maxHeight: "650px",
-    overflowY: "auto",
-    paddingRight: "6px",
-  },
-  loadingText: {
-    color: "var(--color-text-muted)",
-    fontSize: "13px",
-    padding: "20px",
-    textAlign: "center",
-  },
-  emptyText: {
-    color: "var(--color-text-muted)",
-    fontSize: "13px",
-    padding: "20px",
-    textAlign: "center",
-  },
-  questionItem: {
-    borderRadius: "8px",
-    border: "1px solid var(--color-border)",
-    padding: "12px",
-    cursor: "pointer",
-    display: "flex",
-    flexDirection: "column",
-    gap: "8px",
-    transition: "all 0.15s ease",
-  },
-  itemMetaRow: {
-    display: "flex",
-    alignItems: "center",
-    gap: "6px",
-    flexWrap: "wrap",
-  },
-  sourceBadge: {
-    fontSize: "10px",
-    fontWeight: "700",
-    padding: "2px 6px",
-    borderRadius: "4px",
-  },
-  subjectTag: {
-    fontSize: "11px",
-    color: "var(--color-text-muted)",
-  },
-  diffTag: {
-    fontSize: "10px",
-    backgroundColor: "rgba(255, 255, 255, 0.06)",
-    padding: "1px 5px",
-    borderRadius: "3px",
-    color: "var(--color-text-muted)",
-  },
-  itemQuestionText: {
-    fontSize: "13px",
-    color: "var(--color-text)",
-    lineHeight: 1.4,
-  },
-  itemFooterRow: {
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "space-between",
-    fontSize: "11px",
-    color: "var(--color-text-muted)",
-    borderTop: "1px solid rgba(255, 255, 255, 0.05)",
-    paddingTop: "6px",
-  },
-  itemIdText: {
-    fontFamily: "monospace",
-    fontSize: "10px",
-  },
-  langTag: {
-    backgroundColor: "rgba(59, 130, 246, 0.15)",
-    color: "#60A5FA",
-    padding: "1px 5px",
-    borderRadius: "3px",
-    fontSize: "10px",
-  },
-  parentLinkTag: {
-    display: "inline-flex",
-    alignItems: "center",
-    color: "#C084FC",
-    fontSize: "10px",
-  },
-  detailColumn: {
-    backgroundColor: "rgba(15, 23, 42, 0.5)",
-    border: "1px solid var(--color-border)",
-    borderRadius: "10px",
-    padding: "20px",
-    maxHeight: "650px",
-    overflowY: "auto",
-  },
-  selectPrompt: {
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-    height: "100%",
-    color: "var(--color-text-muted)",
-    fontSize: "14px",
-  },
-  detailBox: {
-    display: "flex",
-    flexDirection: "column",
-    gap: "18px",
-  },
-  detailHeader: {
-    borderBottom: "1px solid var(--color-border)",
-    paddingBottom: "12px",
-  },
-  detailIdRow: {
-    display: "flex",
-    alignItems: "center",
-    gap: "8px",
-    flexWrap: "wrap",
-  },
-  detailIdTitle: {
-    fontSize: "16px",
-    fontWeight: "700",
-    color: "var(--color-text)",
-    fontFamily: "monospace",
-  },
-  examTag: {
-    fontSize: "11px",
-    backgroundColor: "rgba(255, 255, 255, 0.08)",
-    padding: "2px 8px",
-    borderRadius: "4px",
-    color: "var(--color-text)",
-  },
-  detailSection: {
-    display: "flex",
-    flexDirection: "column",
-    gap: "6px",
-  },
-  sectionSubTitle: {
-    fontSize: "12px",
-    fontWeight: "700",
-    color: "var(--color-text-muted)",
-    textTransform: "uppercase",
-    letterSpacing: "0.5px",
-  },
-  questionFullText: {
-    fontSize: "14px",
-    lineHeight: 1.6,
-    color: "var(--color-text)",
-    whiteSpace: "pre-wrap",
-  },
-  codeBlock: {
-    backgroundColor: "rgba(0, 0, 0, 0.4)",
-    border: "1px solid var(--color-border)",
-    borderRadius: "8px",
-    padding: "14px",
-    overflowX: "auto",
-    fontSize: "13px",
-    fontFamily: "Consolas, Monaco, monospace",
-    color: "#E2E8F0",
-    lineHeight: 1.5,
-  },
-  groundTruthBox: {
-    backgroundColor: "rgba(16, 185, 129, 0.08)",
-    border: "1px solid var(--color-success)",
-    borderRadius: "8px",
-    padding: "16px",
-    display: "flex",
-    flexDirection: "column",
-    gap: "10px",
-  },
-  boxTitleRow: {
-    display: "flex",
-    alignItems: "center",
-    gap: "8px",
-  },
-  groundTruthTitle: {
-    fontSize: "13px",
-    fontWeight: "700",
-    color: "var(--color-success)",
-  },
-  answerValueBox: {
-    display: "flex",
-    alignItems: "baseline",
-    gap: "8px",
-    flexWrap: "wrap",
-  },
-  answerLabel: {
-    fontSize: "13px",
-    fontWeight: "700",
-    color: "var(--color-text)",
-  },
-  answerValue: {
-    fontSize: "16px",
-    fontWeight: "800",
-    color: "#34D399",
-    backgroundColor: "rgba(16, 185, 129, 0.15)",
-    padding: "2px 10px",
-    borderRadius: "6px",
-  },
-  officialExplanation: {
-    fontSize: "13px",
-    color: "var(--color-text-muted)",
-    lineHeight: 1.5,
-    borderTop: "1px solid rgba(16, 185, 129, 0.2)",
-    paddingTop: "8px",
-  },
-  explanationLabel: {
-    fontWeight: "600",
-    color: "#A7F3D0",
-    marginBottom: "2px",
-  },
-  aiBox: {
-    backgroundColor: "rgba(168, 85, 247, 0.08)",
-    border: "1px solid rgba(168, 85, 247, 0.4)",
-    borderRadius: "8px",
-    padding: "16px",
-    display: "flex",
-    flexDirection: "column",
-    gap: "10px",
-  },
-  aiTitle: {
-    fontSize: "13px",
-    fontWeight: "700",
-    color: "#C084FC",
-  },
-  aiNoteItem: {
-    fontSize: "13px",
-    color: "var(--color-text-muted)",
-    lineHeight: 1.5,
-  },
-  aiNoteLabel: {
-    fontWeight: "600",
-    color: "#E9D5FF",
-    display: "block",
-    marginBottom: "2px",
-  },
-  hierarchyBox: {
-    backgroundColor: "rgba(59, 130, 246, 0.06)",
-    border: "1px solid rgba(59, 130, 246, 0.3)",
-    borderRadius: "8px",
-    padding: "14px",
-    display: "flex",
-    flexDirection: "column",
-    gap: "8px",
-  },
-  hierarchyTitle: {
-    fontSize: "12px",
-    fontWeight: "700",
-    color: "#60A5FA",
-  },
-  parentCard: {
-    backgroundColor: "rgba(15, 23, 42, 0.6)",
-    border: "1px solid var(--color-border)",
-    borderRadius: "6px",
-    padding: "10px",
-    cursor: "pointer",
-    transition: "background-color 0.15s ease",
-  },
-  parentCardHeader: {
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "space-between",
-    marginBottom: "4px",
-    fontSize: "11px",
-  },
-  parentCardId: {
-    fontWeight: "700",
-    color: "var(--color-primary)",
-    fontFamily: "monospace",
-  },
-  parentCardSubject: {
-    color: "var(--color-text-muted)",
-  },
-  parentClickHint: {
-    color: "#93C5FD",
-    fontSize: "11px",
-    fontWeight: "600",
-  },
-  parentCardText: {
-    fontSize: "12px",
-    color: "var(--color-text)",
-  },
-  variationsList: {
-    display: "flex",
-    flexDirection: "column",
-    gap: "8px",
-  },
-  variationCard: {
-    backgroundColor: "rgba(15, 23, 42, 0.6)",
-    border: "1px solid var(--color-border)",
-    borderRadius: "6px",
-    padding: "10px",
-    cursor: "pointer",
-  },
-  variationCardHeader: {
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "space-between",
-    marginBottom: "4px",
-    fontSize: "11px",
-  },
-  variationId: {
-    fontWeight: "700",
-    color: "#C084FC",
-    fontFamily: "monospace",
-  },
-  variationDiff: {
-    color: "var(--color-text-muted)",
-    fontSize: "10px",
-  },
-  variationText: {
-    fontSize: "12px",
-    color: "var(--color-text)",
-  },
-  keywordsRow: {
-    display: "flex",
-    alignItems: "center",
-    gap: "6px",
-    flexWrap: "wrap",
-    borderTop: "1px solid var(--color-border)",
-    paddingTop: "12px",
-  },
-  keywordsLabel: {
-    fontSize: "12px",
-    color: "var(--color-text-muted)",
-  },
-  keywordBadge: {
-    fontSize: "11px",
-    color: "#93C5FD",
-    backgroundColor: "rgba(59, 130, 246, 0.15)",
-    padding: "2px 8px",
-    borderRadius: "4px",
-  },
-  noticeSection: {
-    backgroundColor: "rgba(15, 23, 42, 0.6)",
-    border: "1px dashed var(--color-border)",
-    borderRadius: "10px",
-    padding: "18px 20px",
-    display: "flex",
-    flexDirection: "column",
-    gap: "8px",
-  },
-  noticeHeader: {
-    display: "flex",
-    alignItems: "center",
-    gap: "8px",
-  },
-  noticeTitle: {
-    fontSize: "14px",
-    fontWeight: "700",
-    color: "#93C5FD",
-  },
-  noticeText: {
-    fontSize: "13px",
-    color: "var(--color-text-muted)",
-    lineHeight: 1.5,
-  },
-  noticeMeta: {
-    display: "flex",
-    alignItems: "center",
-    gap: "16px",
-    fontSize: "12px",
-    color: "var(--color-text-muted)",
-    flexWrap: "wrap",
-    marginTop: "4px",
-  },
-  noticeStatus: {
-    color: "#F59E0B",
-    fontWeight: "600",
-  },
-  footer: {
-    borderTop: "1px solid var(--color-border)",
-    padding: "18px 24px",
-    backgroundColor: "var(--color-surface)",
-  },
-  footerContent: {
-    maxWidth: "1280px",
-    margin: "0 auto",
-    display: "flex",
-    justifyContent: "space-between",
-    fontSize: "12px",
-    color: "var(--color-text-muted)",
-    flexWrap: "wrap",
-    gap: "8px",
-  },
-  sessionBanner: {
-    marginTop: "24px",
-    display: "flex",
-    justifyContent: "space-between",
-    alignItems: "center",
-    backgroundColor: "rgba(59, 130, 246, 0.08)",
-    border: "1.5px solid rgba(59, 130, 246, 0.3)",
-    borderRadius: "12px",
-    padding: "20px 24px",
-    gap: "20px",
-    flexWrap: "wrap",
-  },
-  sessionBannerLeft: {
-    display: "flex",
-    alignItems: "center",
-    gap: "16px",
-    flex: 1,
-    minWidth: "280px",
-  },
-  sessionBannerIcon: {
-    width: "48px",
-    height: "48px",
-    borderRadius: "12px",
-    backgroundColor: "rgba(245, 158, 11, 0.15)",
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-    flexShrink: 0,
-  },
-  sessionBannerTitle: {
-    fontSize: "16px",
-    fontWeight: 700,
-    color: "#F8FAFC",
-    marginBottom: "4px",
-  },
-  sessionBannerSubtitle: {
-    fontSize: "13px",
-    color: "#CBD5E1",
-    lineHeight: 1.5,
-  },
-  sessionBannerBtn: {
-    display: "flex",
-    alignItems: "center",
-    gap: "8px",
-    backgroundColor: "#3B82F6",
-    color: "#FFFFFF",
-    padding: "12px 24px",
-    borderRadius: "8px",
-    fontSize: "14px",
-    fontWeight: 700,
-    cursor: "pointer",
-    boxShadow: "0 4px 12px rgba(59, 130, 246, 0.3)",
-    transition: "all 0.15s ease",
-    flexShrink: 0,
-  },
-  sessionBannerActions: {
-    display: "flex",
-    alignItems: "center",
-    gap: "12px",
-    flexWrap: "wrap",
-  },
-  importBannerBtn: {
-    display: "flex",
-    alignItems: "center",
-    gap: "8px",
-    backgroundColor: "rgba(59, 130, 246, 0.12)",
-    border: "1px solid rgba(59, 130, 246, 0.4)",
-    color: "#93C5FD",
-    padding: "12px 20px",
-    borderRadius: "8px",
-    fontSize: "14px",
-    fontWeight: 600,
-    cursor: "pointer",
-    transition: "all 0.15s ease",
-    flexShrink: 0,
-  },
-  solveDetailBtn: {
-    display: "inline-flex",
-    alignItems: "center",
-    gap: "6px",
-    backgroundColor: "rgba(59, 130, 246, 0.15)",
-    border: "1px solid rgba(59, 130, 246, 0.4)",
-    color: "#60A5FA",
-    padding: "4px 10px",
-    borderRadius: "6px",
-    fontSize: "12px",
-    fontWeight: 600,
-    cursor: "pointer",
-    marginLeft: "auto",
-    transition: "all 0.15s ease",
-  },
-  reviewQueueBannerBtn: {
-    display: "flex",
-    alignItems: "center",
-    gap: "8px",
-    backgroundColor: "rgba(99, 102, 241, 0.15)",
-    border: "1px solid rgba(99, 102, 241, 0.4)",
-    color: "#C7D2FE",
-    padding: "12px 20px",
-    borderRadius: "8px",
-    fontSize: "14px",
-    fontWeight: 600,
-    cursor: "pointer",
-    transition: "all 0.15s ease",
-    flexShrink: 0,
-  },
-
-  // PHASE 5 LEARNING DASHBOARD STYLES
-  learningSection: {
-    backgroundColor: "#0F172A",
-    borderRadius: "16px",
-    border: "1px solid #1E293B",
-    padding: "24px",
-    display: "flex",
-    flexDirection: "column",
-    gap: "20px",
-  },
-  learningHeaderRow: {
-    display: "flex",
-    justifyContent: "space-between",
-    alignItems: "center",
-    flexWrap: "wrap",
-    gap: "12px",
-  },
-  learningSectionHeading: {
-    fontSize: "18px",
-    fontWeight: 700,
-    color: "#F8FAFC",
-    margin: 0,
-  },
-  fixtureToggleLabel: {
-    display: "flex",
-    alignItems: "center",
-    gap: "8px",
-    cursor: "pointer",
-  },
-  fixtureCheckbox: {
-    cursor: "pointer",
-    accentColor: "#6366F1",
-  },
-  learningGrid: {
-    display: "grid",
-    gridTemplateColumns: "1.1fr 0.9fr",
-    gap: "20px",
-  },
-  learningCard: {
-    backgroundColor: "#1E293B",
-    borderRadius: "12px",
-    border: "1px solid #334155",
-    padding: "20px",
-    display: "flex",
-    flexDirection: "column",
-    gap: "16px",
-  },
-  learningCardHeader: {
-    display: "flex",
-    justifyContent: "space-between",
-    alignItems: "center",
-  },
-  learningCardTitle: {
-    fontSize: "15px",
-    fontWeight: 700,
-    color: "#F8FAFC",
-    margin: 0,
-  },
-  clearFilterBtn: {
-    fontSize: "11px",
-    fontWeight: 600,
-    color: "#EF4444",
-    backgroundColor: "rgba(239, 68, 68, 0.1)",
-    border: "1px solid rgba(239, 68, 68, 0.3)",
-    borderRadius: "4px",
-    padding: "2px 6px",
-    cursor: "pointer",
-  },
-  emptyConceptBox: {
-    padding: "24px",
-    textAlign: "center",
-    backgroundColor: "rgba(15, 23, 42, 0.5)",
-    borderRadius: "8px",
-    border: "1px dashed rgba(255, 255, 255, 0.08)",
-  },
-  conceptList: {
-    display: "flex",
-    flexDirection: "column",
-    gap: "10px",
-  },
-  conceptItem: {
-    borderRadius: "8px",
-    border: "1px solid",
-    padding: "12px 14px",
-    display: "flex",
-    flexDirection: "column",
-    gap: "8px",
-    transition: "all 0.15s ease",
-  },
-  conceptItemTop: {
-    display: "flex",
-    alignItems: "center",
-    gap: "8px",
-  },
-  conceptSubjectBadge: {
-    fontSize: "11px",
-    fontWeight: 600,
-    padding: "2px 6px",
-    borderRadius: "4px",
-    backgroundColor: "#334155",
-    color: "#93C5FD",
-  },
-  conceptCategoryText: {
-    fontSize: "12px",
-    color: "#94A3B8",
-  },
-  conceptWeaknessBadge: {
-    fontSize: "11px",
-    fontWeight: 700,
-    padding: "2px 8px",
-    borderRadius: "4px",
-    marginLeft: "auto",
-  },
-  conceptTitleRow: {
-    display: "flex",
-    justifyContent: "space-between",
-    alignItems: "center",
-  },
-  conceptTitle: {
-    fontSize: "14px",
-    fontWeight: 700,
-    color: "#F8FAFC",
-  },
-  filterByConceptBtn: {
-    fontSize: "11px",
-    fontWeight: 600,
-    color: "#38BDF8",
-    backgroundColor: "rgba(56, 189, 248, 0.1)",
-    border: "1px solid rgba(56, 189, 248, 0.25)",
-    borderRadius: "4px",
-    padding: "3px 8px",
-    cursor: "pointer",
-  },
-  progressBarBg: {
-    height: "6px",
-    backgroundColor: "rgba(255, 255, 255, 0.06)",
-    borderRadius: "3px",
-    overflow: "hidden",
-  },
-  progressBarFill: {
-    height: "100%",
-    borderRadius: "3px",
-    transition: "width 0.3s ease",
-  },
-  conceptStatsRow: {
-    display: "flex",
-    gap: "12px",
-    fontSize: "11px",
-    color: "#94A3B8",
-  },
-  dueBadge: {
-    fontSize: "11px",
-    fontWeight: 700,
-    padding: "3px 8px",
-    borderRadius: "4px",
-    backgroundColor: "rgba(99, 102, 241, 0.2)",
-    color: "#A5B4FC",
-  },
-  leitnerBoxesContainer: {
-    display: "grid",
-    gridTemplateColumns: "repeat(5, 1fr)",
-    gap: "8px",
-  },
-  leitnerBoxCol: {
-    display: "flex",
-    flexDirection: "column",
-    alignItems: "center",
-    gap: "2px",
-    backgroundColor: "#0F172A",
-    borderRadius: "6px",
-    padding: "8px 4px",
-    border: "1px solid rgba(255, 255, 255, 0.05)",
-  },
-  leitnerBoxName: {
-    fontSize: "11px",
-    fontWeight: 700,
-    color: "#94A3B8",
-  },
-  leitnerBoxInterval: {
-    fontSize: "10px",
-    color: "#64748B",
-  },
-  leitnerBoxCount: {
-    fontSize: "16px",
-    fontWeight: 700,
-    color: "#F8FAFC",
-    marginTop: "2px",
-  },
-  emptyDueBox: {
-    display: "flex",
-    flexDirection: "column",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: "6px",
-    padding: "24px 16px",
-    backgroundColor: "rgba(16, 185, 129, 0.05)",
-    borderRadius: "8px",
-    border: "1px dashed rgba(16, 185, 129, 0.2)",
-    flex: 1,
-    textAlign: "center",
-  },
-  dueList: {
-    display: "flex",
-    flexDirection: "column",
-    gap: "8px",
-    marginBottom: "12px",
-  },
-  dueItem: {
-    display: "flex",
-    justifyContent: "space-between",
-    alignItems: "center",
-    backgroundColor: "#0F172A",
-    padding: "8px 12px",
-    borderRadius: "6px",
-    border: "1px solid rgba(255, 255, 255, 0.05)",
-  },
-  dueBoxBadge: {
-    fontSize: "10px",
-    fontWeight: 700,
-    padding: "2px 6px",
-    borderRadius: "3px",
-    backgroundColor: "rgba(99, 102, 241, 0.2)",
-    color: "#C7D2FE",
-  },
-  dueQuestionSubject: {
-    fontSize: "12px",
-    color: "#CBD5E1",
-  },
-  dueConceptTitle: {
-    fontSize: "11px",
-    color: "#38BDF8",
-  },
-  dueIntervalText: {
-    fontSize: "11px",
-    color: "#64748B",
-  },
-  startReviewSessionBtn: {
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: "8px",
-    width: "100%",
-    padding: "12px",
-    backgroundColor: "#4F46E5",
-    color: "#FFFFFF",
-    borderRadius: "8px",
-    border: "none",
-    fontSize: "14px",
-    fontWeight: 600,
-    cursor: "pointer",
-    transition: "background-color 0.15s",
-    marginTop: "auto",
-  },
-  dailyQueueSection: {
-    backgroundColor: "#1E293B",
-    borderRadius: "12px",
-    border: "1px solid rgba(245, 158, 11, 0.25)",
-    padding: "24px",
-    marginBottom: "28px",
-    boxShadow: "0 4px 20px rgba(0, 0, 0, 0.2)",
-  },
-  dailyQueueHeader: {
-    display: "flex",
-    justifyContent: "space-between",
-    alignItems: "center",
-    flexWrap: "wrap",
-    gap: "16px",
-    marginBottom: "20px",
-  },
-  dailyQueueIconBox: {
-    width: "44px",
-    height: "44px",
-    borderRadius: "10px",
-    backgroundColor: "rgba(245, 158, 11, 0.15)",
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  dailyQueueTitle: {
-    fontSize: "20px",
-    fontWeight: 700,
-    color: "#F8FAFC",
-    margin: 0,
-  },
-  dailyQueueBadge: {
-    fontSize: "11px",
-    fontWeight: 700,
-    color: "#F59E0B",
-    backgroundColor: "rgba(245, 158, 11, 0.15)",
-    padding: "2px 8px",
-    borderRadius: "12px",
-    border: "1px solid rgba(245, 158, 11, 0.3)",
-  },
-  dailyQueueSubtitle: {
-    fontSize: "13px",
-    color: "#94A3B8",
-    margin: "4px 0 0 0",
-  },
-  dailyQueueStartBtn: {
-    display: "flex",
-    alignItems: "center",
-    gap: "8px",
-    padding: "12px 24px",
-    backgroundColor: "#F59E0B",
-    color: "#0F172A",
-    borderRadius: "8px",
-    border: "none",
-    fontSize: "15px",
-    fontWeight: 700,
-    cursor: "pointer",
-    transition: "all 0.15s ease",
-    boxShadow: "0 2px 10px rgba(245, 158, 11, 0.3)",
-  },
-  dailyQueueStatsGrid: {
-    display: "grid",
-    gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))",
-    gap: "14px",
-    marginBottom: "20px",
-  },
-  dailyStatCard: {
-    backgroundColor: "#0F172A",
-    borderRadius: "8px",
-    padding: "16px",
-    border: "1px solid rgba(255, 255, 255, 0.06)",
-    display: "flex",
-    flexDirection: "column",
-    gap: "4px",
-  },
-  dailyStatLabel: {
-    fontSize: "12px",
-    fontWeight: 600,
-    color: "#94A3B8",
-  },
-  dailyStatValue: {
-    fontSize: "24px",
-    fontWeight: 800,
-  },
-  dailyStatHint: {
-    fontSize: "11px",
-    color: "#64748B",
-  },
-  coldStartBanner: {
-    display: "flex",
-    alignItems: "center",
-    gap: "10px",
-    backgroundColor: "rgba(245, 158, 11, 0.1)",
-    border: "1px dashed rgba(245, 158, 11, 0.3)",
-    borderRadius: "8px",
-    padding: "14px 16px",
-    color: "#FDE68A",
-    fontSize: "13px",
-    lineHeight: 1.5,
-    marginBottom: "20px",
-  },
-  recommendationsContainer: {
-    marginTop: "16px",
-    borderTop: "1px solid rgba(255, 255, 255, 0.08)",
-    paddingTop: "18px",
-  },
-  recommendationsHeader: {
-    display: "flex",
-    justifyContent: "space-between",
-    alignItems: "center",
-    flexWrap: "wrap",
-    gap: "8px",
-    marginBottom: "14px",
-  },
-  recommendationsTitle: {
-    fontSize: "14px",
-    fontWeight: 600,
-    color: "#E2E8F0",
-  },
-  recommendationsSubtitle: {
-    fontSize: "11px",
-    color: "#64748B",
-  },
-  recommendationsGrid: {
-    display: "grid",
-    gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))",
-    gap: "12px",
-  },
-  recItemCard: {
-    backgroundColor: "#0F172A",
-    borderRadius: "8px",
-    padding: "14px",
-    border: "1px solid rgba(255, 255, 255, 0.06)",
-    cursor: "pointer",
-    transition: "transform 0.15s, border-color 0.15s",
-  },
-  recItemTop: {
-    display: "flex",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: "8px",
-  },
-  recSubjectBadge: {
-    fontSize: "11px",
-    fontWeight: 600,
-    color: "#38BDF8",
-    backgroundColor: "rgba(56, 189, 248, 0.15)",
-    padding: "2px 6px",
-    borderRadius: "4px",
-  },
-  recScoreBadge: {
-    fontSize: "11px",
-    fontWeight: 700,
-    color: "#F59E0B",
-  },
-  recPromptText: {
-    fontSize: "13px",
-    color: "#CBD5E1",
-    lineHeight: 1.4,
-    margin: "0 0 10px 0",
-  },
-  recReasonsRow: {
-    display: "flex",
-    flexWrap: "wrap",
-    gap: "6px",
-  },
-  reasonBadge: {
-    fontSize: "10px",
-    fontWeight: 600,
-    padding: "2px 6px",
-    borderRadius: "3px",
-  },
-  drillStartBtn: {
-    display: "inline-flex",
-    alignItems: "center",
-    gap: "4px",
-    padding: "4px 8px",
-    backgroundColor: "#DC2626",
-    color: "#FFFFFF",
-    border: "none",
-    borderRadius: "4px",
-    fontSize: "11px",
-    fontWeight: 600,
-    cursor: "pointer",
-    transition: "background-color 0.15s",
-  },
-  // Phase 7 AI Variation Styles
-  variationActionBar: {
-    display: "flex",
-    justifyContent: "space-between",
-    alignItems: "center",
-    backgroundColor: "rgba(168, 85, 247, 0.08)",
-    border: "1px solid rgba(168, 85, 247, 0.25)",
-    borderRadius: "8px",
-    padding: "12px 16px",
-    gap: "12px",
-    flexWrap: "wrap",
-    marginTop: "8px",
-  },
-  variationActionLeft: {
-    display: "flex",
-    alignItems: "center",
-    gap: "8px",
-    flex: 1,
-  },
-  variationActionTitle: {
-    fontSize: "12px",
-    color: "#E2E8F0",
-  },
-  generateVarBtn: {
-    display: "inline-flex",
-    alignItems: "center",
-    gap: "6px",
-    backgroundColor: "#9333EA",
-    color: "#FFFFFF",
-    border: "none",
-    borderRadius: "6px",
-    padding: "8px 14px",
-    fontSize: "12px",
-    fontWeight: 600,
-    cursor: "pointer",
-    transition: "background-color 0.15s",
-  },
-  varModalOverlay: {
-    position: "fixed",
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    backgroundColor: "rgba(0, 0, 0, 0.75)",
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-    zIndex: 1000,
-    backdropFilter: "blur(4px)",
-    padding: "20px",
-  },
-  varModalContent: {
-    backgroundColor: "#1E293B",
-    borderRadius: "12px",
-    maxWidth: "760px",
-    width: "100%",
-    maxHeight: "90vh",
-    display: "flex",
-    flexDirection: "column",
-    border: "1px solid rgba(255, 255, 255, 0.1)",
-    boxShadow: "0 25px 50px -12px rgba(0, 0, 0, 0.5)",
-    overflow: "hidden",
-  },
-  varModalHeader: {
-    padding: "16px 20px",
-    borderBottom: "1px solid rgba(255, 255, 255, 0.08)",
-    display: "flex",
-    justifyContent: "space-between",
-    alignItems: "center",
-  },
-  varModalTitleGroup: {
-    display: "flex",
-    alignItems: "center",
-    gap: "8px",
-  },
-  varModalTitle: {
-    fontSize: "16px",
-    fontWeight: 700,
-    color: "#F8FAFC",
-    margin: 0,
-  },
-  varModalBody: {
-    padding: "20px",
-    overflowY: "auto",
-    display: "flex",
-    flexDirection: "column",
-    gap: "16px",
-  },
-  varSourceBox: {
-    backgroundColor: "#0F172A",
-    borderRadius: "8px",
-    padding: "12px 14px",
-    border: "1px solid rgba(255, 255, 255, 0.06)",
-  },
-  varSourceHeader: {
-    display: "flex",
-    gap: "8px",
-    alignItems: "center",
-    marginBottom: "6px",
-  },
-  varSourceId: {
-    fontSize: "12px",
-    fontWeight: 700,
-    color: "#38BDF8",
-  },
-  varSourceSubject: {
-    fontSize: "11px",
-    backgroundColor: "rgba(56, 189, 248, 0.15)",
-    color: "#38BDF8",
-    padding: "1px 6px",
-    borderRadius: "3px",
-  },
-  varSourceConcept: {
-    fontSize: "11px",
-    backgroundColor: "rgba(168, 85, 247, 0.15)",
-    color: "#C084FC",
-    padding: "1px 6px",
-    borderRadius: "3px",
-  },
-  varSourceText: {
-    fontSize: "13px",
-    color: "#94A3B8",
-    margin: 0,
-    lineHeight: 1.4,
-  },
-  varConfigSection: {
-    display: "flex",
-    flexDirection: "column",
-    gap: "14px",
-  },
-  varLabel: {
-    fontSize: "13px",
-    fontWeight: 600,
-    color: "#CBD5E1",
-  },
-  varSelect: {
-    backgroundColor: "#0F172A",
-    color: "#F8FAFC",
-    border: "1px solid rgba(255, 255, 255, 0.15)",
-    borderRadius: "6px",
-    padding: "10px 12px",
-    fontSize: "13px",
-    outline: "none",
-  },
-  varSafetyNotice: {
-    display: "flex",
-    alignItems: "flex-start",
-    gap: "8px",
-    backgroundColor: "rgba(52, 211, 153, 0.08)",
-    border: "1px solid rgba(52, 211, 153, 0.25)",
-    borderRadius: "6px",
-    padding: "10px 12px",
-    fontSize: "12px",
-    color: "#A7F3D0",
-    lineHeight: 1.4,
-  },
-  varResultSection: {
-    display: "flex",
-    flexDirection: "column",
-    gap: "14px",
-  },
-  varResultHeader: {
-    display: "flex",
-    alignItems: "center",
-    gap: "8px",
-  },
-  varResultTitle: {
-    fontSize: "14px",
-    fontWeight: 700,
-    color: "#34D399",
-  },
-  varPreviewBox: {
-    backgroundColor: "#0F172A",
-    borderRadius: "8px",
-    padding: "14px",
-    border: "1px solid rgba(255, 255, 255, 0.08)",
-    display: "flex",
-    flexDirection: "column",
-    gap: "12px",
-  },
-  varMetaRow: {
-    display: "flex",
-    gap: "8px",
-    alignItems: "center",
-    flexWrap: "wrap",
-  },
-  varMetaBadge: {
-    fontSize: "11px",
-    backgroundColor: "rgba(255, 255, 255, 0.06)",
-    color: "#CBD5E1",
-    padding: "2px 8px",
-    borderRadius: "4px",
-  },
-  varStatusBadge: {
-    fontSize: "11px",
-    fontWeight: 700,
-    backgroundColor: "rgba(234, 179, 8, 0.2)",
-    color: "#FACC15",
-    padding: "2px 8px",
-    borderRadius: "4px",
-  },
-  varFieldGroup: {
-    display: "flex",
-    flexDirection: "column",
-    gap: "4px",
-  },
-  varFieldLabel: {
-    fontSize: "11px",
-    fontWeight: 700,
-    color: "#64748B",
-    textTransform: "uppercase",
-  },
-  varFieldContent: {
-    fontSize: "13px",
-    color: "#E2E8F0",
-    margin: 0,
-    lineHeight: 1.4,
-  },
-  varCodeSnippet: {
-    backgroundColor: "#020617",
-    color: "#F8FAFC",
-    padding: "10px",
-    borderRadius: "4px",
-    fontSize: "12px",
-    overflowX: "auto",
-    margin: 0,
-  },
-  varAnswerValue: {
-    fontSize: "13px",
-    fontWeight: 700,
-    color: "#34D399",
-  },
-  varModalFooter: {
-    display: "flex",
-    justifyContent: "flex-end",
-    gap: "10px",
-    marginTop: "8px",
-  },
-  cancelBtn: {
-    backgroundColor: "transparent",
-    color: "#94A3B8",
-    border: "1px solid rgba(255, 255, 255, 0.15)",
-    borderRadius: "6px",
-    padding: "8px 16px",
-    fontSize: "13px",
-    cursor: "pointer",
-  },
-  executeVarBtn: {
-    backgroundColor: "#9333EA",
-    color: "#FFFFFF",
-    border: "none",
-    borderRadius: "6px",
-    padding: "8px 18px",
-    fontSize: "13px",
-    fontWeight: 600,
-    cursor: "pointer",
-  },
-  openImportBtn: {
-    backgroundColor: "#2563EB",
-    color: "#FFFFFF",
-    border: "none",
-    borderRadius: "6px",
-    padding: "8px 16px",
-    fontSize: "13px",
-    fontWeight: 600,
-    cursor: "pointer",
-  },
 };

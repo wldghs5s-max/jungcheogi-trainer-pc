@@ -9,6 +9,8 @@ import {
   gradeAnswer,
   Question,
   MissType,
+  CodeLanguage,
+  QuestionType,
 } from '@jungcheogi/shared';
 import { SessionRepository } from '../db/repositories/sessionRepository';
 import { AttemptRepository } from '../db/repositories/attemptRepository';
@@ -23,6 +25,10 @@ interface GradeBody {
   userAnswer: string | string[];
   groundTruthAnswer: string | string[];
   isUnknown?: boolean;
+  questionType?: QuestionType;
+  type?: QuestionType;
+  language?: CodeLanguage;
+  mode?: 'TERM' | 'NUMERIC_OUTPUT' | 'CODE_OUTPUT';
 }
 
 export async function sessionRoutes(fastify: FastifyInstance): Promise<void> {
@@ -35,24 +41,33 @@ export async function sessionRoutes(fastify: FastifyInstance): Promise<void> {
   fastify.post(
     '/api/sessions',
     async (request: FastifyRequest<{ Body: CreateSessionRequest }>, reply: FastifyReply) => {
-      const { title, subject, count = 5, sourceType } = request.body || {};
+      const { title, subject, count = 5, sourceType, questionIds: requestedIds } = request.body || {};
 
-      const filterResult = questionRepo.findMany({
-        subject: subject && subject !== 'ALL' ? (subject as any) : undefined,
-        sourceType: sourceType ? (sourceType as any) : undefined,
-        limit: Math.min(Math.max(count, 1), 30),
-      });
+      let selected: Question[] = [];
 
-      if (filterResult.items.length === 0) {
+      if (Array.isArray(requestedIds) && requestedIds.length > 0) {
+        const uniqueIds = [...new Set(requestedIds.filter(Boolean))];
+        for (const qId of uniqueIds) {
+          const q = questionRepo.findById(qId);
+          if (q) selected.push(q);
+        }
+      } else {
+        selected = questionRepo.pickRandom(
+          {
+            subject: subject && subject !== 'ALL' ? (subject as any) : undefined,
+            sourceType: sourceType ? (sourceType as any) : undefined,
+          },
+          Math.min(Math.max(count, 1), 30),
+        );
+      }
+
+      if (selected.length === 0) {
         return reply.status(400).send({
           error: 'Bad Request',
           message: '조건에 해당하는 문제가 없어 학습 세션을 생성할 수 없습니다.',
         });
       }
 
-      // 무작위 셔플
-      const shuffled = [...filterResult.items].sort(() => Math.random() - 0.5);
-      const selected = shuffled.slice(0, count);
       const questionIds = selected.map((q) => q.id);
 
       const sessionId = `sess_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`;
@@ -114,82 +129,118 @@ export async function sessionRoutes(fastify: FastifyInstance): Promise<void> {
     }
   );
 
-  // 3. 문제 답안 제출 및 스마트 채점
-  fastify.post(
-    '/api/sessions/:id/submit',
-    async (
-      request: FastifyRequest<{ Params: SessionParams; Body: SessionSubmitRequest }>,
-      reply: FastifyReply
-    ) => {
-      const { id: sessionId } = request.params;
-      const {
-        questionId,
-        userAnswer,
-        timeSpentMs = 0,
-        isUnknown = false,
-        hintUsed = false,
-        solutionRevealed = false,
-      } = request.body || {};
+  const processSessionSubmission = (sessionId: string, body: SessionSubmitRequest) => {
+    const {
+      questionId,
+      userAnswer,
+      timeSpentMs = 0,
+      isUnknown = false,
+      hintUsed = false,
+      solutionRevealed = false,
+      recordOnly = false,
+    } = body || {};
 
-      const session = sessionRepo.findById(sessionId);
-      if (!session) {
-        return reply.status(404).send({
+    const session = sessionRepo.findById(sessionId);
+    if (!session) {
+      return {
+        status: 404,
+        payload: {
           error: 'Not Found',
           message: `세션 '${sessionId}'을(를) 찾을 수 없습니다.`,
-        });
-      }
+        },
+      };
+    }
 
-      if (session.status !== 'ACTIVE') {
-        return reply.status(400).send({
+    if (session.status !== 'ACTIVE') {
+      return {
+        status: 400,
+        payload: {
           error: 'Bad Request',
           message: '이미 완료되었거나 중단된 학습 세션입니다.',
-        });
-      }
+        },
+      };
+    }
 
-      const question = questionRepo.findById(questionId);
-      if (!question) {
-        return reply.status(404).send({
+    const question = questionRepo.findById(questionId);
+    if (!question) {
+      return {
+        status: 404,
+        payload: {
           error: 'Not Found',
           message: `문제 '${questionId}'을(를) 찾을 수 없습니다.`,
-        });
-      }
-
-      // 스마트 채점 수행 (모바일 검증 로직 기반 정규화 + 동의어 + 퍼지 매칭)
-      const grading = gradeAnswer(userAnswer, question.groundTruthAnswer, isUnknown);
-
-      let missType: MissType | undefined;
-      if (!grading.isCorrect) {
-        missType = isUnknown ? 'UNKNOWN' : 'WRONG';
-      }
-
-      const attemptId = `att_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`;
-      const attempt: QuizAttempt = {
-        id: attemptId,
-        questionId,
-        sessionId,
-        userAnswer,
-        isCorrect: grading.isCorrect,
-        score: grading.score,
-        missType,
-        timeSpentMs,
-        isUnknown: Boolean(isUnknown),
-        hintUsed: Boolean(hintUsed),
-        solutionRevealed: Boolean(solutionRevealed),
-        feedback: grading.feedback,
-        createdAt: new Date().toISOString(),
+        },
       };
+    }
 
-      const savedAttempt = attemptRepo.create(attempt);
-      const reviewState = reviewRepo.recordAttempt(savedAttempt, question);
+    if (!recordOnly) {
+      const currentQuestionId = session.questionIds[session.currentIndex];
+      if (questionId !== currentQuestionId) {
+        return {
+          status: 400,
+          payload: {
+            error: 'Bad Request',
+            message: '현재 세션 진행 중인 문항만 제출할 수 있습니다.',
+          },
+        };
+      }
 
-      // 세션 상태 및 카운터 업데이트
-      const nextIndex = session.currentIndex + 1;
-      const isCompleted = nextIndex >= session.totalQuestions;
+      const alreadySubmitted = attemptRepo
+        .findBySessionId(sessionId)
+        .some((a) => a.questionId === questionId);
+      if (alreadySubmitted) {
+        return {
+          status: 409,
+          payload: {
+            error: 'Conflict',
+            message: '이미 제출한 문항입니다.',
+          },
+        };
+      }
+    }
 
-      const newCorrectCount = session.correctCount + (grading.isCorrect ? 1 : 0);
-      const newUnknownCount = session.unknownCount + (isUnknown ? 1 : 0);
-      const newWrongCount = session.wrongCount + (!grading.isCorrect && !isUnknown ? 1 : 0);
-      const newTotalTimeMs = session.totalTimeSpentMs + timeSpentMs;
+    const grading = gradeAnswer(userAnswer, question.groundTruthAnswer, isUnknown, {
+      questionType: question.type,
+      language: question.language,
+    });
+
+    let missType: MissType | undefined;
+    if (!grading.isCorrect) {
+      missType = isUnknown ? 'UNKNOWN' : 'WRONG';
+    }
+
+    const attemptId = `att_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`;
+    const attempt: QuizAttempt = {
+      id: attemptId,
+      questionId,
+      sessionId,
+      userAnswer,
+      isCorrect: grading.isCorrect,
+      score: grading.score,
+      missType,
+      timeSpentMs,
+      isUnknown: Boolean(isUnknown),
+      hintUsed: Boolean(hintUsed),
+      solutionRevealed: Boolean(solutionRevealed),
+      feedback: grading.feedback,
+      createdAt: new Date().toISOString(),
+    };
+
+    const savedAttempt = attemptRepo.create(attempt);
+    const reviewState = reviewRepo.recordAttempt(savedAttempt, question);
+
+    const newCorrectCount = session.correctCount + (grading.isCorrect ? 1 : 0);
+    const newUnknownCount = session.unknownCount + (isUnknown ? 1 : 0);
+    const newWrongCount = session.wrongCount + (!grading.isCorrect && !isUnknown ? 1 : 0);
+    const newTotalTimeMs = session.totalTimeSpentMs + timeSpentMs;
+
+    let nextIndex = session.currentIndex;
+    let isCompleted = false;
+    let nextQuestionId: string | null = null;
+
+    if (!recordOnly) {
+      nextIndex = session.currentIndex + 1;
+      isCompleted = nextIndex >= session.totalQuestions;
+      nextQuestionId = isCompleted ? null : session.questionIds[nextIndex] || null;
 
       sessionRepo.update(sessionId, {
         currentIndex: nextIndex,
@@ -200,31 +251,41 @@ export async function sessionRoutes(fastify: FastifyInstance): Promise<void> {
         status: isCompleted ? 'COMPLETED' : 'ACTIVE',
         endedAt: isCompleted ? new Date().toISOString() : undefined,
       });
+    }
 
-      const nextQuestionId = isCompleted ? null : session.questionIds[nextIndex] || null;
+    const response: SessionSubmitResponse = {
+      attempt: savedAttempt,
+      isCorrect: grading.isCorrect,
+      score: grading.score,
+      feedback: grading.feedback,
+      groundTruthAnswer: question.groundTruthAnswer,
+      officialExplanation: question.officialExplanation,
+      aiExplanation: question.aiExplanation,
+      aiVariationNotes: question.aiVariationNotes,
+      isSessionCompleted: isCompleted,
+      nextQuestionId,
+      reviewState,
+      sessionProgress: {
+        currentIndex: recordOnly ? session.currentIndex : nextIndex,
+        totalQuestions: session.totalQuestions,
+        correctCount: recordOnly ? session.correctCount : newCorrectCount,
+        wrongCount: recordOnly ? session.wrongCount : newWrongCount,
+        unknownCount: recordOnly ? session.unknownCount : newUnknownCount,
+      },
+    };
 
-      const response: SessionSubmitResponse = {
-        attempt: savedAttempt,
-        isCorrect: grading.isCorrect,
-        score: grading.score,
-        feedback: grading.feedback,
-        groundTruthAnswer: question.groundTruthAnswer,
-        officialExplanation: question.officialExplanation,
-        aiExplanation: question.aiExplanation,
-        aiVariationNotes: question.aiVariationNotes,
-        isSessionCompleted: isCompleted,
-        nextQuestionId,
-        reviewState,
-        sessionProgress: {
-          currentIndex: nextIndex,
-          totalQuestions: session.totalQuestions,
-          correctCount: newCorrectCount,
-          wrongCount: newWrongCount,
-          unknownCount: newUnknownCount,
-        },
-      };
+    return { status: 200, payload: response };
+  };
 
-      return reply.status(200).send(response);
+  // 3. 문제 답안 제출 및 스마트 채점
+  fastify.post(
+    '/api/sessions/:id/submit',
+    async (
+      request: FastifyRequest<{ Params: SessionParams; Body: SessionSubmitRequest }>,
+      reply: FastifyReply
+    ) => {
+      const result = processSessionSubmission(request.params.id, request.body || {});
+      return reply.status(result.status).send(result.payload);
     }
   );
 
@@ -234,31 +295,22 @@ export async function sessionRoutes(fastify: FastifyInstance): Promise<void> {
     async (
       request: FastifyRequest<{
         Params: SessionParams;
-        Body: { questionId: string; timeSpentMs?: number; hintUsed?: boolean };
+        Body: { questionId: string; timeSpentMs?: number; hintUsed?: boolean; recordOnly?: boolean };
       }>,
       reply: FastifyReply
     ) => {
-      const { id: sessionId } = request.params;
-      const { questionId, timeSpentMs = 0, hintUsed = false } = request.body || {};
-
-      // 3번 submit 로직을 isUnknown=true로 호출
-      const submitReq: SessionSubmitRequest = {
+      const { questionId, timeSpentMs = 0, hintUsed = false, recordOnly = false } =
+        request.body || {};
+      const result = processSessionSubmission(request.params.id, {
         questionId,
         userAnswer: '(모름)',
         timeSpentMs,
         isUnknown: true,
         hintUsed,
         solutionRevealed: true,
-      };
-
-      // 내부 재호출
-      return fastify.inject({
-        method: 'POST',
-        url: `/api/sessions/${sessionId}/submit`,
-        payload: submitReq,
-      }).then((res) => {
-        return reply.status(res.statusCode).send(JSON.parse(res.body));
+        recordOnly,
       });
+      return reply.status(result.status).send(result.payload);
     }
   );
 
@@ -309,7 +361,15 @@ export async function sessionRoutes(fastify: FastifyInstance): Promise<void> {
   fastify.post(
     '/api/grade',
     async (request: FastifyRequest<{ Body: GradeBody }>, reply: FastifyReply) => {
-      const { userAnswer, groundTruthAnswer, isUnknown = false } = request.body || {};
+      const {
+        userAnswer,
+        groundTruthAnswer,
+        isUnknown = false,
+        questionType,
+        type,
+        language,
+        mode,
+      } = request.body || {};
 
       if (groundTruthAnswer === undefined || groundTruthAnswer === null) {
         return reply.status(400).send({
@@ -318,7 +378,11 @@ export async function sessionRoutes(fastify: FastifyInstance): Promise<void> {
         });
       }
 
-      const result = gradeAnswer(userAnswer, groundTruthAnswer, isUnknown);
+      const result = gradeAnswer(userAnswer, groundTruthAnswer, isUnknown, {
+        questionType: questionType || type,
+        language,
+        mode,
+      });
       return reply.status(200).send(result);
     }
   );

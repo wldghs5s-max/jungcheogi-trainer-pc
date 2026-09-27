@@ -6,11 +6,13 @@ import { seedFixtureQuestions } from "../src/db/seeder";
 import { QuestionRepository } from "../src/db/repositories/questionRepository";
 import { ImportBatchRepository } from "../src/db/repositories/importBatchRepository";
 import { SEED_QUESTIONS } from "../src/db/fixtures/seedQuestions";
+import { setupIsolatedTestDb } from "./helpers/testDb";
 
 async function testImportsPipelineAndReview() {
   console.log(
     "=== Phase 4: 문제 데이터 검수 및 Import 파이프라인 종합 테스트 시작 ===\n",
   );
+  const isolated = setupIsolatedTestDb({ seed: false });
 
   // 1. DB 초기화 및 시딩
   runMigrations();
@@ -280,6 +282,7 @@ int main() {
   console.log(
     "\n🎉 Phase 4: Import 파이프라인, 검수 라이프사이클, 중복 감지, DB Commit 테스트 전체 통과!",
   );
+  isolated.cleanup();
 }
 
 testImportsPipelineAndReview();

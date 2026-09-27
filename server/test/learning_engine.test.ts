@@ -9,9 +9,11 @@ import { SessionRepository } from '../src/db/repositories/sessionRepository';
 import { ConceptRepository } from '../src/db/repositories/conceptRepository';
 import { ReviewRepository } from '../src/db/repositories/reviewRepository';
 import { SEED_QUESTIONS } from '../src/db/fixtures/seedQuestions';
+import { setupIsolatedTestDb } from './helpers/testDb';
 
 async function testPhase5LearningEngine() {
   console.log('=== Phase 5: 학습 데이터 전략 및 학습 엔진 종합 검증 테스트 시작 ===\n');
+  const isolated = setupIsolatedTestDb({ seed: false });
 
   // 1. DB 초기화, 마이그레이션 및 시딩
   runMigrations();
@@ -267,6 +269,7 @@ async function testPhase5LearningEngine() {
   console.log('OK   [시나리오 H] AI_VARIATION 계보(Parent: q_2021_01_03) 유지 및 독립 Attempt 기록 통과');
 
   console.log('\n🎉 Phase 5 학습 데이터 전략 및 학습 엔진 8대 시나리오 전체 통과!');
+  isolated.cleanup();
 }
 
 testPhase5LearningEngine();

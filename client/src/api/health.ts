@@ -1,11 +1,12 @@
 import { HealthCheckResponse } from '@jungcheogi/shared';
+import { apiFetch } from './http';
 
 export async function checkBackendHealth(): Promise<{
   data: HealthCheckResponse | null;
   error?: string;
 }> {
   try {
-    const res = await fetch('/api/health');
+    const res = await apiFetch('/api/health');
     if (!res.ok) {
       return {
         data: null,

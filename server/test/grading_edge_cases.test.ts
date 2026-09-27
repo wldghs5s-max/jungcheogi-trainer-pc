@@ -190,6 +190,32 @@ function runGradingEdgeCasesTests() {
   assert.strictEqual(arrowVariant.isCorrect, true, "유니코드 화살표 및 공백 정규화 매칭");
   console.log("OK   숫자 차이 오탈자 방지 및 원문자/화살표 정규화 통과");
 
+  console.log("\n--- 9. 숫자·코드 출력 채점 분리 회귀 ---");
+  assert.strictEqual(gradeAnswer("-5", "5").isCorrect, false, "정답 5 / 입력 -5 는 오답");
+  assert.strictEqual(gradeAnswer("1.5", "15").isCorrect, false, "정답 15 / 입력 1.5 는 오답");
+  assert.strictEqual(gradeAnswer("1 23", "12 3").isCorrect, false, '정답 "12 3" / 입력 "1 23" 는 오답');
+  assert.strictEqual(gradeAnswer("5", "5").isCorrect, true, "동일 숫자는 정답");
+  assert.strictEqual(gradeAnswer("  15\n", "15").isCorrect, true, "숫자 출력 앞뒤 공백·줄바꿈 허용");
+  assert.strictEqual(
+    gradeAnswer("12  3", "12 3").isCorrect,
+    true,
+    "숫자 출력 내부 연속 공백은 한 칸으로 정규화",
+  );
+  assert.strictEqual(
+    gradeAnswer("1 23", "12 3", false, { questionType: "CODE_TRACE" }).isCorrect,
+    false,
+    "코드 출력에서 값 경계를 보존",
+  );
+  assert.strictEqual(
+    gradeAnswer("12 3\n", "12 3", false, { language: "JAVA" }).isCorrect,
+    true,
+    "코드 출력 앞뒤 줄바꿈 허용",
+  );
+  assert.strictEqual(gradeAnswer("Builder", "빌더").isCorrect, true, "용어형 영문 동의어 유지");
+  assert.strictEqual(gradeAnswer("그룹바이", "GROUP BY").isCorrect, true, "용어형 한글 음차 동의어 유지");
+  assert.strictEqual(gradeAnswer("순차응집도", "순차적 응집도").isCorrect, true, "용어형 표기 보정 유지");
+  console.log("OK   숫자·코드 오답 사례 및 용어형 정답 회귀 통과");
+
   console.log("\n🎉 Phase 4 채점 엔진 경계 조건 및 심층 테스트 전체 통과!");
 }
 

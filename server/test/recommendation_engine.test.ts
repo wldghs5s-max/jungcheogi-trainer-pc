@@ -12,9 +12,11 @@ import { ImportBatchRepository } from '../src/db/repositories/importBatchReposit
 import { RecommendationEngine } from '../src/engine/recommendationEngine';
 import { MockQuestionVariationGenerator } from '../src/engine/variationGenerator';
 import { SEED_QUESTIONS } from '../src/db/fixtures/seedQuestions';
+import { setupIsolatedTestDb } from './helpers/testDb';
 
 async function testPhase6RecommendationEngine() {
   console.log('=== Phase 6: 개인화 복습 추천 및 취약 개념 집중 드릴링 종합 검증 테스트 시작 ===\n');
+  const isolated = setupIsolatedTestDb({ seed: false });
 
   // 1. DB 초기화, 마이그레이션 및 시딩
   runMigrations();
@@ -303,6 +305,7 @@ async function testPhase6RecommendationEngine() {
   console.log('OK   [시나리오 8] 신규 API 5종 (recommendations, daily-queue, daily-session, drill, variation) 연동 통과');
 
   console.log('\n🎉 Phase 6 개인화 복습 추천 및 취약 개념 집중 드릴링 8대 시나리오 전체 통과!');
+  isolated.cleanup();
 }
 
 testPhase6RecommendationEngine()

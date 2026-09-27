@@ -13,6 +13,38 @@ import { getDatabase } from '../db/database.js';
 import { ImportBatchRepository } from '../db/repositories/importBatchRepository.js';
 import { generateStructuralFingerprint } from '../db/importers/fingerprint.js';
 import { VariationValidator } from './variationValidator.js';
+import { evaluateCodeOutput } from './codeExecutionEngine.js';
+
+async function applyVerifiedCodeAnswer(
+  originalCode: string | undefined,
+  newCode: string | undefined,
+  language: string | undefined,
+  originalAnswer: string | string[],
+): Promise<{ answer: string | string[]; note: string; output?: string }> {
+  const codeChanged = Boolean(originalCode && newCode && originalCode !== newCode);
+  if (!codeChanged) {
+    return { answer: originalAnswer, note: '' };
+  }
+
+  const evalResult = await evaluateCodeOutput(newCode || '', language);
+  if (evalResult.status === 'SUCCESS' && evalResult.output) {
+    return {
+      answer: evalResult.output,
+      note: '실행 검증 완료',
+      output: evalResult.output,
+    };
+  }
+  if (evalResult.status === 'UNAVAILABLE') {
+    return {
+      answer: '',
+      note: '실행 검증 불가: 원본 정답을 변형 정답으로 사용하지 않음',
+    };
+  }
+  return {
+    answer: '',
+    note: `실행 실패: ${evalResult.error || '코드 실행 오류'} / 원본 정답을 변형 정답으로 사용하지 않음`,
+  };
+}
 
 export interface QuestionVariationGenerator {
   generateVariation(
@@ -47,21 +79,29 @@ export class MockQuestionVariationGenerator implements QuestionVariationGenerato
 
     let newPrompt = question.question;
     let newCode = question.code;
-    let newAnswer = question.groundTruthAnswer;
+    let newAnswer: string | string[] = question.groundTruthAnswer;
     let aiExplanation = question.aiExplanation || 'AI가 생성한 변형 문제 해설입니다.';
     let aiVariationNotes = `원본 기출(${parentQuestionId}) 기반 ${canonicalType} 변형`;
+    let verificationNote = '';
 
     if (canonicalType === 'PARAMETER_VARIATION') {
       if (question.code) {
-        // C/Java/Python 코드 내 숫자 파라미터 변형
         newCode = question.code
           .replace(/\b10\b/g, '20')
           .replace(/\b5\b/g, '7')
           .replace(/\b0\b/g, '1');
         newPrompt = `${question.question} (변수 값이 수정된 변형 문제입니다)`;
-        newAnswer = Array.isArray(question.groundTruthAnswer)
-          ? question.groundTruthAnswer.map((a) => `${a}_변형`)
-          : `${question.groundTruthAnswer}_변형`;
+        const verified = await applyVerifiedCodeAnswer(
+          question.code,
+          newCode,
+          question.language,
+          question.groundTruthAnswer,
+        );
+        newAnswer = verified.answer;
+        verificationNote = verified.note;
+        if (verified.output) {
+          aiExplanation = `코드 실행 결과(${verified.output})를 기준으로 채점합니다.`;
+        }
       } else {
         newPrompt = `[파라미터 변형] ${question.question} (조건 값 변경 적용)`;
       }
@@ -70,6 +110,17 @@ export class MockQuestionVariationGenerator implements QuestionVariationGenerato
       if (question.code) {
         newCode = question.code.replace(/<=/g, '<').replace(/\+\+/g, '+= 2');
         newPrompt = `${question.question} (루프 증감 조건이 수정된 코드 추적 변형)`;
+        const verified = await applyVerifiedCodeAnswer(
+          question.code,
+          newCode,
+          question.language,
+          question.groundTruthAnswer,
+        );
+        newAnswer = verified.answer;
+        verificationNote = verified.note;
+        if (verified.output) {
+          aiExplanation = `코드 실행 결과(${verified.output})를 기준으로 채점합니다.`;
+        }
       }
       aiVariationNotes = `원본(${question.id})의 제어문/연산자 구조를 수정한 코드 변형 문항`;
     } else if (canonicalType === 'SCENARIO_VARIATION') {
@@ -81,6 +132,10 @@ export class MockQuestionVariationGenerator implements QuestionVariationGenerato
     } else if (canonicalType === 'DIFFICULTY_VARIATION') {
       newPrompt = `[난이도 심화 변형] 다음 복합 시스템 환경을 고려하여, ${question.question} (추가 예외 조건이 적용됩니다)`;
       aiVariationNotes = `원본(${question.id})의 기본 개념에 다단계 제약 조건을 추가하여 문제 해결 사고력을 검증하는 난이도 조절 변형 문항`;
+    }
+
+    if (verificationNote) {
+      aiVariationNotes = `${aiVariationNotes} (${verificationNote})`;
     }
 
     const variation: GeneratedVariation = {

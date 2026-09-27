@@ -3,6 +3,7 @@ import {
   QuestionListResponse,
   QuestionDetailResponse,
 } from '@jungcheogi/shared';
+import { apiFetch } from './http';
 
 export async function fetchQuestions(
   filter: QuestionFilter = {}
@@ -14,6 +15,7 @@ export async function fetchQuestions(
     if (filter.difficulty) params.set('difficulty', filter.difficulty);
     if (filter.sourceType) params.set('sourceType', filter.sourceType);
     if (filter.parentQuestionId) params.set('parentQuestionId', filter.parentQuestionId);
+    if (filter.conceptId) params.set('conceptId', filter.conceptId);
     if (filter.search) params.set('search', filter.search);
     if (filter.limit) params.set('limit', String(filter.limit));
     if (filter.offset) params.set('offset', String(filter.offset));
@@ -21,7 +23,7 @@ export async function fetchQuestions(
     const qs = params.toString();
     const url = qs ? `/api/questions?${qs}` : '/api/questions';
 
-    const res = await fetch(url);
+    const res = await apiFetch(url);
     if (!res.ok) {
       return { data: null, error: `HTTP ${res.status}: 문제 목록 조회 실패` };
     }
@@ -38,7 +40,7 @@ export async function fetchQuestionDetail(
   id: string
 ): Promise<{ data: QuestionDetailResponse | null; error?: string }> {
   try {
-    const res = await fetch(`/api/questions/${encodeURIComponent(id)}`);
+    const res = await apiFetch(`/api/questions/${encodeURIComponent(id)}`);
     if (!res.ok) {
       return { data: null, error: `HTTP ${res.status}: 문제 상세 조회 실패` };
     }

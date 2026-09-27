@@ -343,37 +343,19 @@ export async function aiRoutes(fastify: FastifyInstance): Promise<void> {
           );
           targetBatchId = stagedResult.batchId;
           stagedIds.push(stagedResult.stagedQuestion.id);
-        } catch {
-          // AI 실패 시 기본 변형 fallback
-          const fallbackVar: GeneratedVariation = {
-            parentQuestionId: baseQuestion.id,
-            sourceQuestionId: baseQuestion.id,
-            variationType: chosenStrategy,
-            conceptId: baseQuestion.conceptId,
-            subject: baseQuestion.subject,
-            category: baseQuestion.category,
-            questionType: baseQuestion.type,
-            prompt: `[연습 변형 ${i + 1}] ` + baseQuestion.question,
-            codeSnippet: baseQuestion.code,
-            language: baseQuestion.language,
-            options: baseQuestion.options,
-            groundTruthAnswer: baseQuestion.groundTruthAnswer,
-            aiExplanation:
-              baseQuestion.aiExplanation || "기본 기출 변형 문제입니다.",
-            aiVariationNotes: `기본 변형 전략 (${chosenStrategy}) 적용`,
-            generationMetadata: {
-              generator: "MockQuestionVariationGenerator",
-              model: "local-fallback",
-              generatedAt: new Date().toISOString(),
-            },
-          };
-          const stagedResult = await variationStager.stageVariation(
-            fallbackVar,
-            targetBatchId,
+        } catch (err) {
+          console.warn(
+            `[BatchGenerate] variation failed for ${baseQuestion.id}:`,
+            err instanceof Error ? err.message : err,
           );
-          targetBatchId = stagedResult.batchId;
-          stagedIds.push(stagedResult.stagedQuestion.id);
         }
+      }
+
+      if (stagedIds.length === 0) {
+        return reply.status(500).send({
+          error: "Generation Failed",
+          message: "변형 문제 생성에 실패했습니다. 잠시 후 다시 시도해주세요.",
+        });
       }
 
       const response: AIBatchGenerateResponse = {
@@ -428,7 +410,7 @@ export async function aiRoutes(fastify: FastifyInstance): Promise<void> {
         "CONCEPT_VARIATION",
       ];
 
-      while (attempts < 2 && !variation) {
+      while (attempts < strategiesToTry.length && !variation) {
         const currentStrategy = strategiesToTry[attempts] || optimalStrategy;
         attempts++;
 
@@ -439,27 +421,44 @@ export async function aiRoutes(fastify: FastifyInstance): Promise<void> {
             variationType: currentStrategy,
           });
 
-          // 2. Ground Truth 보존 및 코드 계산 검증
           if (gen.codeSnippet) {
             const evalResult = await evaluateCodeOutput(
               gen.codeSnippet,
               gen.language,
             );
-            if (
-              evalResult.status === "SUCCESS" &&
-              evalResult.output !== undefined
-            ) {
+            const parentCode = parentQuestion.code || "";
+            const codeChanged = Boolean(gen.codeSnippet !== parentCode);
+            const parentGt = JSON.stringify(parentQuestion.groundTruthAnswer ?? "");
+            const genGt = JSON.stringify(gen.groundTruthAnswer ?? "");
+            const inheritedOfficialAnswer = codeChanged && parentGt === genGt;
+
+            if (evalResult.status === "SUCCESS" && evalResult.output !== undefined) {
               const calcOut = evalResult.output.trim();
               const gt = Array.isArray(gen.groundTruthAnswer)
-                ? gen.groundTruthAnswer[0]
-                : String(gen.groundTruthAnswer);
+                ? String(gen.groundTruthAnswer[0] ?? "")
+                : String(gen.groundTruthAnswer ?? "");
 
-              if (calcOut !== gt.trim()) {
-                // 코드 실행 결과와 불일치 시 실제 연산값으로 동기화하여 문제의 정합성 보장
-                gen.groundTruthAnswer = calcOut;
+              if (calcOut && gt && calcOut !== gt.trim()) {
+                gen.aiVariationNotes = `${gen.aiVariationNotes || ""} (정답 충돌: 저장된 정답="${gt}", 실행 결과="${calcOut}". 공식 정답은 변경하지 않음)`;
                 gen.aiExplanation =
-                  `[코드 실행 검증 완료] 실제 코드 실행 결과값은 "${calcOut}"입니다.\n` +
+                  `[정답 충돌] 저장된 정답="${gt}", 코드 실행 결과="${calcOut}". 공식 정답은 변경하지 않았습니다.\n` +
                   (gen.aiExplanation || "");
+              }
+            } else if (evalResult.status === "UNAVAILABLE") {
+              gen.aiVariationNotes = `${gen.aiVariationNotes || ""} (실행 검증 불가)`;
+              gen.aiExplanation =
+                `[실행 검증 불가] ${evalResult.error || "격리된 실행 환경이 없어 코드를 검증하지 못했습니다."}\n` +
+                (gen.aiExplanation || "");
+              if (inheritedOfficialAnswer) {
+                gen.groundTruthAnswer = "";
+              }
+            } else if (evalResult.status === "ERROR") {
+              gen.aiVariationNotes = `${gen.aiVariationNotes || ""} (실행 실패)`;
+              gen.aiExplanation =
+                `[실행 실패] ${evalResult.error || "코드 실행에 실패했습니다."}\n` +
+                (gen.aiExplanation || "");
+              if (inheritedOfficialAnswer) {
+                gen.groundTruthAnswer = "";
               }
             }
           }
@@ -481,9 +480,8 @@ export async function aiRoutes(fastify: FastifyInstance): Promise<void> {
         });
       }
 
-      // Convert to temporary in-memory Question object (ready to be solved immediately)
       const drillQuestion: Question = {
-        id: `drill_temp_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
+        id: `q_drill_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
         parentQuestionId: parentQuestion.id,
         sourceType: "AI_VARIATION",
         subject: variation.subject,
@@ -495,6 +493,7 @@ export async function aiRoutes(fastify: FastifyInstance): Promise<void> {
         language: variation.language as any,
         options: variation.options,
         groundTruthAnswer: variation.groundTruthAnswer,
+        officialExplanation: undefined,
         aiExplanation: variation.aiExplanation,
         aiVariationNotes: variation.aiVariationNotes,
         difficulty: parentQuestion.difficulty,
@@ -503,6 +502,8 @@ export async function aiRoutes(fastify: FastifyInstance): Promise<void> {
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
       };
+
+      questionRepo.create(drillQuestion);
 
       const response: AIVariationDrillResponse = {
         success: true,

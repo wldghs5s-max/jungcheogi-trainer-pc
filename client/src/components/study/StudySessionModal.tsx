@@ -1,14 +1,11 @@
 import React, { useState, useEffect, useRef } from "react";
 import {
   X,
-  Play,
   CheckCircle2,
   XCircle,
   HelpCircle,
   Clock,
   ArrowRight,
-  RotateCcw,
-  Trophy,
   Lightbulb,
   Sparkles,
   BookOpen,
@@ -28,11 +25,10 @@ import {
   SessionSubmitResponse,
   SessionSummaryResponse,
   Subject,
-  SUBJECT_LIST,
   QUESTION_SOURCE_LABELS,
   AITutoringExplanationResponse,
   AICodeLineResponse,
-  gradeAnswer,
+  GeneratedVariation,
 } from "@jungcheogi/shared";
 import {
   createStudySession,
@@ -41,6 +37,9 @@ import {
   fetchSessionSummary,
   fetchStudySession,
 } from "../../api/sessions";
+import { styles } from "./studySessionStyles";
+import { StudySessionConfig } from "./StudySessionConfig";
+import { StudySessionSummary } from "./StudySessionSummary";
 import {
   fetchAIExplanation,
   fetchAIProgressiveHints,
@@ -112,9 +111,12 @@ export const StudySessionModal: React.FC<StudySessionModalProps> = ({
 
   // AI Variation Drill (실시간 학습용 변형 문제 풀기)
   const [isGeneratingDrill, setIsGeneratingDrill] = useState<boolean>(false);
-  const [activeDrillVariation, setActiveDrillVariation] = useState<any | null>(
+  const [activeDrillVariation, setActiveDrillVariation] =
+    useState<GeneratedVariation | null>(null);
+  const [aiExplanationError, setAiExplanationError] = useState<string | null>(
     null,
   );
+  const drillRequestTokenRef = useRef(0);
   const [isDrillQuestion, setIsDrillQuestion] = useState<boolean>(false);
   const [isDrillSaved, setIsDrillSaved] = useState<boolean>(false);
   const [isSavingDrill, setIsSavingDrill] = useState<boolean>(false);
@@ -153,7 +155,9 @@ export const StudySessionModal: React.FC<StudySessionModalProps> = ({
       setCodeLineCache({});
       setSelectedLineNumber(null);
       setAiExplanationData(null);
+      setAiExplanationError(null);
       setIsGeneratingDrill(false);
+      drillRequestTokenRef.current += 1;
       setActiveDrillVariation(null);
       setIsDrillQuestion(false);
       setIsDrillSaved(false);
@@ -177,6 +181,7 @@ export const StudySessionModal: React.FC<StudySessionModalProps> = ({
     setCodeLineCache({});
     setSelectedLineNumber(null);
     setAiExplanationData(null);
+    setAiExplanationError(null);
 
     const isMulti = Array.isArray(currentQuestion.groundTruthAnswer);
     const count = isMulti ? currentQuestion.groundTruthAnswer.length : 1;
@@ -247,46 +252,25 @@ export const StudySessionModal: React.FC<StudySessionModalProps> = ({
     setIsSubmitting(true);
 
     if (isDrillQuestion) {
-      const gradeRes = gradeAnswer(
-        finalAnswer,
-        currentQuestion.groundTruthAnswer,
-        false,
-      );
-      const drillResult: SessionSubmitResponse = {
-        isCorrect: gradeRes.isCorrect,
-        score: gradeRes.score,
-        groundTruthAnswer: currentQuestion.groundTruthAnswer,
-        officialExplanation:
-          currentQuestion.officialExplanation ||
-          currentQuestion.aiExplanation ||
-          "AI 변형 문제 해설입니다.",
-        aiExplanation: currentQuestion.aiExplanation,
-        sessionProgress: {
-          currentIndex: session?.currentIndex ?? 0,
-          totalQuestions: session?.totalQuestions ?? 1,
-          correctCount:
-            (session?.correctCount ?? 0) + (gradeRes.isCorrect ? 1 : 0),
-          wrongCount: (session?.wrongCount ?? 0) + (gradeRes.isCorrect ? 0 : 1),
-          unknownCount: session?.unknownCount ?? 0,
-        },
-        attempt: {
-          id: `drill_att_${Date.now()}`,
-          sessionId: session?.id || "drill_session",
-          questionId: currentQuestion.id,
-          userAnswer: finalAnswer,
-          isCorrect: gradeRes.isCorrect,
-          score: gradeRes.score,
-          timeSpentMs: Math.max(elapsedSeconds * 1000, 1000),
-          hintUsed: showHint || hintLevel > 0,
-          isUnknown: false,
-          solutionRevealed: false,
-          createdAt: new Date().toISOString(),
-        },
-        isSessionCompleted: false,
-      };
+      if (!session) {
+        setIsSubmitting(false);
+        alert("학습 세션이 없어 드릴 결과를 기록할 수 없습니다.");
+        return;
+      }
+      const drillRes = await submitSessionAnswer(session.id, {
+        questionId: currentQuestion.id,
+        userAnswer: finalAnswer,
+        timeSpentMs: Math.max(elapsedSeconds * 1000, 1000),
+        hintUsed: showHint || hintLevel > 0,
+        recordOnly: true,
+      });
       setIsSubmitting(false);
-      setSubmitResult(drillResult);
-      handleLoadAIExplanation(drillResult);
+      if (drillRes.error || !drillRes.data) {
+        alert(drillRes.error || "드릴 답안 제출 중 오류가 발생했습니다.");
+        return;
+      }
+      setSubmitResult(drillRes.data);
+      handleLoadAIExplanation(drillRes.data);
       return;
     }
 
@@ -307,7 +291,14 @@ export const StudySessionModal: React.FC<StudySessionModalProps> = ({
 
     setSubmitResult(res.data);
     setSession((prev) =>
-      prev ? { ...prev, ...res.data!.sessionProgress } : null,
+      prev
+        ? {
+            ...prev,
+            correctCount: res.data!.sessionProgress.correctCount,
+            wrongCount: res.data!.sessionProgress.wrongCount,
+            unknownCount: res.data!.sessionProgress.unknownCount,
+          }
+        : null,
     );
     handleLoadAIExplanation(res.data);
   };
@@ -317,42 +308,25 @@ export const StudySessionModal: React.FC<StudySessionModalProps> = ({
     if (!currentQuestion || isSubmitting) return;
 
     if (isDrillQuestion) {
+      if (!session) {
+        alert("학습 세션이 없어 드릴 결과를 기록할 수 없습니다.");
+        return;
+      }
       if (timerRef.current) clearInterval(timerRef.current);
       setIsSubmitting(true);
-      const drillResult: SessionSubmitResponse = {
-        isCorrect: false,
-        score: 0,
-        groundTruthAnswer: currentQuestion.groundTruthAnswer,
-        officialExplanation:
-          currentQuestion.officialExplanation ||
-          currentQuestion.aiExplanation ||
-          "AI 변형 문제 해설입니다.",
-        aiExplanation: currentQuestion.aiExplanation,
-        sessionProgress: {
-          currentIndex: session?.currentIndex ?? 0,
-          totalQuestions: session?.totalQuestions ?? 1,
-          correctCount: session?.correctCount ?? 0,
-          wrongCount: session?.wrongCount ?? 0,
-          unknownCount: (session?.unknownCount ?? 0) + 1,
-        },
-        attempt: {
-          id: `drill_att_${Date.now()}`,
-          sessionId: session?.id || "drill_session",
-          questionId: currentQuestion.id,
-          userAnswer: "(모르겠음)",
-          isCorrect: false,
-          score: 0,
-          timeSpentMs: Math.max(elapsedSeconds * 1000, 1000),
-          hintUsed: showHint || hintLevel > 0,
-          isUnknown: true,
-          solutionRevealed: false,
-          createdAt: new Date().toISOString(),
-        },
-        isSessionCompleted: false,
-      };
+      const drillRes = await submitSessionUnknown(session.id, {
+        questionId: currentQuestion.id,
+        timeSpentMs: Math.max(elapsedSeconds * 1000, 1000),
+        hintUsed: showHint || hintLevel > 0,
+        recordOnly: true,
+      });
       setIsSubmitting(false);
-      setSubmitResult(drillResult);
-      handleLoadAIExplanation(drillResult);
+      if (drillRes.error || !drillRes.data) {
+        alert(drillRes.error || "드릴 모르겠음 처리 중 오류가 발생했습니다.");
+        return;
+      }
+      setSubmitResult(drillRes.data);
+      handleLoadAIExplanation(drillRes.data);
       return;
     }
 
@@ -377,7 +351,14 @@ export const StudySessionModal: React.FC<StudySessionModalProps> = ({
 
     setSubmitResult(res.data);
     setSession((prev) =>
-      prev ? { ...prev, ...res.data!.sessionProgress } : null,
+      prev
+        ? {
+            ...prev,
+            correctCount: res.data!.sessionProgress.correctCount,
+            wrongCount: res.data!.sessionProgress.wrongCount,
+            unknownCount: res.data!.sessionProgress.unknownCount,
+          }
+        : null,
     );
     handleLoadAIExplanation(res.data);
   };
@@ -453,6 +434,7 @@ export const StudySessionModal: React.FC<StudySessionModalProps> = ({
     if (aiExplanationData && !deepAnalysis) return;
 
     setLoadingAIExplanation(true);
+    setAiExplanationError(null);
     const res = await fetchAIExplanation({
       questionId: currentQuestion.id,
       questionData: currentQuestion,
@@ -465,18 +447,26 @@ export const StudySessionModal: React.FC<StudySessionModalProps> = ({
 
     if (res.data) {
       setAiExplanationData(res.data);
+    } else {
+      setAiExplanationError(res.error || "AI 해설을 불러오지 못했습니다.");
     }
   };
 
   // Phase 8: 학습용 AI 즉시 변형 문제 풀기 (No strategy selection, instant transition)
   const handleStartAIVariationDrill = async () => {
     if (!currentQuestion || isGeneratingDrill) return;
+    const requestToken = Date.now();
+    drillRequestTokenRef.current = requestToken;
     setIsGeneratingDrill(true);
 
     const res = await fetchAIVariationDrill({
       parentQuestionId: originalQuestionBeforeDrill?.id || currentQuestion.id,
     });
     setIsGeneratingDrill(false);
+
+    if (drillRequestTokenRef.current !== requestToken) {
+      return;
+    }
 
     if (!res.data || !res.data.question) {
       alert(
@@ -709,131 +699,20 @@ export const StudySessionModal: React.FC<StudySessionModalProps> = ({
           {/* PHASE 1: CONFIGURATION VIEW */}
           {/* ============================================================== */}
           {phase === "CONFIG" && (
-            <div style={styles.configContainer}>
-              <div style={styles.configHeader}>
-                <h2 style={styles.configTitle}>학습 세션 설정</h2>
-                <p style={styles.configSubtitle}>
-                  집중할 과목과 문항수를 선택하고 스마트 채점 엔진으로 실기
-                  문제를 풀이합니다.
-                </p>
-              </div>
-
-              {configError && (
-                <div style={styles.errorAlert}>{configError}</div>
-              )}
-
-              <div style={styles.configCard}>
-                {/* 1. 세션 제목 */}
-                <div style={styles.formGroup}>
-                  <label style={styles.label}>세션 명칭</label>
-                  <input
-                    type="text"
-                    value={sessionTitle}
-                    onChange={(e) => setSessionTitle(e.target.value)}
-                    style={styles.inputField}
-                    placeholder="예: 프로그래밍언어 집중 풀이"
-                  />
-                </div>
-
-                {/* 2. 과목 선택 */}
-                <div style={styles.formGroup}>
-                  <label style={styles.label}>대상 과목 선택</label>
-                  <select
-                    value={selectedSubject}
-                    onChange={(e) =>
-                      setSelectedSubject(e.target.value as Subject | "")
-                    }
-                    style={styles.selectField}
-                  >
-                    <option value="">전체 과목 종합 (모의 실기 모드)</option>
-                    {SUBJECT_LIST.map((subj) => (
-                      <option key={subj} value={subj}>
-                        {subj}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                {/* 3. 문항수 선택 */}
-                <div style={styles.formGroup}>
-                  <label style={styles.label}>풀이 문항수</label>
-                  <div style={styles.countBtnRow}>
-                    {[3, 5, 10, 12].map((num) => (
-                      <button
-                        key={num}
-                        type="button"
-                        onClick={() => setQuestionCount(num)}
-                        style={{
-                          ...styles.countBtn,
-                          backgroundColor:
-                            questionCount === num
-                              ? "var(--color-primary)"
-                              : "var(--color-surface)",
-                          borderColor:
-                            questionCount === num
-                              ? "var(--color-primary)"
-                              : "var(--color-border)",
-                          color:
-                            questionCount === num
-                              ? "#FFF"
-                              : "var(--color-text)",
-                        }}
-                      >
-                        {num}문제
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
-                {/* 안내 박스 */}
-                <div style={styles.infoCallout}>
-                  <Lightbulb
-                    size={18}
-                    color="#3B82F6"
-                    style={{ flexShrink: 0, marginTop: 2 }}
-                  />
-                  <div style={styles.infoCalloutText}>
-                    <strong>학습 팁</strong>
-                    <ul>
-                      <li>
-                        영문/한글 표기 및 공백 차이는 유연하게 자동 채점됩니다.
-                      </li>
-                      <li>
-                        확실하지 않은 문제는 <strong>모르겠음</strong>을 눌러
-                        취약 개념으로 집중 복습하세요.
-                      </li>
-                    </ul>
-                  </div>
-                </div>
-
-                <div style={styles.configActionRow}>
-                  <button
-                    type="button"
-                    onClick={onClose}
-                    style={styles.cancelBtn}
-                    disabled={isStarting}
-                  >
-                    취소
-                  </button>
-                  <button
-                    type="button"
-                    onClick={handleStartSession}
-                    style={styles.startBtn}
-                    disabled={isStarting}
-                  >
-                    <Play size={18} />
-                    <span>
-                      {isStarting ? "세션 생성 중..." : "학습 세션 시작하기"}
-                    </span>
-                  </button>
-                </div>
-              </div>
-            </div>
+            <StudySessionConfig
+              sessionTitle={sessionTitle}
+              selectedSubject={selectedSubject}
+              questionCount={questionCount}
+              isStarting={isStarting}
+              configError={configError}
+              onTitleChange={setSessionTitle}
+              onSubjectChange={setSelectedSubject}
+              onCountChange={setQuestionCount}
+              onStart={handleStartSession}
+              onCancel={onClose}
+            />
           )}
 
-          {/* ============================================================== */}
-          {/* PHASE 2: ACTIVE PRACTICE VIEW */}
-          {/* ============================================================== */}
           {phase === "PRACTICE" && currentQuestion && (
             <div style={styles.practiceContainer}>
               {/* QUESTION HEADER BADGES */}
@@ -1331,7 +1210,9 @@ export const StudySessionModal: React.FC<StudySessionModalProps> = ({
                       <div style={styles.boxTitleRow}>
                         <BookOpen size={18} color="var(--color-success)" />
                         <span style={styles.groundTruthTitle}>
-                          공식 검증 해설 (Ground Truth)
+                          {submitResult.officialExplanation
+                            ? "공식 검증 해설 (Ground Truth)"
+                            : "공식 해설"}
                         </span>
                       </div>
                       <p style={styles.explanationText}>
@@ -1416,6 +1297,19 @@ export const StudySessionModal: React.FC<StudySessionModalProps> = ({
                           AI가 학생의 답안과 오답 원인을 정밀 분석하고
                           있습니다...
                         </span>
+                      </div>
+                    )}
+
+                    {aiExplanationError && !loadingAIExplanation && (
+                      <div style={styles.aiLoadingBox}>
+                        <span>{aiExplanationError}</span>
+                        <button
+                          type="button"
+                          onClick={() => handleLoadAIExplanation()}
+                          style={styles.loadAIBtn}
+                        >
+                          다시 시도
+                        </button>
                       </div>
                     )}
 
@@ -1660,1445 +1554,15 @@ export const StudySessionModal: React.FC<StudySessionModalProps> = ({
           {/* PHASE 3: SESSION SUMMARY VIEW */}
           {/* ============================================================== */}
           {phase === "SUMMARY" && (
-            <div style={styles.summaryContainer}>
-              {loadingSummary ? (
-                <div style={styles.loadingBox}>
-                  <p>세션 학습 종합 데이터를 집계하고 있습니다...</p>
-                </div>
-              ) : summary ? (
-                <div>
-                  {/* RESULT HERO */}
-                  <div style={styles.summaryHero}>
-                    <div style={styles.trophyIconBox}>
-                      <Trophy size={42} color="#F59E0B" />
-                    </div>
-                    <h2 style={styles.summaryTitle}>학습 세션 완료!</h2>
-                    <p style={styles.summarySubtitle}>
-                      총 {summary.session.totalQuestions}문항 중{" "}
-                      {summary.session.correctCount}문항을 맞추셨습니다.
-                    </p>
-                    <div style={styles.accuracyCircle}>
-                      <span style={styles.accuracyNumber}>
-                        {summary.accuracyRate}%
-                      </span>
-                      <span style={styles.accuracyLabel}>최종 정답률</span>
-                    </div>
-                  </div>
-
-                  {/* STATS 4-GRID */}
-                  <div style={styles.summaryGrid}>
-                    <div style={styles.summaryStatCard}>
-                      <span style={styles.statLabel}>정답 문항</span>
-                      <span
-                        style={{
-                          ...styles.statVal,
-                          color: "var(--color-success)",
-                        }}
-                      >
-                        {summary.session.correctCount}개
-                      </span>
-                    </div>
-                    <div style={styles.summaryStatCard}>
-                      <span style={styles.statLabel}>오답 문항</span>
-                      <span
-                        style={{
-                          ...styles.statVal,
-                          color: "var(--color-danger)",
-                        }}
-                      >
-                        {summary.session.wrongCount}개
-                      </span>
-                    </div>
-                    <div style={styles.summaryStatCard}>
-                      <span style={styles.statLabel}>모르겠음 (복습 우선)</span>
-                      <span
-                        style={{
-                          ...styles.statVal,
-                          color: "var(--color-warning)",
-                        }}
-                      >
-                        {summary.session.unknownCount}개
-                      </span>
-                    </div>
-                    <div style={styles.summaryStatCard}>
-                      <span style={styles.statLabel}>평균 풀이 시간</span>
-                      <span style={styles.statVal}>
-                        {summary.averageTimeSpentSeconds}초/문항
-                      </span>
-                    </div>
-                  </div>
-
-                  {/* QUESTION-BY-QUESTION REVIEW LIST */}
-                  <div style={styles.reviewListSection}>
-                    <h3 style={styles.reviewListTitle}>
-                      세션 문항별 풀이 결과
-                    </h3>
-                    <div style={styles.reviewCards}>
-                      {summary.attempts.map((item, idx) => {
-                        const q = summary.questions.find(
-                          (x) => x.id === item.questionId,
-                        );
-                        return (
-                          <div
-                            key={item.id}
-                            style={{
-                              ...styles.reviewCard,
-                              borderLeftColor: item.isUnknown
-                                ? "var(--color-warning)"
-                                : item.isCorrect
-                                  ? "var(--color-success)"
-                                  : "var(--color-danger)",
-                            }}
-                          >
-                            <div style={styles.reviewCardHeader}>
-                              <span style={styles.reviewQIndex}>
-                                Q.{idx + 1}
-                              </span>
-                              <span style={styles.reviewQSubj}>
-                                {q?.subject || "과목"}
-                              </span>
-                              <span style={styles.reviewQCat}>
-                                {q?.category || "카테고리"}
-                              </span>
-                              <div style={styles.reviewStatusBadge}>
-                                {item.isUnknown ? (
-                                  <span
-                                    style={{ color: "var(--color-warning)" }}
-                                  >
-                                    ? 모르겠음
-                                  </span>
-                                ) : item.isCorrect ? (
-                                  <span
-                                    style={{ color: "var(--color-success)" }}
-                                  >
-                                    ✓ 정답
-                                  </span>
-                                ) : (
-                                  <span
-                                    style={{ color: "var(--color-danger)" }}
-                                  >
-                                    ✕ 오답
-                                  </span>
-                                )}
-                              </div>
-                            </div>
-
-                            <div style={styles.reviewQText}>
-                              {q?.question || "문항 정보"}
-                            </div>
-
-                            <div style={styles.reviewAnswersRow}>
-                              <div style={styles.reviewAnswerItem}>
-                                <span style={styles.reviewAnswerKey}>
-                                  나의 답:
-                                </span>
-                                <span style={styles.reviewAnswerVal}>
-                                  {Array.isArray(item.userAnswer)
-                                    ? item.userAnswer.join(", ")
-                                    : item.userAnswer || "(모르겠음)"}
-                                </span>
-                              </div>
-                              <div style={styles.reviewAnswerItem}>
-                                <span
-                                  style={{
-                                    ...styles.reviewAnswerKey,
-                                    color: "var(--color-success)",
-                                  }}
-                                >
-                                  기준 정답:
-                                </span>
-                                <strong
-                                  style={{ color: "var(--color-success)" }}
-                                >
-                                  {q?.groundTruthAnswer
-                                    ? Array.isArray(q.groundTruthAnswer)
-                                      ? q.groundTruthAnswer.join(", ")
-                                      : q.groundTruthAnswer
-                                    : "(정보 없음)"}
-                                </strong>
-                              </div>
-                            </div>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  </div>
-
-                  {/* SUMMARY ACTION BUTTONS */}
-                  <div style={styles.summaryActionRow}>
-                    <button
-                      type="button"
-                      onClick={() => setPhase("CONFIG")}
-                      style={styles.newSessionBtn}
-                    >
-                      <RotateCcw size={18} />
-                      <span>새 학습 세션 시작</span>
-                    </button>
-                    <button
-                      type="button"
-                      onClick={onClose}
-                      style={styles.doneBtn}
-                    >
-                      <span>문제 브라우저로 돌아가기</span>
-                    </button>
-                  </div>
-                </div>
-              ) : (
-                <div style={styles.errorAlert}>
-                  세션 요약 정보를 불러오지 못했습니다.
-                </div>
-              )}
-            </div>
+            <StudySessionSummary
+              summary={summary}
+              loadingSummary={loadingSummary}
+              onRestart={() => setPhase("CONFIG")}
+              onClose={onClose}
+            />
           )}
         </div>
       </div>
     </div>
   );
-};
-
-// ============================================================================
-// STYLES
-// ============================================================================
-const styles: Record<string, React.CSSProperties> = {
-  overlay: {
-    position: "fixed",
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    backgroundColor: "rgba(15, 23, 42, 0.85)",
-    backdropFilter: "blur(6px)",
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-    zIndex: 1000,
-    padding: "24px",
-  },
-  modal: {
-    backgroundColor: "#0F172A",
-    border: "1px solid #334155",
-    borderRadius: "16px",
-    width: "100%",
-    maxWidth: "1000px",
-    maxHeight: "92vh",
-    display: "flex",
-    flexDirection: "column",
-    boxShadow: "0 25px 50px -12px rgba(0, 0, 0, 0.7)",
-    overflow: "hidden",
-  },
-  topBar: {
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "space-between",
-    padding: "16px 24px",
-    backgroundColor: "#1E293B",
-    borderBottom: "1px solid #334155",
-  },
-  topBarLeft: {
-    display: "flex",
-    alignItems: "center",
-    gap: "12px",
-  },
-  sessionBadge: {
-    display: "flex",
-    alignItems: "center",
-    gap: "6px",
-    backgroundColor: "rgba(245, 158, 11, 0.15)",
-    color: "#F59E0B",
-    fontSize: "12px",
-    fontWeight: 600,
-    padding: "4px 10px",
-    borderRadius: "20px",
-  },
-  topBarTitle: {
-    fontSize: "16px",
-    fontWeight: 600,
-    color: "#F8FAFC",
-  },
-  topBarRight: {
-    display: "flex",
-    alignItems: "center",
-    gap: "16px",
-  },
-  timerBadge: {
-    display: "flex",
-    alignItems: "center",
-    gap: "6px",
-    fontSize: "14px",
-    fontFamily: "monospace",
-    fontWeight: 700,
-    color: "#E2E8F0",
-    backgroundColor: "#0F172A",
-    padding: "4px 12px",
-    borderRadius: "6px",
-    border: "1px solid #334155",
-  },
-  closeBtn: {
-    color: "#94A3B8",
-    cursor: "pointer",
-    padding: "6px",
-    borderRadius: "6px",
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  progressContainer: {
-    padding: "12px 24px 8px 24px",
-    backgroundColor: "#1E293B",
-    borderBottom: "1px solid #334155",
-  },
-  progressInfo: {
-    display: "flex",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: "8px",
-    fontSize: "13px",
-  },
-  progressText: {
-    color: "#CBD5E1",
-  },
-  scoreTally: {
-    display: "flex",
-    gap: "16px",
-    fontSize: "12px",
-    fontWeight: 600,
-  },
-  progressBarTrack: {
-    width: "100%",
-    height: "6px",
-    backgroundColor: "#334155",
-    borderRadius: "3px",
-    overflow: "hidden",
-  },
-  progressBarFill: {
-    height: "100%",
-    backgroundColor: "#3B82F6",
-    transition: "width 0.3s ease-in-out",
-  },
-  bodyContent: {
-    padding: "28px",
-    overflowY: "auto",
-    flex: 1,
-  },
-
-  // CONFIG STYLES
-  configContainer: {
-    maxWidth: "650px",
-    margin: "0 auto",
-  },
-  configHeader: {
-    textAlign: "center",
-    marginBottom: "28px",
-  },
-  configTitle: {
-    fontSize: "24px",
-    fontWeight: 700,
-    color: "#F8FAFC",
-    marginBottom: "8px",
-  },
-  configSubtitle: {
-    fontSize: "14px",
-    color: "#94A3B8",
-  },
-  configCard: {
-    backgroundColor: "#1E293B",
-    border: "1px solid #334155",
-    borderRadius: "12px",
-    padding: "24px",
-    display: "flex",
-    flexDirection: "column",
-    gap: "20px",
-  },
-  formGroup: {
-    display: "flex",
-    flexDirection: "column",
-    gap: "8px",
-  },
-  label: {
-    fontSize: "13px",
-    fontWeight: 600,
-    color: "#CBD5E1",
-  },
-  inputField: {
-    backgroundColor: "#0F172A",
-    border: "1px solid #334155",
-    borderRadius: "8px",
-    padding: "10px 14px",
-    color: "#F8FAFC",
-    fontSize: "14px",
-    outline: "none",
-  },
-  selectField: {
-    backgroundColor: "#0F172A",
-    border: "1px solid #334155",
-    borderRadius: "8px",
-    padding: "10px 14px",
-    color: "#F8FAFC",
-    fontSize: "14px",
-    outline: "none",
-  },
-  countBtnRow: {
-    display: "grid",
-    gridTemplateColumns: "repeat(4, 1fr)",
-    gap: "10px",
-  },
-  countBtn: {
-    padding: "10px",
-    borderRadius: "8px",
-    border: "1px solid",
-    fontSize: "14px",
-    fontWeight: 600,
-    cursor: "pointer",
-    textAlign: "center",
-    transition: "all 0.15s ease",
-  },
-  infoCallout: {
-    backgroundColor: "rgba(59, 130, 246, 0.08)",
-    border: "1px solid rgba(59, 130, 246, 0.25)",
-    borderRadius: "8px",
-    padding: "14px",
-    display: "flex",
-    gap: "12px",
-    fontSize: "13px",
-    color: "#CBD5E1",
-    lineHeight: "1.6",
-  },
-  infoCalloutText: {
-    display: "flex",
-    flexDirection: "column",
-    gap: "6px",
-  },
-  configActionRow: {
-    display: "flex",
-    justifyContent: "flex-end",
-    gap: "12px",
-    marginTop: "12px",
-  },
-  cancelBtn: {
-    padding: "10px 20px",
-    borderRadius: "8px",
-    backgroundColor: "#334155",
-    color: "#F8FAFC",
-    fontSize: "14px",
-    fontWeight: 600,
-    cursor: "pointer",
-  },
-  startBtn: {
-    padding: "10px 24px",
-    borderRadius: "8px",
-    backgroundColor: "#3B82F6",
-    color: "#FFFFFF",
-    fontSize: "14px",
-    fontWeight: 600,
-    cursor: "pointer",
-    display: "flex",
-    alignItems: "center",
-    gap: "8px",
-  },
-
-  // PRACTICE STYLES
-  practiceContainer: {
-    display: "flex",
-    flexDirection: "column",
-    gap: "20px",
-    maxWidth: "900px",
-    margin: "0 auto",
-  },
-  qMetaRow: {
-    display: "flex",
-    alignItems: "center",
-    gap: "8px",
-    flexWrap: "wrap",
-  },
-  qSubjectBadge: {
-    backgroundColor: "rgba(59, 130, 246, 0.15)",
-    color: "#3B82F6",
-    fontSize: "12px",
-    fontWeight: 600,
-    padding: "4px 10px",
-    borderRadius: "4px",
-  },
-  qCategoryBadge: {
-    backgroundColor: "#334155",
-    color: "#E2E8F0",
-    fontSize: "12px",
-    padding: "4px 8px",
-    borderRadius: "4px",
-  },
-  qTypeBadge: {
-    backgroundColor: "#1E293B",
-    border: "1px solid #334155",
-    color: "#94A3B8",
-    fontSize: "11px",
-    fontWeight: 600,
-    padding: "3px 8px",
-    borderRadius: "4px",
-  },
-  qDiffBadge: {
-    fontSize: "12px",
-    fontWeight: 600,
-  },
-  qSourceBadge: {
-    fontSize: "11px",
-    color: "#94A3B8",
-    marginLeft: "auto",
-  },
-  statementBox: {
-    display: "flex",
-    gap: "16px",
-    backgroundColor: "#1E293B",
-    padding: "20px",
-    borderRadius: "12px",
-    border: "1px solid #334155",
-  },
-  qIndexIndicator: {
-    fontSize: "20px",
-    fontWeight: 800,
-    color: "#3B82F6",
-    flexShrink: 0,
-  },
-  qText: {
-    fontSize: "17px",
-    color: "#F8FAFC",
-    lineHeight: 1.7,
-    whiteSpace: "pre-wrap",
-  },
-  codeContainer: {
-    backgroundColor: "#0A0F1D",
-    border: "1px solid #1E293B",
-    borderRadius: "8px",
-    overflow: "hidden",
-  },
-  codeHeader: {
-    display: "flex",
-    justifyContent: "space-between",
-    alignItems: "center",
-    padding: "8px 14px",
-    backgroundColor: "#111827",
-    borderBottom: "1px solid #1E293B",
-  },
-  codeLangBadge: {
-    fontSize: "12px",
-    fontWeight: 700,
-    color: "#38BDF8",
-    fontFamily: "monospace",
-  },
-  copyCodeBtn: {
-    display: "flex",
-    alignItems: "center",
-    gap: "6px",
-    fontSize: "12px",
-    color: "#94A3B8",
-    cursor: "pointer",
-  },
-  codePre: {
-    padding: "16px",
-    margin: 0,
-    fontSize: "14px",
-    fontFamily: 'Consolas, Monaco, "Courier New", monospace',
-    color: "#E2E8F0",
-    lineHeight: 1.6,
-    overflowX: "auto",
-  },
-  codeAnatomyBox: {
-    marginTop: "12px",
-    borderRadius: "8px",
-    backgroundColor: "#0F172A",
-    border: "1px solid #1E293B",
-    overflow: "hidden",
-  },
-  codeAnatomyToggleBtn: {
-    width: "100%",
-    display: "flex",
-    alignItems: "center",
-    gap: "8px",
-    padding: "12px 16px",
-    backgroundColor: "rgba(255, 255, 255, 0.02)",
-    border: "none",
-    color: "#93C5FD",
-    fontSize: "13px",
-    fontWeight: 600,
-    cursor: "pointer",
-    textAlign: "left",
-  },
-  codeAnatomyList: {
-    padding: "12px 16px",
-    display: "flex",
-    flexDirection: "column",
-    gap: "8px",
-    borderTop: "1px solid #1E293B",
-  },
-  codeAnatomyItem: {
-    padding: "10px 12px",
-    borderRadius: "6px",
-    border: "1px solid",
-    cursor: "pointer",
-    transition: "background-color 0.15s",
-  },
-  codeAnatomyItemHeader: {
-    display: "flex",
-    alignItems: "center",
-    gap: "10px",
-    marginBottom: "6px",
-  },
-  codeLineBadge: {
-    fontSize: "11px",
-    fontWeight: 700,
-    padding: "2px 6px",
-    borderRadius: "4px",
-    backgroundColor: "#1E293B",
-    color: "#38BDF8",
-    fontFamily: "monospace",
-  },
-  codeLineText: {
-    fontSize: "13px",
-    color: "#E2E8F0",
-    fontFamily: "Consolas, Monaco, monospace",
-  },
-  codeExplanationText: {
-    fontSize: "13px",
-    color: "#94A3B8",
-    margin: "0 0 6px 0",
-    lineHeight: 1.5,
-  },
-  traceTag: {
-    fontSize: "12px",
-    padding: "4px 8px",
-    borderRadius: "4px",
-    backgroundColor: "rgba(56, 189, 248, 0.1)",
-    color: "#38BDF8",
-    marginTop: "4px",
-    display: "inline-block",
-  },
-  traceLabel: {
-    fontWeight: 700,
-  },
-  hintContainer: {
-    display: "flex",
-    flexDirection: "column",
-    gap: "8px",
-  },
-  hintToggleBtn: {
-    display: "inline-flex",
-    alignItems: "center",
-    gap: "8px",
-    fontSize: "13px",
-    color: "#F59E0B",
-    cursor: "pointer",
-    alignSelf: "flex-start",
-    padding: "4px 8px",
-    borderRadius: "4px",
-    backgroundColor: "rgba(245, 158, 11, 0.1)",
-  },
-  hintBox: {
-    backgroundColor: "rgba(245, 158, 11, 0.08)",
-    border: "1px dashed rgba(245, 158, 11, 0.3)",
-    borderRadius: "8px",
-    padding: "12px 16px",
-    display: "flex",
-    alignItems: "center",
-    gap: "12px",
-    fontSize: "13px",
-  },
-  progressiveHintItem: {
-    display: "flex",
-    alignItems: "flex-start",
-    gap: "10px",
-    padding: "8px 12px",
-    backgroundColor: "rgba(245, 158, 11, 0.08)",
-    borderRadius: "6px",
-    border: "1px solid rgba(245, 158, 11, 0.2)",
-  },
-  hintBadge: {
-    fontSize: "11px",
-    fontWeight: 700,
-    padding: "2px 6px",
-    borderRadius: "4px",
-    backgroundColor: "#F59E0B",
-    color: "#000000",
-    flexShrink: 0,
-  },
-  hintContentText: {
-    fontSize: "13px",
-    color: "#F8FAFC",
-    lineHeight: 1.5,
-  },
-  hintLabel: {
-    color: "#F59E0B",
-    fontWeight: 600,
-  },
-  hintKeywords: {
-    display: "flex",
-    gap: "8px",
-    flexWrap: "wrap",
-  },
-  hintKeywordTag: {
-    backgroundColor: "#1E293B",
-    padding: "3px 8px",
-    borderRadius: "4px",
-    color: "#CBD5E1",
-    fontSize: "12px",
-  },
-
-  // INPUT SECTION
-  inputSection: {
-    backgroundColor: "#1E293B",
-    border: "1px solid #334155",
-    borderRadius: "12px",
-    padding: "24px",
-    display: "flex",
-    flexDirection: "column",
-    gap: "16px",
-  },
-  inputHeader: {
-    display: "flex",
-    justifyContent: "space-between",
-    alignItems: "center",
-  },
-  inputLabel: {
-    fontSize: "14px",
-    fontWeight: 600,
-    color: "#94A3B8",
-  },
-  inputsGrid: {
-    display: "flex",
-    flexDirection: "column",
-    gap: "12px",
-  },
-  singleInputRow: {
-    display: "flex",
-    alignItems: "center",
-    gap: "12px",
-  },
-  inputNumberBadge: {
-    fontSize: "14px",
-    fontWeight: 700,
-    color: "#3B82F6",
-    width: "28px",
-    flexShrink: 0,
-  },
-  textInput: {
-    flex: 1,
-    backgroundColor: "#0F172A",
-    border: "2px solid #334155",
-    borderRadius: "8px",
-    padding: "14px 16px",
-    color: "#F8FAFC",
-    fontSize: "16px",
-    fontWeight: 500,
-    outline: "none",
-    transition: "border-color 0.15s ease",
-  },
-  actionBtnRow: {
-    display: "flex",
-    justifyContent: "space-between",
-    alignItems: "center",
-    gap: "12px",
-    marginTop: "8px",
-  },
-  unknownBtn: {
-    display: "flex",
-    alignItems: "center",
-    gap: "8px",
-    padding: "12px 20px",
-    borderRadius: "8px",
-    backgroundColor: "rgba(245, 158, 11, 0.15)",
-    border: "1px solid rgba(245, 158, 11, 0.3)",
-    color: "#F59E0B",
-    fontSize: "15px",
-    fontWeight: 600,
-    cursor: "pointer",
-    transition: "all 0.15s ease",
-  },
-  revealBtn: {
-    display: "flex",
-    alignItems: "center",
-    gap: "8px",
-    padding: "12px 20px",
-    borderRadius: "8px",
-    backgroundColor: "rgba(99, 102, 241, 0.15)",
-    border: "1px solid rgba(99, 102, 241, 0.3)",
-    color: "#818CF8",
-    fontSize: "15px",
-    fontWeight: 600,
-    cursor: "pointer",
-    transition: "all 0.15s ease",
-  },
-  submitBtn: {
-    display: "flex",
-    alignItems: "center",
-    gap: "8px",
-    padding: "12px 28px",
-    borderRadius: "8px",
-    backgroundColor: "#3B82F6",
-    color: "#FFFFFF",
-    fontSize: "15px",
-    fontWeight: 600,
-    cursor: "pointer",
-    transition: "all 0.15s ease",
-  },
-
-  // ACTIVE RECALL REVIEW STATE CARD
-  reviewStateCard: {
-    backgroundColor: "rgba(99, 102, 241, 0.08)",
-    border: "1px solid rgba(99, 102, 241, 0.25)",
-    borderRadius: "10px",
-    padding: "16px 20px",
-    display: "flex",
-    flexDirection: "column",
-    gap: "12px",
-  },
-  reviewStateHeader: {
-    display: "flex",
-    alignItems: "center",
-    gap: "10px",
-  },
-  reviewStateTitle: {
-    fontSize: "14px",
-    fontWeight: 700,
-    color: "#A5B4FC",
-  },
-  reviewStateBadge: {
-    fontSize: "11px",
-    fontWeight: 700,
-    padding: "2px 8px",
-    borderRadius: "4px",
-    backgroundColor: "rgba(99, 102, 241, 0.2)",
-    color: "#C7D2FE",
-    marginLeft: "auto",
-  },
-  reviewStateGrid: {
-    display: "grid",
-    gridTemplateColumns: "repeat(3, 1fr)",
-    gap: "12px",
-  },
-  reviewStateItem: {
-    display: "flex",
-    flexDirection: "column",
-    gap: "4px",
-    backgroundColor: "rgba(15, 23, 42, 0.4)",
-    padding: "10px 12px",
-    borderRadius: "8px",
-    border: "1px solid rgba(255, 255, 255, 0.05)",
-  },
-  reviewStateItemLabel: {
-    fontSize: "11px",
-    color: "#94A3B8",
-  },
-  reviewStateItemValue: {
-    fontSize: "14px",
-    fontWeight: 700,
-    color: "#F8FAFC",
-  },
-
-  // FEEDBACK SECTION
-  feedbackSection: {
-    display: "flex",
-    flexDirection: "column",
-    gap: "20px",
-  },
-  feedbackBanner: {
-    display: "flex",
-    gap: "16px",
-    alignItems: "center",
-    padding: "18px 24px",
-    borderRadius: "12px",
-    border: "1.5px solid",
-  },
-  bannerIconBox: {
-    flexShrink: 0,
-  },
-  bannerContent: {
-    display: "flex",
-    flexDirection: "column",
-    gap: "4px",
-  },
-  bannerTitle: {
-    fontSize: "18px",
-    fontWeight: 700,
-  },
-  bannerDesc: {
-    fontSize: "14px",
-    color: "#E2E8F0",
-  },
-  fuzzyNotice: {
-    color: "#38BDF8",
-    marginLeft: "8px",
-    fontSize: "12px",
-  },
-  compareContainer: {
-    display: "grid",
-    gridTemplateColumns: "1fr 1fr",
-    gap: "16px",
-  },
-  compareCard: {
-    backgroundColor: "#1E293B",
-    border: "1px solid #334155",
-    borderRadius: "8px",
-    padding: "16px",
-    display: "flex",
-    flexDirection: "column",
-    gap: "6px",
-  },
-  compareLabel: {
-    fontSize: "12px",
-    fontWeight: 600,
-    color: "#94A3B8",
-  },
-  userAnswerVal: {
-    fontSize: "16px",
-    fontWeight: 600,
-    color: "#F8FAFC",
-    wordBreak: "break-all",
-  },
-  groundTruthVal: {
-    fontSize: "16px",
-    fontWeight: 700,
-    color: "var(--color-success)",
-    wordBreak: "break-all",
-  },
-  groundTruthBox: {
-    backgroundColor: "rgba(16, 185, 129, 0.05)",
-    border: "1px solid rgba(16, 185, 129, 0.3)",
-    borderRadius: "10px",
-    padding: "18px",
-    display: "flex",
-    flexDirection: "column",
-    gap: "10px",
-  },
-  boxTitleRow: {
-    display: "flex",
-    alignItems: "center",
-    gap: "8px",
-  },
-  groundTruthTitle: {
-    fontSize: "14px",
-    fontWeight: 700,
-    color: "var(--color-success)",
-  },
-  explanationText: {
-    fontSize: "14px",
-    color: "#CBD5E1",
-    lineHeight: 1.7,
-    margin: 0,
-  },
-  aiBox: {
-    backgroundColor: "rgba(168, 85, 247, 0.05)",
-    border: "1px solid rgba(168, 85, 247, 0.3)",
-    borderRadius: "10px",
-    padding: "18px",
-    display: "flex",
-    flexDirection: "column",
-    gap: "10px",
-  },
-  aiTitle: {
-    fontSize: "14px",
-    fontWeight: 700,
-    color: "#A855F7",
-  },
-  aiNoticeBadge: {
-    fontSize: "11px",
-    color: "#94A3B8",
-    marginLeft: "auto",
-  },
-  variationNoteBox: {
-    marginTop: "6px",
-    padding: "10px 12px",
-    borderRadius: "6px",
-    backgroundColor: "rgba(168, 85, 247, 0.1)",
-    fontSize: "12px",
-    color: "#E9D5FF",
-    lineHeight: 1.5,
-  },
-  nextActionRow: {
-    display: "flex",
-    justifyContent: "flex-end",
-    marginTop: "10px",
-  },
-  nextBtn: {
-    display: "flex",
-    alignItems: "center",
-    gap: "10px",
-    padding: "14px 32px",
-    borderRadius: "8px",
-    backgroundColor: "#3B82F6",
-    color: "#FFFFFF",
-    fontSize: "16px",
-    fontWeight: 700,
-    cursor: "pointer",
-    boxShadow: "0 4px 14px rgba(59, 130, 246, 0.4)",
-  },
-
-  // SUMMARY STYLES
-  summaryContainer: {
-    display: "flex",
-    flexDirection: "column",
-    gap: "28px",
-    maxWidth: "800px",
-    margin: "0 auto",
-  },
-  summaryHero: {
-    display: "flex",
-    flexDirection: "column",
-    alignItems: "center",
-    textAlign: "center",
-    gap: "12px",
-    padding: "24px 0",
-  },
-  trophyIconBox: {
-    width: "72px",
-    height: "72px",
-    borderRadius: "36px",
-    backgroundColor: "rgba(245, 158, 11, 0.15)",
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-    marginBottom: "8px",
-  },
-  summaryTitle: {
-    fontSize: "26px",
-    fontWeight: 800,
-    color: "#F8FAFC",
-  },
-  summarySubtitle: {
-    fontSize: "15px",
-    color: "#94A3B8",
-  },
-  accuracyCircle: {
-    display: "flex",
-    flexDirection: "column",
-    alignItems: "center",
-    justifyContent: "center",
-    width: "130px",
-    height: "130px",
-    borderRadius: "65px",
-    backgroundColor: "#1E293B",
-    border: "3px solid #3B82F6",
-    marginTop: "12px",
-  },
-  accuracyNumber: {
-    fontSize: "32px",
-    fontWeight: 800,
-    color: "#3B82F6",
-  },
-  accuracyLabel: {
-    fontSize: "12px",
-    color: "#94A3B8",
-  },
-  summaryGrid: {
-    display: "grid",
-    gridTemplateColumns: "repeat(4, 1fr)",
-    gap: "14px",
-  },
-  summaryStatCard: {
-    backgroundColor: "#1E293B",
-    border: "1px solid #334155",
-    borderRadius: "10px",
-    padding: "16px",
-    display: "flex",
-    flexDirection: "column",
-    gap: "6px",
-    textAlign: "center",
-  },
-  statLabel: {
-    fontSize: "12px",
-    color: "#94A3B8",
-    fontWeight: 600,
-  },
-  statVal: {
-    fontSize: "20px",
-    fontWeight: 700,
-    color: "#F8FAFC",
-  },
-  reviewListSection: {
-    display: "flex",
-    flexDirection: "column",
-    gap: "14px",
-  },
-  reviewListTitle: {
-    fontSize: "16px",
-    fontWeight: 700,
-    color: "#F8FAFC",
-  },
-  reviewCards: {
-    display: "flex",
-    flexDirection: "column",
-    gap: "10px",
-  },
-  reviewCard: {
-    backgroundColor: "#1E293B",
-    border: "1px solid #334155",
-    borderLeftWidth: "5px",
-    borderRadius: "8px",
-    padding: "16px",
-    display: "flex",
-    flexDirection: "column",
-    gap: "10px",
-  },
-  reviewCardHeader: {
-    display: "flex",
-    alignItems: "center",
-    gap: "8px",
-    fontSize: "13px",
-  },
-  reviewQIndex: {
-    fontWeight: 700,
-    color: "#3B82F6",
-  },
-  reviewQSubj: {
-    color: "#94A3B8",
-  },
-  reviewQCat: {
-    color: "#CBD5E1",
-    fontWeight: 500,
-  },
-  reviewStatusBadge: {
-    marginLeft: "auto",
-    fontWeight: 700,
-    fontSize: "12px",
-  },
-  reviewQText: {
-    fontSize: "14px",
-    color: "#F8FAFC",
-    lineHeight: 1.5,
-  },
-  reviewAnswersRow: {
-    display: "flex",
-    gap: "24px",
-    fontSize: "13px",
-    backgroundColor: "#0F172A",
-    padding: "10px 14px",
-    borderRadius: "6px",
-  },
-  reviewAnswerItem: {
-    display: "flex",
-    gap: "6px",
-  },
-  reviewAnswerKey: {
-    color: "#94A3B8",
-  },
-  reviewAnswerVal: {
-    color: "#CBD5E1",
-  },
-  summaryActionRow: {
-    display: "flex",
-    justifyContent: "center",
-    gap: "16px",
-    paddingTop: "16px",
-  },
-  newSessionBtn: {
-    display: "flex",
-    alignItems: "center",
-    gap: "8px",
-    padding: "12px 24px",
-    borderRadius: "8px",
-    backgroundColor: "#3B82F6",
-    color: "#FFFFFF",
-    fontSize: "15px",
-    fontWeight: 600,
-    cursor: "pointer",
-  },
-  doneBtn: {
-    padding: "12px 24px",
-    borderRadius: "8px",
-    backgroundColor: "#334155",
-    color: "#F8FAFC",
-    fontSize: "15px",
-    fontWeight: 600,
-    cursor: "pointer",
-  },
-  errorAlert: {
-    backgroundColor: "rgba(239, 68, 68, 0.15)",
-    border: "1px solid var(--color-danger)",
-    color: "var(--color-danger)",
-    borderRadius: "8px",
-    padding: "12px 16px",
-    fontSize: "14px",
-  },
-  loadingBox: {
-    padding: "48px",
-    textAlign: "center",
-    color: "#94A3B8",
-  },
-
-  // Phase 8 Interactive Code & Hints Styles
-  codeHintText: {
-    fontSize: "11px",
-    color: "#94A3B8",
-  },
-  codeLinesContainer: {
-    display: "flex",
-    flexDirection: "column",
-    backgroundColor: "#0A0F1D",
-  },
-  codeLineRow: {
-    display: "flex",
-    alignItems: "center",
-    padding: "2px 8px",
-    transition: "background-color 0.15s ease",
-  },
-  codeLineNumber: {
-    width: "36px",
-    flexShrink: 0,
-    fontFamily: "monospace",
-    fontSize: "13px",
-    textAlign: "right",
-    paddingRight: "12px",
-    userSelect: "none",
-  },
-  codeLineContent: {
-    margin: 0,
-    padding: 0,
-    fontFamily: 'Consolas, Monaco, "Courier New", monospace',
-    fontSize: "13.5px",
-    color: "#E2E8F0",
-    lineHeight: 1.6,
-    whiteSpace: "pre",
-    flex: 1,
-  },
-  codeLineLoadingTag: {
-    fontSize: "11px",
-    color: "#38BDF8",
-    marginLeft: "auto",
-  },
-  inlineAnatomyCard: {
-    margin: "4px 12px 10px 36px",
-    padding: "12px 16px",
-    backgroundColor: "#0F172A",
-    border: "1.5px solid #38BDF8",
-    borderRadius: "8px",
-    display: "flex",
-    flexDirection: "column",
-    gap: "8px",
-  },
-  inlineAnatomyHeader: {
-    display: "flex",
-    justifyContent: "space-between",
-    alignItems: "center",
-    borderBottom: "1px solid rgba(56, 189, 248, 0.2)",
-    paddingBottom: "6px",
-  },
-  inlineLineSnippet: {
-    fontSize: "12px",
-    color: "#CBD5E1",
-    backgroundColor: "rgba(255, 255, 255, 0.05)",
-    padding: "2px 6px",
-    borderRadius: "4px",
-    marginLeft: "8px",
-  },
-  closeInlineBtn: {
-    background: "none",
-    border: "none",
-    color: "#94A3B8",
-    cursor: "pointer",
-    fontSize: "14px",
-  },
-  inlineLoadingText: {
-    padding: "8px 0",
-    color: "#94A3B8",
-    fontSize: "13px",
-  },
-  inlineAnatomyBody: {
-    display: "flex",
-    flexDirection: "column",
-    gap: "8px",
-    fontSize: "13px",
-    lineHeight: 1.5,
-  },
-  anatomyMeaning: {
-    color: "#E2E8F0",
-  },
-  anatomySyntaxRow: {
-    display: "flex",
-    alignItems: "center",
-    gap: "6px",
-    flexWrap: "wrap",
-  },
-  anatomyLabel: {
-    color: "#94A3B8",
-    fontSize: "12px",
-  },
-  anatomyTag: {
-    backgroundColor: "rgba(56, 189, 248, 0.15)",
-    color: "#38BDF8",
-    padding: "2px 8px",
-    borderRadius: "4px",
-    fontSize: "12px",
-  },
-  anatomyContext: {
-    color: "#CBD5E1",
-    fontSize: "12.5px",
-  },
-  anatomyExamTip: {
-    color: "#FCD34D",
-    backgroundColor: "rgba(245, 158, 11, 0.1)",
-    padding: "6px 10px",
-    borderRadius: "6px",
-    border: "1px solid rgba(245, 158, 11, 0.2)",
-  },
-
-  // AI TUTOR SECTION
-  aiTutorContainer: {
-    backgroundColor: "#1E1B4B",
-    border: "1.5px solid #818CF8",
-    borderRadius: "12px",
-    padding: "20px",
-    display: "flex",
-    flexDirection: "column",
-    gap: "16px",
-  },
-  aiTutorHeader: {
-    display: "flex",
-    justifyContent: "space-between",
-    alignItems: "center",
-  },
-  aiTutorTitle: {
-    fontSize: "16px",
-    fontWeight: 700,
-    color: "#C7D2FE",
-  },
-  aiSourceBadge: {
-    fontSize: "11px",
-    fontWeight: 700,
-    backgroundColor: "#4338CA",
-    color: "#E0E7FF",
-    padding: "2px 8px",
-    borderRadius: "4px",
-  },
-  loadAIBtn: {
-    display: "flex",
-    alignItems: "center",
-    gap: "6px",
-    backgroundColor: "#4F46E5",
-    color: "#FFFFFF",
-    border: "none",
-    borderRadius: "6px",
-    padding: "6px 12px",
-    fontSize: "13px",
-    fontWeight: 600,
-    cursor: "pointer",
-  },
-  aiLoadingBox: {
-    display: "flex",
-    alignItems: "center",
-    gap: "10px",
-    color: "#C7D2FE",
-    fontSize: "14px",
-    padding: "12px",
-  },
-  aiTutorContent: {
-    display: "flex",
-    flexDirection: "column",
-    gap: "14px",
-  },
-  aiSummaryBadge: {
-    fontSize: "15px",
-    fontWeight: 700,
-    color: "#F8FAFC",
-    backgroundColor: "rgba(129, 140, 248, 0.15)",
-    padding: "10px 14px",
-    borderRadius: "8px",
-    border: "1px solid rgba(129, 140, 248, 0.3)",
-  },
-  aiConflictBox: {
-    backgroundColor: "rgba(245, 158, 11, 0.15)",
-    border: "1.5px solid #F59E0B",
-    borderRadius: "8px",
-    padding: "14px",
-  },
-  aiWhyWrongBox: {
-    backgroundColor: "rgba(239, 68, 68, 0.1)",
-    border: "1px solid rgba(239, 68, 68, 0.25)",
-    borderRadius: "8px",
-    padding: "12px",
-  },
-  aiKeyPointBox: {
-    backgroundColor: "rgba(59, 130, 246, 0.1)",
-    border: "1px solid rgba(59, 130, 246, 0.25)",
-    borderRadius: "8px",
-    padding: "12px",
-  },
-  aiCodeTraceBox: {
-    backgroundColor: "rgba(15, 23, 42, 0.7)",
-    border: "1px solid #334155",
-    borderRadius: "8px",
-    padding: "12px",
-  },
-  codeTracePre: {
-    margin: "8px 0 0 0",
-    fontFamily: "monospace",
-    fontSize: "13px",
-    color: "#E2E8F0",
-    lineHeight: 1.6,
-    whiteSpace: "pre-wrap",
-  },
-  aiPitfallsBox: {
-    backgroundColor: "rgba(245, 158, 11, 0.1)",
-    border: "1px solid rgba(245, 158, 11, 0.25)",
-    borderRadius: "8px",
-    padding: "12px",
-  },
-  aiStudyTipsBox: {
-    backgroundColor: "rgba(16, 185, 129, 0.1)",
-    border: "1px solid rgba(16, 185, 129, 0.25)",
-    borderRadius: "8px",
-    padding: "12px",
-  },
-  aiSectionText: {
-    margin: "6px 0 0 0",
-    fontSize: "14px",
-    color: "#E2E8F0",
-    lineHeight: 1.6,
-  },
-  variationRow: {
-    display: "flex",
-    justifyContent: "flex-end",
-    marginTop: "6px",
-  },
-  drillStartBtn: {
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: "8px",
-    backgroundColor: "rgba(245, 158, 11, 0.15)",
-    border: "1.5px solid #F59E0B",
-    color: "#FDE68A",
-    borderRadius: "8px",
-    padding: "11px 18px",
-    fontSize: "14px",
-    fontWeight: 700,
-    cursor: "pointer",
-    width: "100%",
-    transition: "all 0.15s ease",
-  },
-  drillSaveContainer: {
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "flex-end",
-    marginTop: "4px",
-  },
-  saveDrillBtn: {
-    display: "flex",
-    alignItems: "center",
-    gap: "6px",
-    backgroundColor: "rgba(16, 185, 129, 0.15)",
-    border: "1px solid #10B981",
-    color: "#A7F3D0",
-    borderRadius: "6px",
-    padding: "8px 14px",
-    fontSize: "13px",
-    fontWeight: 600,
-    cursor: "pointer",
-  },
-  drillSavedBadge: {
-    display: "flex",
-    alignItems: "center",
-    gap: "6px",
-    color: "#10B981",
-    fontSize: "13px",
-    fontWeight: 600,
-    backgroundColor: "rgba(16, 185, 129, 0.1)",
-    padding: "6px 12px",
-    borderRadius: "6px",
-  },
 };

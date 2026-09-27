@@ -7,6 +7,7 @@ import {
   SetStagedStatusRequest,
   CommitBatchResponse,
 } from "@jungcheogi/shared";
+import { apiFetch } from "./http";
 
 export interface BatchDetailResponse {
   batch: ImportBatch;
@@ -17,7 +18,7 @@ export async function parseAndStageImport(
   request: ParseImportRequest,
 ): Promise<{ data: ParseImportResponse | null; error?: string }> {
   try {
-    const res = await fetch("/api/imports/parse", {
+    const res = await apiFetch("/api/imports/parse", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(request),
@@ -44,7 +45,7 @@ export async function fetchImportBatches(): Promise<{
   error?: string;
 }> {
   try {
-    const res = await fetch("/api/imports/batches");
+    const res = await apiFetch("/api/imports/batches");
     if (!res.ok) {
       return { data: null, error: `HTTP ${res.status}: 배치 목록 조회 실패` };
     }
@@ -60,7 +61,7 @@ export async function fetchImportBatchDetail(
   batchId: string,
 ): Promise<{ data: BatchDetailResponse | null; error?: string }> {
   try {
-    const res = await fetch(
+    const res = await apiFetch(
       `/api/imports/batches/${encodeURIComponent(batchId)}`,
     );
     if (!res.ok) {
@@ -82,7 +83,7 @@ export async function updateStagedQuestionApi(
   error?: string;
 }> {
   try {
-    const res = await fetch(
+    const res = await apiFetch(
       `/api/imports/questions/${encodeURIComponent(stagedId)}`,
       {
         method: "PATCH",
@@ -118,7 +119,7 @@ export async function setStagedStatusApi(
   error?: string;
 }> {
   try {
-    const res = await fetch(
+    const res = await apiFetch(
       `/api/imports/questions/${encodeURIComponent(stagedId)}/status`,
       {
         method: "POST",
@@ -153,7 +154,7 @@ export async function approveAllStagedApi(
   error?: string;
 }> {
   try {
-    const res = await fetch(
+    const res = await apiFetch(
       `/api/imports/batches/${encodeURIComponent(batchId)}/approve-all`,
       {
         method: "POST",
@@ -183,7 +184,7 @@ export async function commitImportBatchApi(
   batchId: string,
 ): Promise<{ data: CommitBatchResponse | null; error?: string }> {
   try {
-    const res = await fetch(
+    const res = await apiFetch(
       `/api/imports/batches/${encodeURIComponent(batchId)}/commit`,
       {
         method: "POST",
@@ -210,7 +211,7 @@ export async function deleteImportBatchApi(
   batchId: string,
 ): Promise<{ success: boolean; error?: string }> {
   try {
-    const res = await fetch(
+    const res = await apiFetch(
       `/api/imports/batches/${encodeURIComponent(batchId)}`,
       {
         method: "DELETE",

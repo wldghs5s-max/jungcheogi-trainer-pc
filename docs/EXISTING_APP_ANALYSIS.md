@@ -399,7 +399,7 @@ export function normalizeAnswer(ans: string): string {
 ### 1) 사용 모델 및 역할 분리 `[CONFIRMED]`
 
 - **AI 튜터 (`TUTOR_MODELS`)**: 초고속 응답을 위해 `gemini-3.5-flash-lite` 1순위 배치.  
-  우선순위: `gemini-3.5-flash-lite` -> `gemini-3.1-flash-lite` -> `gemini-3.5-flash` -> `gemini-3.6-flash` -> `gemini-3.7-flash` -> `gemini-3.8-flash`.
+  우선순위: `gemini-3.5-flash-lite` -> `gemini-3.5-flash` -> `gemini-3.8-flash`.
 - **문제 생성기 (`GENERATOR_MODELS`)**: 지문의 완성도와 동의어 채점 범위를 위해 고정밀 `gemini-3.8-flash` 1순위 배치.  
   우선순위: `gemini-3.8-flash` -> `gemini-3.5-flash`.
 - **지원 종료 모델 차단**: `gemini-1.5`, `gemini-2.0`, `gemini-2.5` 계열은 정규식(`DISCONTINUED_MODEL_REGEX`)으로 완전히 배제됨.

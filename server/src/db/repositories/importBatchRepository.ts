@@ -331,6 +331,23 @@ export class ImportBatchRepository {
     return this.findStagedById(stagedId);
   }
 
+  public approveQuestionsWithoutErrors(batchId: string): number {
+    const batch = this.findBatchById(batchId);
+    if (!batch) return 0;
+
+    let approved = 0;
+    for (const staged of batch.stagedQuestions) {
+      if (staged.reviewStatus === "COMMITTED") continue;
+      const hasError = (staged.validationIssues || []).some(
+        (issue) => issue.severity === "ERROR",
+      );
+      if (hasError) continue;
+      this.setStagedReviewStatus(staged.id, "APPROVED");
+      approved += 1;
+    }
+    return approved;
+  }
+
   public bulkSetReviewStatus(
     batchId: string,
     targetStatus: StagedReviewStatus,
@@ -409,7 +426,9 @@ export class ImportBatchRepository {
     }
 
     const approvedList = batchInfo.stagedQuestions.filter(
-      (s) => s.reviewStatus === "APPROVED",
+      (s) =>
+        s.reviewStatus === "APPROVED" &&
+        !(s.validationIssues || []).some((issue) => issue.severity === "ERROR"),
     );
 
     if (approvedList.length === 0) {

@@ -1,3 +1,5 @@
+import { CodeLanguage, QuestionType } from "../types/question.js";
+
 /**
  * 정처기 실기 주관식 채점 및 문자열 정규화 모듈
  * (기존 검증된 모바일 앱 로직을 PC 도메인 구조에 맞게 이식 및 확장)
@@ -228,6 +230,72 @@ export function isFuzzyMatch(left: string, right: string): boolean {
   return levenshtein(left, right) <= 1;
 }
 
+export type GradingMode = "TERM" | "NUMERIC_OUTPUT" | "CODE_OUTPUT";
+
+export interface GradeContext {
+  questionType?: QuestionType;
+  language?: CodeLanguage;
+  mode?: GradingMode;
+}
+
+const NUMERIC_TOKEN = "[+-]?(?:\\d+(?:\\.\\d+)?|\\.\\d+)";
+const NUMERIC_OUTPUT_RE = new RegExp(
+  `^${NUMERIC_TOKEN}(?:\\s+${NUMERIC_TOKEN})*$`,
+);
+
+export function looksLikeNumericOutput(value: string): boolean {
+  const compact = normalizeNumericOutput(value);
+  return compact.length > 0 && NUMERIC_OUTPUT_RE.test(compact);
+}
+
+/**
+ * 숫자/코드 출력 허용 차이: 앞뒤 공백·줄바꿈, CRLF→LF, 연속 가로 공백 1칸.
+ * 부호(-), 소수점, 값 사이 공백(경계)은 보존한다.
+ */
+export function normalizeNumericOutput(value: string): string {
+  return String(value ?? "")
+    .replace(/\r\n/g, "\n")
+    .replace(/\r/g, "\n")
+    .trim()
+    .replace(/[ \t]+/g, " ");
+}
+
+/**
+ * 코드 표준출력 비교: 앞뒤 공백·줄바꿈만 제거하고 내부 공백/부호/소수점은 유지한다.
+ */
+export function normalizeCodeOutput(value: string): string {
+  return String(value ?? "")
+    .replace(/\r\n/g, "\n")
+    .replace(/\r/g, "\n")
+    .trim();
+}
+
+export function resolveGradingMode(
+  groundTruthAnswer: string | string[],
+  context?: GradeContext,
+): GradingMode {
+  if (context?.mode) return context.mode;
+  if (context?.questionType === "CODE_TRACE" || context?.questionType === "SQL") {
+    return "CODE_OUTPUT";
+  }
+  if (
+    context?.language === "C" ||
+    context?.language === "JAVA" ||
+    context?.language === "PYTHON" ||
+    context?.language === "SQL"
+  ) {
+    return "CODE_OUTPUT";
+  }
+
+  const samples = Array.isArray(groundTruthAnswer)
+    ? groundTruthAnswer
+    : [String(groundTruthAnswer ?? "")];
+  if (samples.length > 0 && samples.every((item) => looksLikeNumericOutput(item))) {
+    return "NUMERIC_OUTPUT";
+  }
+  return "TERM";
+}
+
 export type MatchType = "EXACT" | "SYNONYM" | "FUZZY_TYPO" | "NONE";
 
 export interface SingleMatchDetail {
@@ -245,7 +313,49 @@ export interface SingleMatchDetail {
 export function checkMatchDetails(
   user: string,
   correct: string,
+  context?: GradeContext,
 ): SingleMatchDetail {
+  const mode = resolveGradingMode(correct, context);
+  if (mode === "NUMERIC_OUTPUT" || mode === "CODE_OUTPUT") {
+    const normUser =
+      mode === "NUMERIC_OUTPUT"
+        ? normalizeNumericOutput(user)
+        : normalizeCodeOutput(user);
+    const normCorrect =
+      mode === "NUMERIC_OUTPUT"
+        ? normalizeNumericOutput(correct)
+        : normalizeCodeOutput(correct);
+
+    if (!normUser || !normCorrect) {
+      return {
+        isMatch: false,
+        matchType: "NONE",
+        needsReview: false,
+        normalizedUser: normUser,
+        feedback: "답안이 비어있습니다.",
+      };
+    }
+
+    if (normUser === normCorrect) {
+      return {
+        isMatch: true,
+        matchType: "EXACT",
+        needsReview: false,
+        normalizedUser: normUser,
+        matchedTarget: normCorrect,
+        feedback: "정답입니다!",
+      };
+    }
+
+    return {
+      isMatch: false,
+      matchType: "NONE",
+      needsReview: false,
+      normalizedUser: normUser,
+      feedback: "오답입니다.",
+    };
+  }
+
   const normUser = normalizeAnswer(user);
   const normCorrect = normalizeAnswer(correct);
 
@@ -316,8 +426,12 @@ export function checkMatchDetails(
 /**
  * 단일 답안 일치 여부 판정 (하위 호환성 유지)
  */
-export function isCloseMatch(user: string, correct: string): boolean {
-  return checkMatchDetails(user, correct).isMatch;
+export function isCloseMatch(
+  user: string,
+  correct: string,
+  context?: GradeContext,
+): boolean {
+  return checkMatchDetails(user, correct, context).isMatch;
 }
 
 export interface ItemMatchResult {
@@ -345,6 +459,7 @@ export function gradeAnswer(
   userAnswer: string | string[],
   groundTruthAnswer: string | string[],
   isUnknown = false,
+  context?: GradeContext,
 ): GradingResult {
   // 1. "모르겠음" 선택 시 즉시 오답 처리 (당일 복습 대상 플래그)
   if (isUnknown) {
@@ -391,7 +506,7 @@ export function gradeAnswer(
     // 만약 사용자가 단일 문자열을 냈고 Ground Truth 후보 중 하나와 일치하면 (동의어 목록으로 제공된 경우)
     if (userArr.length === 1) {
       for (const cand of groundTruthAnswer) {
-        const detail = checkMatchDetails(userArr[0], cand);
+        const detail = checkMatchDetails(userArr[0], cand, context);
         if (detail.isMatch) {
           return {
             isCorrect: true,
@@ -413,7 +528,7 @@ export function gradeAnswer(
     for (let i = 0; i < groundTruthAnswer.length; i++) {
       const expected = groundTruthAnswer[i];
       const provided = userArr[i] || "";
-      const detail = checkMatchDetails(provided, expected);
+      const detail = checkMatchDetails(provided, expected, context);
 
       itemResults.push({
         expected,
@@ -453,7 +568,7 @@ export function gradeAnswer(
 
   // 3. Ground Truth가 단일 정답인 경우
   const userStr = Array.isArray(userAnswer) ? userAnswer.join("") : userAnswer;
-  const detail = checkMatchDetails(userStr, groundTruthAnswer);
+  const detail = checkMatchDetails(userStr, groundTruthAnswer, context);
 
   return {
     isCorrect: detail.isMatch,

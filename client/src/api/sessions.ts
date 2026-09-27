@@ -6,7 +6,9 @@ import {
   StudySession,
   Question,
   GradingResult,
+  GradeContext,
 } from '@jungcheogi/shared';
+import { apiFetch } from './http';
 
 export interface CreateSessionResult {
   session: StudySession;
@@ -22,7 +24,7 @@ export async function createStudySession(
   request: CreateSessionRequest
 ): Promise<{ data: CreateSessionResult | null; error?: string }> {
   try {
-    const res = await fetch('/api/sessions', {
+    const res = await apiFetch('/api/sessions', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(request),
@@ -45,7 +47,7 @@ export async function fetchStudySession(
   sessionId: string
 ): Promise<{ data: GetSessionResult | null; error?: string }> {
   try {
-    const res = await fetch(`/api/sessions/${encodeURIComponent(sessionId)}`);
+    const res = await apiFetch(`/api/sessions/${encodeURIComponent(sessionId)}`);
     if (!res.ok) {
       return { data: null, error: `HTTP ${res.status}: 세션 조회 실패` };
     }
@@ -62,7 +64,7 @@ export async function submitSessionAnswer(
   request: SessionSubmitRequest
 ): Promise<{ data: SessionSubmitResponse | null; error?: string }> {
   try {
-    const res = await fetch(`/api/sessions/${encodeURIComponent(sessionId)}/submit`, {
+    const res = await apiFetch(`/api/sessions/${encodeURIComponent(sessionId)}/submit`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(request),
@@ -83,10 +85,10 @@ export async function submitSessionAnswer(
 
 export async function submitSessionUnknown(
   sessionId: string,
-  payload: { questionId: string; timeSpentMs: number; hintUsed?: boolean }
+  payload: { questionId: string; timeSpentMs: number; hintUsed?: boolean; recordOnly?: boolean }
 ): Promise<{ data: SessionSubmitResponse | null; error?: string }> {
   try {
-    const res = await fetch(`/api/sessions/${encodeURIComponent(sessionId)}/unknown`, {
+    const res = await apiFetch(`/api/sessions/${encodeURIComponent(sessionId)}/unknown`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload),
@@ -109,7 +111,7 @@ export async function fetchSessionSummary(
   sessionId: string
 ): Promise<{ data: SessionSummaryResponse | null; error?: string }> {
   try {
-    const res = await fetch(`/api/sessions/${encodeURIComponent(sessionId)}/summary`);
+    const res = await apiFetch(`/api/sessions/${encodeURIComponent(sessionId)}/summary`);
     if (!res.ok) {
       return { data: null, error: `HTTP ${res.status}: 세션 요약 조회 실패` };
     }
@@ -123,13 +125,20 @@ export async function fetchSessionSummary(
 
 export async function gradeStandaloneAnswer(
   userAnswer: string | string[],
-  groundTruthAnswer: string | string[]
+  groundTruthAnswer: string | string[],
+  context?: GradeContext,
 ): Promise<{ data: GradingResult | null; error?: string }> {
   try {
-    const res = await fetch('/api/grade', {
+    const res = await apiFetch('/api/grade', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ userAnswer, groundTruthAnswer }),
+      body: JSON.stringify({
+        userAnswer,
+        groundTruthAnswer,
+        questionType: context?.questionType,
+        language: context?.language,
+        mode: context?.mode,
+      }),
     });
 
     if (!res.ok) {

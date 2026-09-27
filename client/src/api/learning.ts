@@ -14,6 +14,7 @@ import {
   GeneratedVariation,
   StagedQuestion,
 } from '@jungcheogi/shared';
+import { apiFetch } from './http';
 
 export interface ConceptDetailResult {
   concept: Concept;
@@ -57,7 +58,7 @@ export async function fetchLearningDashboard(
 ): Promise<{ data: LearningDashboardSummary | null; error?: string }> {
   try {
     const url = `/api/learning/dashboard${excludeTestFixtures ? '?excludeTestFixtures=true' : ''}`;
-    const res = await fetch(url);
+    const res = await apiFetch(url);
     if (!res.ok) {
       const errBody = await res.json().catch(() => ({}));
       return { data: null, error: errBody.message || `HTTP ${res.status}: 대시보드 조회 실패` };
@@ -76,7 +77,7 @@ export async function fetchWeakConcepts(
   limit = 5
 ): Promise<{ data: WeakConceptSummary[] | null; error?: string }> {
   try {
-    const res = await fetch(`/api/learning/weak-concepts?limit=${limit}`);
+    const res = await apiFetch(`/api/learning/weak-concepts?limit=${limit}`);
     if (!res.ok) {
       const errBody = await res.json().catch(() => ({}));
       return { data: null, error: errBody.message || `HTTP ${res.status}: 취약 개념 조회 실패` };
@@ -96,7 +97,7 @@ export async function fetchDueReviews(
   limit = 20
 ): Promise<{ data: DueReviewItem[] | null; error?: string }> {
   try {
-    const res = await fetch(`/api/learning/reviews/due?limit=${limit}`);
+    const res = await apiFetch(`/api/learning/reviews/due?limit=${limit}`);
     if (!res.ok) {
       const errBody = await res.json().catch(() => ({}));
       return { data: null, error: errBody.message || `HTTP ${res.status}: 복습 큐 조회 실패` };
@@ -117,7 +118,7 @@ export async function fetchDailyQueueSummary(
 ): Promise<{ data: DailyLearningQueueSummary | null; error?: string }> {
   try {
     const url = `/api/learning/daily-queue${excludeTestFixtures ? '?excludeTestFixtures=true' : ''}`;
-    const res = await fetch(url);
+    const res = await apiFetch(url);
     if (!res.ok) {
       const errBody = await res.json().catch(() => ({}));
       return { data: null, error: errBody.message || `HTTP ${res.status}: 일일 학습 큐 조회 실패` };
@@ -149,7 +150,7 @@ export async function fetchRecommendations(options: {
     if (options.includeDue !== undefined) params.set('includeDue', String(options.includeDue));
     if (options.excludeTestFixtures !== undefined) params.set('excludeTestFixtures', String(options.excludeTestFixtures));
 
-    const res = await fetch(`/api/learning/recommendations?${params.toString()}`);
+    const res = await apiFetch(`/api/learning/recommendations?${params.toString()}`);
     if (!res.ok) {
       const errBody = await res.json().catch(() => ({}));
       return { data: null, error: errBody.message || `HTTP ${res.status}: 추천 문제 조회 실패` };
@@ -168,7 +169,7 @@ export async function createDailySession(
   request: DailySessionRequest = {}
 ): Promise<{ data: SessionCreateResult | null; error?: string }> {
   try {
-    const res = await fetch('/api/learning/daily-session', {
+    const res = await apiFetch('/api/learning/daily-session', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(request),
@@ -191,7 +192,7 @@ export async function createConceptDrillSession(
   request: DrillSessionRequest
 ): Promise<{ data: SessionCreateResult | null; error?: string }> {
   try {
-    const res = await fetch('/api/learning/drill', {
+    const res = await apiFetch('/api/learning/drill', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(request),
@@ -216,7 +217,7 @@ export async function generateMockVariation(params: {
   autoStage?: boolean;
 }): Promise<{ data: MockVariationResult | null; error?: string }> {
   try {
-    const res = await fetch('/api/learning/variations/generate-mock', {
+    const res = await apiFetch('/api/learning/variations/generate-mock', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(params),
@@ -241,7 +242,7 @@ export async function generateVariationApi(params: {
   autoStage?: boolean;
 }): Promise<{ data: any | null; error?: string }> {
   try {
-    const res = await fetch('/api/learning/variations/generate', {
+    const res = await apiFetch('/api/learning/variations/generate', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(params),
@@ -265,7 +266,7 @@ export async function fetchConcepts(
 ): Promise<{ data: Concept[] | null; error?: string }> {
   try {
     const url = subject ? `/api/learning/concepts?subject=${encodeURIComponent(subject)}` : '/api/learning/concepts';
-    const res = await fetch(url);
+    const res = await apiFetch(url);
     if (!res.ok) {
       const errBody = await res.json().catch(() => ({}));
       return { data: null, error: errBody.message || `HTTP ${res.status}: 개념 목록 조회 실패` };
@@ -285,7 +286,7 @@ export async function fetchConceptDetail(
   id: string
 ): Promise<{ data: ConceptDetailResult | null; error?: string }> {
   try {
-    const res = await fetch(`/api/learning/concepts/${encodeURIComponent(id)}`);
+    const res = await apiFetch(`/api/learning/concepts/${encodeURIComponent(id)}`);
     if (!res.ok) {
       const errBody = await res.json().catch(() => ({}));
       return { data: null, error: errBody.message || `HTTP ${res.status}: 개념 상세 조회 실패` };
@@ -304,7 +305,7 @@ export async function fetchQuestionReview(
   questionId: string
 ): Promise<{ data: QuestionReviewResult | null; error?: string }> {
   try {
-    const res = await fetch(`/api/learning/reviews/${encodeURIComponent(questionId)}`);
+    const res = await apiFetch(`/api/learning/reviews/${encodeURIComponent(questionId)}`);
     if (!res.ok) {
       const errBody = await res.json().catch(() => ({}));
       return { data: null, error: errBody.message || `HTTP ${res.status}: 문항 복습 상태 조회 실패` };

@@ -4,15 +4,22 @@ import Database from 'better-sqlite3';
 import { env } from '../config/env';
 
 let dbInstance: Database.Database | null = null;
+let pathOverride: string | null = null;
+
+export function setDatabasePathOverride(dbPath: string | null): void {
+  closeDatabase();
+  pathOverride = dbPath;
+}
 
 export function getDatabase(): Database.Database {
   if (dbInstance) {
     return dbInstance;
   }
 
-  const dbPath = path.isAbsolute(env.DATABASE_PATH)
-    ? env.DATABASE_PATH
-    : path.resolve(process.cwd(), env.DATABASE_PATH);
+  const rawPath = pathOverride || env.DATABASE_PATH;
+  const dbPath = path.isAbsolute(rawPath)
+    ? rawPath
+    : path.resolve(process.cwd(), rawPath);
 
   // Ensure database directory exists
   const dbDir = path.dirname(dbPath);

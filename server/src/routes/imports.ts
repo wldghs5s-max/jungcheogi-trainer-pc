@@ -190,7 +190,7 @@ export async function importRoutes(fastify: FastifyInstance) {
 
   /**
    * 6. POST /api/imports/batches/:id/approve-all
-   * 배치 내 에러가 없는 모든 문항 일괄 승인
+   * 배치 내 검증 ERROR가 없는 문항만 일괄 승인
    */
   fastify.post(
     "/api/imports/batches/:id/approve-all",
@@ -209,7 +209,7 @@ export async function importRoutes(fastify: FastifyInstance) {
         });
       }
 
-      batchRepo.bulkSetReviewStatus(id, "APPROVED");
+      batchRepo.approveQuestionsWithoutErrors(id);
       const refreshed = batchRepo.findBatchById(id);
 
       return reply.status(200).send(refreshed);

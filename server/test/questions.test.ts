@@ -6,9 +6,11 @@ import { QuestionRepository } from '../src/db/repositories/questionRepository';
 import { seedFixtureQuestions } from '../src/db/seeder';
 import { BaseQuestionValidator } from '../src/db/importers/baseImporter';
 import { Question } from '@jungcheogi/shared';
+import { setupIsolatedTestDb } from './helpers/testDb';
 
 async function testQuestionsDomainAndApi() {
   console.log('=== Phase 2: 문제 도메인 및 API 종합 검증 테스트 시작 ===\n');
+  const isolated = setupIsolatedTestDb({ seed: false });
 
   // 1. 마이그레이션 실행
   runMigrations();
@@ -195,6 +197,7 @@ async function testQuestionsDomainAndApi() {
 
   await app.close();
   closeDatabase();
+  isolated.cleanup();
 
   console.log('\n🎉 Phase 2: 문제 도메인, 필터링 API, 계층 관계, Import 구조 테스트 전체 통과!');
 }

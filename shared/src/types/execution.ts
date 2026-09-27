@@ -6,13 +6,16 @@ export type CodeExecutionStatus =
   | 'RUNTIME_ERROR'
   | 'TIMEOUT'
   | 'RESTRICTED' // 악성 시스템 콜 또는 보안 정책 위반으로 차단
-  | 'UNSUPPORTED_LANGUAGE';
+  | 'UNSUPPORTED_LANGUAGE'
+  | 'UNAVAILABLE'; // 격리 실행 환경이 없어 검증 불가
 
 export interface CodeExecutionRequest {
   language: CodeLanguage;
   code: string;
   stdin?: string;
   timeoutMs?: number; // 기본값: 2000ms
+  /** 호스트 직접 실행. 기본 false. 격리 샌드박스가 없을 때 생성 코드에는 사용하지 않는다. */
+  allowHostExecution?: boolean;
 }
 
 /**

@@ -13,11 +13,13 @@ import { QuestionRepository } from "../src/db/repositories/questionRepository.js
 import { ImportBatchRepository } from "../src/db/repositories/importBatchRepository.js";
 import { buildApp } from "../src/app.js";
 import { Question, normalizeVariationType } from "@jungcheogi/shared";
+import { setupIsolatedTestDb } from "./helpers/testDb.js";
 
 async function runAIEngineTests() {
   console.log(
     "=== Phase 8: AI 학습 엔진 및 Gemini 3.5/3.8 모델 연동 테스트 시작 ===\n",
   );
+  const isolated = setupIsolatedTestDb({ seed: false });
 
   // 1. 모델 정책 및 정규식 검증
   console.log("--- 1. Gemini 모델 지원 정책 및 폐기 모델 필터링 검증 ---");
@@ -52,6 +54,11 @@ async function runAIEngineTests() {
     "gemini-3.8-flash",
     "변형 문제 고정밀 추론 최우선 모델은 gemini-3.8-flash 이어야 함",
   );
+  assert.deepStrictEqual(TUTOR_MODELS, [
+    "gemini-3.5-flash-lite",
+    "gemini-3.5-flash",
+    "gemini-3.8-flash",
+  ]);
   console.log("OK   Gemini 1.5/2.0 차단 및 3.5/3.8 듀얼 모델 정책 검증 통과");
 
   // 1-2. 변형 타입 및 별칭(Alias) 하위 호환성 정규화 검증
@@ -332,6 +339,7 @@ async function runAIEngineTests() {
 
   await app.close();
   closeDatabase();
+  isolated.cleanup();
 
   console.log(
     "\n🎉 Phase 8 AI 학습 엔진 및 Gemini 3.5/3.8 모델 연동 전체 검증 통과!",

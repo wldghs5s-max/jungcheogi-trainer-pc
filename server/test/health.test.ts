@@ -2,9 +2,11 @@ import assert from 'node:assert';
 import { runMigrations } from '../src/db/migrator';
 import { closeDatabase, getDatabase } from '../src/db/database';
 import { buildApp } from '../src/app';
+import { setupIsolatedTestDb } from './helpers/testDb';
 
 async function testHealthEndpoint() {
   console.log('=== Backend /api/health 통합 테스트 시작 ===\n');
+  const isolated = setupIsolatedTestDb({ seed: false });
 
   // 1. 마이그레이션 실행
   const migResult = runMigrations();
@@ -45,6 +47,7 @@ async function testHealthEndpoint() {
 
   await app.close();
   closeDatabase();
+  isolated.cleanup();
 
   console.log('\n🎉 모든 백엔드 헬스체크 및 DB 연결 테스트 통과!');
 }

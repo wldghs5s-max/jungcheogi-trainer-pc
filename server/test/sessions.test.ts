@@ -6,9 +6,11 @@ import { seedFixtureQuestions } from '../src/db/seeder';
 import { gradeAnswer, normalizeAnswer } from '@jungcheogi/shared';
 import { AttemptRepository } from '../src/db/repositories/attemptRepository';
 import { SessionRepository } from '../src/db/repositories/sessionRepository';
+import { setupIsolatedTestDb } from './helpers/testDb';
 
 async function testSessionsAndGrading() {
   console.log('=== Phase 3: 문제 풀이, 채점 엔진, 세션 및 Attempt 이력 검증 테스트 시작 ===\n');
+  const isolated = setupIsolatedTestDb({ seed: false });
 
   // 1. 마이그레이션 및 시딩
   runMigrations();
@@ -185,8 +187,36 @@ async function testSessionsAndGrading() {
   assert.strictEqual(gradeApiData.isCorrect, true, 'PK와 기본키 동의어 채점');
   console.log('OK   [POST /api/grade] 독립 채점 API 정상 동작 확인');
 
+  const resGradeNumeric = await app.inject({
+    method: 'POST',
+    url: '/api/grade',
+    payload: {
+      userAnswer: '-5',
+      groundTruthAnswer: '5',
+      questionType: 'CODE_TRACE',
+      language: 'JAVA',
+    },
+  });
+  assert.strictEqual(resGradeNumeric.statusCode, 200);
+  assert.strictEqual(JSON.parse(resGradeNumeric.body).isCorrect, false, '독립 채점: -5 ≠ 5');
+  console.log('OK   [POST /api/grade] 숫자/코드 출력 오답 보존');
+
+  const drillRes = await app.inject({
+    method: 'POST',
+    url: '/api/ai/variation-drill',
+    payload: { parentQuestionId: 'q_2021_01_03' },
+  });
+  assert.strictEqual(drillRes.statusCode, 200);
+  const drillData = JSON.parse(drillRes.body);
+  assert.strictEqual(drillData.success, true);
+  assert.ok(drillData.question?.id);
+  const drillNotes = `${drillData.question.aiVariationNotes || ''} ${drillData.question.aiExplanation || ''}`;
+  assert.match(drillNotes, /검증 불가|실행 실패|정답 충돌|실행 검증/);
+  console.log('OK   드릴 생성 시 실행 검증 불가 상태를 명확히 안내');
+
   await app.close();
   closeDatabase();
+  isolated.cleanup();
 
   console.log('\n🎉 Phase 3: 문제 풀이, 스마트 채점, 모르겠음 흐름, 세션-Attempt 연동 전체 통과!');
 }

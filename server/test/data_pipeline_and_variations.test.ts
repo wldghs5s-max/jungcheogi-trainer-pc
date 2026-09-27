@@ -12,9 +12,11 @@ import { VariationValidator } from '../src/engine/variationValidator.js';
 import { RecommendationEngine } from '../src/engine/recommendationEngine.js';
 import { SEED_QUESTIONS } from '../src/db/fixtures/seedQuestions.js';
 import { Question, VariationType } from '@jungcheogi/shared';
+import { setupIsolatedTestDb } from './helpers/testDb.js';
 
 async function runPhase7ComprehensiveTests() {
   console.log('=== Phase 7: 실제 학습 데이터 파이프라인 및 AI 변형 문제 생성 시스템 종합 검증 시작 ===\n');
+  const isolated = setupIsolatedTestDb({ seed: false });
 
   // DB 초기화 및 마이그레이션 실행
   runMigrations();
@@ -424,6 +426,7 @@ SQL에서 테이블의 전체 행 개수를 반환하는 집계 함수를 작성
   console.log('OK   [Scenario 15] Phase 7 /variations/generate 및 /variations/validate API 엔드투엔드 통과');
 
   console.log('\n🎉 Phase 7: 실제 학습 데이터 파이프라인 및 AI 변형 문제 생성 시스템 15개 시나리오 전체 통과!');
+  isolated.cleanup();
 }
 
 runPhase7ComprehensiveTests().catch((err) => {

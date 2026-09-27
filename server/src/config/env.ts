@@ -46,6 +46,7 @@ export const env = {
   NODE_ENV: process.env.NODE_ENV || "development",
   DATABASE_PATH: getDefaultDbPath(),
   CORS_ORIGIN: process.env.CORS_ORIGIN || "http://localhost:5173",
+  LOCAL_API_TOKEN: process.env.LOCAL_API_TOKEN || "",
   GEMINI_API_KEY: process.env.GEMINI_API_KEY || "",
   GEMINI_FAST_MODEL:
     process.env.GEMINI_FAST_MODEL ||
