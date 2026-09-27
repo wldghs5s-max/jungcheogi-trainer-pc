@@ -363,13 +363,11 @@ export const ImportModal: React.FC<ImportModalProps> = ({
             <div>
               <div style={styles.titleRow}>
                 <h2 style={styles.title}>
-                  실기 학습 데이터 검수 & Import 파이프라인
+                  문제 데이터 등록 및 검수
                 </h2>
-                <span style={styles.phaseBadge}>Phase 4</span>
               </div>
               <p style={styles.subtitle}>
-                Markdown / JSON 기출·교재 파싱 → 엄격한 유효성 검증 → 중복 감지
-                → 검수자 승인 → 실서비스 DB 원자적 Commit
+                새로운 기출문제를 가져와 검수한 후 학습 문제로 등록합니다.
               </p>
             </div>
           </div>

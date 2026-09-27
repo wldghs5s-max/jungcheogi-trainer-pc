@@ -1,16 +1,16 @@
-import { Question, QuestionType, Subject } from './question.js';
-import { ReviewItemState } from './review.js';
+import { Question, QuestionType, Subject } from "./question.js";
+import { ReviewItemState } from "./review.js";
 
 export type RecommendationReasonCode =
-  | 'DUE_REVIEW'
-  | 'WEAK_CONCEPT'
-  | 'RECENT_FAILURE'
-  | 'RECENT_UNKNOWN'
-  | 'SOLUTION_REVEALED'
-  | 'HINT_DEPENDENCY'
-  | 'LONG_INACTIVE'
-  | 'NEW_UNSTUDIED'
-  | 'CONCEPT_DRILL';
+  | "DUE_REVIEW"
+  | "WEAK_CONCEPT"
+  | "RECENT_FAILURE"
+  | "RECENT_UNKNOWN"
+  | "SOLUTION_REVEALED"
+  | "HINT_DEPENDENCY"
+  | "LONG_INACTIVE"
+  | "NEW_UNSTUDIED"
+  | "CONCEPT_DRILL";
 
 export interface RecommendationScoreBreakdown {
   totalScore: number;
@@ -69,44 +69,58 @@ export interface DailySessionRequest {
   mixConfig?: Partial<DailyLearningMixConfig>;
 }
 
-export type VariationType =
-  // 기존 Phase 6 타입 (하위 호환성 100% 유지)
-  | 'PARAMETER_CHANGE'
-  | 'CODE_CHANGE'
-  | 'CONTEXT_CHANGE'
-  | 'CONCEPT_REFRAME'
-  // Phase 7 Canonical 타입
-  | 'PARAMETER_VARIATION'
-  | 'CONCEPT_VARIATION'
-  | 'CODE_VARIATION'
-  | 'SCENARIO_VARIATION'
-  | 'DIFFICULTY_VARIATION';
+export type CanonicalVariationType =
+  | "PARAMETER_VARIATION"
+  | "CODE_VARIATION"
+  | "SCENARIO_VARIATION"
+  | "CONCEPT_VARIATION"
+  | "DIFFICULTY_VARIATION";
 
-export function normalizeVariationType(type?: VariationType): VariationType {
+export type VariationType =
+  // Canonical Phase 7/8 타입
+  | CanonicalVariationType
+  // Phase 6 레거시 호환 타입
+  | "PARAMETER_CHANGE"
+  | "CODE_CHANGE"
+  | "CONTEXT_CHANGE"
+  | "CONCEPT_REFRAME"
+  // UI 세부 변형 별칭
+  | "VALUE_CHANGE"
+  | "STRUCTURE_SWAP"
+  | "CONCEPT_EXTENSION"
+  | "BLANK_REVERSAL"
+  | "NEGATIVE_CASE";
+
+export function normalizeVariationType(type?: string): CanonicalVariationType {
   switch (type) {
-    case 'PARAMETER_CHANGE':
-    case 'PARAMETER_VARIATION':
-      return 'PARAMETER_VARIATION';
-    case 'CODE_CHANGE':
-    case 'CODE_VARIATION':
-      return 'CODE_VARIATION';
-    case 'CONTEXT_CHANGE':
-    case 'SCENARIO_VARIATION':
-      return 'SCENARIO_VARIATION';
-    case 'CONCEPT_REFRAME':
-    case 'CONCEPT_VARIATION':
-      return 'CONCEPT_VARIATION';
-    case 'DIFFICULTY_VARIATION':
-      return 'DIFFICULTY_VARIATION';
+    case "VALUE_CHANGE":
+    case "PARAMETER_CHANGE":
+    case "PARAMETER_VARIATION":
+      return "PARAMETER_VARIATION";
+    case "STRUCTURE_SWAP":
+    case "BLANK_REVERSAL":
+    case "CODE_CHANGE":
+    case "CODE_VARIATION":
+      return "CODE_VARIATION";
+    case "CONTEXT_CHANGE":
+    case "SCENARIO_VARIATION":
+      return "SCENARIO_VARIATION";
+    case "CONCEPT_EXTENSION":
+    case "CONCEPT_REFRAME":
+    case "CONCEPT_VARIATION":
+      return "CONCEPT_VARIATION";
+    case "NEGATIVE_CASE":
+    case "DIFFICULTY_VARIATION":
+      return "DIFFICULTY_VARIATION";
     default:
-      return 'PARAMETER_VARIATION';
+      return "PARAMETER_VARIATION";
   }
 }
 
 export interface VariationValidationIssue {
   field: string;
   message: string;
-  severity: 'ERROR' | 'WARNING';
+  severity: "ERROR" | "WARNING";
 }
 
 export interface VariationValidationResult {
@@ -159,4 +173,3 @@ export interface VariationOptions {
   variationType?: VariationType;
   focusArea?: string;
 }
-

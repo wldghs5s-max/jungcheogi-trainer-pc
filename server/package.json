@@ -7,7 +7,7 @@
     "dev": "tsx watch src/index.ts",
     "build": "tsc",
     "start": "node dist/index.js",
-    "test": "tsx test/health.test.ts && tsx test/questions.test.ts && tsx test/sessions.test.ts && tsx test/grading_edge_cases.test.ts && tsx test/imports.test.ts && tsx test/learning_engine.test.ts && tsx test/recommendation_engine.test.ts && tsx test/data_pipeline_and_variations.test.ts",
+    "test": "tsx test/health.test.ts && tsx test/questions.test.ts && tsx test/sessions.test.ts && tsx test/grading_edge_cases.test.ts && tsx test/imports.test.ts && tsx test/learning_engine.test.ts && tsx test/recommendation_engine.test.ts && tsx test/data_pipeline_and_variations.test.ts && tsx test/ai_engine.test.ts",
     "test:health": "tsx test/health.test.ts",
     "test:questions": "tsx test/questions.test.ts",
     "test:sessions": "tsx test/sessions.test.ts",
@@ -15,7 +15,8 @@
     "test:imports": "tsx test/imports.test.ts",
     "test:learning": "tsx test/learning_engine.test.ts",
     "test:recommendation": "tsx test/recommendation_engine.test.ts",
-    "test:pipeline": "tsx test/data_pipeline_and_variations.test.ts"
+    "test:pipeline": "tsx test/data_pipeline_and_variations.test.ts",
+    "test:ai": "tsx test/ai_engine.test.ts"
   },
   "dependencies": {
     "@fastify/cors": "^10.0.2",

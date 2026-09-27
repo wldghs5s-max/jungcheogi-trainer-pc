@@ -32,6 +32,7 @@ export function parseJsonQuestions(
       raw.answer ??
       "") as string | string[];
     const extractedExplanation = (raw.officialExplanation ??
+      raw.extractedExplanation ??
       raw.explanation ??
       "") as string;
     const aiExplanation = (raw.aiExplanation || "") as string;

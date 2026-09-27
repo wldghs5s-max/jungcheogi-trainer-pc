@@ -309,19 +309,17 @@ export const App: React.FC = () => {
           <div style={styles.heroHeader}>
             <div style={styles.badgeRow}>
               <span style={styles.badgePrimary}>
-                Phase 3 : 실기 문제 풀이 & 스마트 채점 시스템 가동
+                정보처리기사 실기
               </span>
               <span style={styles.badgeGreen}>
-                검증용 Fixture {totalQuestions}문항 풀이 준비 완료
+                전체 {totalQuestions}문항 학습 가능
               </span>
             </div>
             <h2 style={styles.heroTitle}>
-              정보처리기사 실기 집중 풀이 & 스마트 주관식 채점
+              정보처리기사 실기 집중 풀이
             </h2>
             <p style={styles.heroSubtitle}>
-              공백·특수기호 정규화, 한글/영문 동의어 매칭, 1글자 오탈자 허용,
-              복수 키워드 부분점수 및 "모르겠음" 분리 기록을 제공하는 PC 특화
-              실기 학습 플랫폼입니다.
+              실제 기출문제 풀이, 취약 개념 분석 및 반복 복습을 진행할 수 있는 실기 시험 대비 학습 플랫폼입니다.
             </p>
           </div>
 
@@ -337,12 +335,11 @@ export const App: React.FC = () => {
                 >
                   <Database size={20} color="#3B82F6" />
                 </div>
-                <span style={styles.cardTag}>SQLite Table</span>
+                <span style={styles.cardTag}>문제 보관함</span>
               </div>
-              <h3 style={styles.cardTitle}>전체 적재 문항</h3>
+              <h3 style={styles.cardTitle}>전체 수록 문항</h3>
               <p style={styles.cardDesc}>
-                단답형, 복수 키워드, C/Java/Python 코드, 서술형, AI 변형 전체
-                포괄.
+                단답형, 코드 추적, SQL, 약점 변형 문제를 포함합니다.
               </p>
               <div style={styles.cardFooter}>
                 <span style={styles.footerLabel}>전체 문항수:</span>
@@ -361,15 +358,14 @@ export const App: React.FC = () => {
                 >
                   <FileCheck size={20} color="#10B981" />
                 </div>
-                <span style={styles.cardTag}>Ground Truth</span>
+                <span style={styles.cardTag}>실전 기출</span>
               </div>
-              <h3 style={styles.cardTitle}>검증 Fixture / 기출</h3>
+              <h3 style={styles.cardTitle}>실제 기출 및 핵심 문항</h3>
               <p style={styles.cardDesc}>
-                공식 정답 및 해설이 보존되며, AI 출력에 의해 절대 덮어써지지
-                않음.
+                검증된 정답과 상세 해설이 포함된 실전 문항입니다.
               </p>
               <div style={styles.cardFooter}>
-                <span style={styles.footerLabel}>Fixture / 기출:</span>
+                <span style={styles.footerLabel}>기출 및 연습:</span>
                 <span style={styles.statusOk}>
                   {fixtureCount + realExamCount}문항
                 </span>
@@ -387,12 +383,11 @@ export const App: React.FC = () => {
                 >
                   <GitBranch size={20} color="#A855F7" />
                 </div>
-                <span style={styles.cardTag}>Variation Tree</span>
+                <span style={styles.cardTag}>변형 문제</span>
               </div>
               <h3 style={styles.cardTitle}>기출 파생 변형 문제</h3>
               <p style={styles.cardDesc}>
-                <code>parentQuestionId</code>로 원본 기출과 1:N 계보를 형성한
-                변형 문항.
+                기출 핵심 원리를 바탕으로 변형된 심화 문항입니다.
               </p>
               <div style={styles.cardFooter}>
                 <span style={styles.footerLabel}>변형 문항수:</span>
@@ -411,11 +406,11 @@ export const App: React.FC = () => {
                 >
                   <Code2 size={20} color="#F59E0B" />
                 </div>
-                <span style={styles.cardTag}>C / Java / Py</span>
+                <span style={styles.cardTag}>프로그래밍</span>
               </div>
-              <h3 style={styles.cardTitle}>코드 해부 대상 문항</h3>
+              <h3 style={styles.cardTitle}>코드 실행 추적 문항</h3>
               <p style={styles.cardDesc}>
-                포인터 연산, OOP 다형성 상속, 리스트 슬라이싱 코드 스니펫 포함.
+                C언어 포인터, Java 상속·다형성, Python 인덱싱 등을 다룹니다.
               </p>
               <div style={styles.cardFooter}>
                 <span style={styles.footerLabel}>코드 문항수:</span>
@@ -424,7 +419,7 @@ export const App: React.FC = () => {
             </div>
           </div>
 
-          {/* Phase 3 집중 풀이 실행 배너 */}
+          {/* 실기 집중 풀이 실행 배너 */}
           <div style={styles.sessionBanner}>
             <div style={styles.sessionBannerLeft}>
               <div style={styles.sessionBannerIcon}>
@@ -432,12 +427,10 @@ export const App: React.FC = () => {
               </div>
               <div>
                 <h3 style={styles.sessionBannerTitle}>
-                  Phase 3 스마트 채점 기반 실기 집중 풀이 세션
+                  실기 집중 풀이 세션
                 </h3>
                 <p style={styles.sessionBannerSubtitle}>
-                  시험 실전과 동일한 환경에서 단답형, 다중 키워드, C/Java/Python
-                  코드 추적 문제를 풀이하고 즉시 스마트 채점 결과와 Ground Truth
-                  공식 해설을 확인하세요.
+                  시험 실전과 동일한 환경에서 단답형 및 코드 추적 문제를 직접 풀이하고 즉시 정답과 해설을 확인하세요.
                 </p>
               </div>
             </div>
@@ -467,15 +460,13 @@ export const App: React.FC = () => {
                 style={styles.importBannerBtn}
               >
                 <UploadCloud size={18} color="#60A5FA" />
-                <span>데이터 Import & 검수 (Phase 4)</span>
+                <span>문제 데이터 가져오기</span>
               </button>
             </div>
           </div>
         </section>
 
-        {/* ============================================================== */}
-        {/* PHASE 6: 오늘의 학습 큐 & 개인화 추천 엔진 대시보드 */}
-        {/* ============================================================== */}
+        {/* 오늘의 추천 학습 대시보드 */}
         <section style={styles.dailyQueueSection}>
           <div style={styles.dailyQueueHeader}>
             <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
@@ -487,16 +478,14 @@ export const App: React.FC = () => {
                   style={{ display: "flex", alignItems: "center", gap: "8px" }}
                 >
                   <h3 style={styles.dailyQueueTitle}>
-                    오늘의 개인화 학습 큐 (Phase 6)
+                    오늘의 맞춤 학습 큐
                   </h3>
                   <span style={styles.dailyQueueBadge}>
-                    Adaptive Drill Engine
+                    추천 학습
                   </span>
                 </div>
                 <p style={styles.dailyQueueSubtitle}>
-                  학습자의 복습 주기(Due), 취약 개념(Weakness), 최근 오답,
-                  Unknown 및 미도전 문항을 종합 분석하여 최적의 10문제를 자동
-                  구성합니다.
+                  복습 주기, 취약 개념, 최근 오답 및 미풀이 문항을 종합 분석하여 추천 문제를 자동 구성합니다.
                 </p>
               </div>
             </div>
@@ -688,8 +677,7 @@ export const App: React.FC = () => {
             <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
               <Brain size={22} color="#818CF8" />
               <h3 style={styles.learningSectionHeading}>
-                Phase 5 : 개념(Concept) 기반 취약점 추적 & 능동 복습 (Active
-                Recall)
+                개념별 취약점 분석 & 복습 현황
               </h3>
             </div>
 
@@ -702,7 +690,7 @@ export const App: React.FC = () => {
                 style={styles.fixtureCheckbox}
               />
               <span style={{ fontSize: "12px", color: "#94A3B8" }}>
-                테스트 Fixture 제외 (실제 수험생 데이터만 통계 산출)
+                기초 연습 문항 제외 (실전 기출 중심 통계)
               </span>
             </label>
           </div>
@@ -1046,7 +1034,7 @@ export const App: React.FC = () => {
               >
                 <option value="">모든 출처 (전체)</option>
                 <option value="TEST_FIXTURE">
-                  테스트 Fixture (TEST_FIXTURE)
+                  기초 연습 문제 (FIXTURE)
                 </option>
                 <option value="REAL_EXAM">실제 기출 (REAL_EXAM)</option>
                 <option value="AI_VARIATION">기출 변형 (AI_VARIATION)</option>
@@ -1121,6 +1109,19 @@ export const App: React.FC = () => {
                       </span>
                       <span style={styles.subjectTag}>{q.subject}</span>
                       <span style={styles.diffTag}>{q.difficulty}</span>
+                      {q.examYear && (
+                        <span
+                          style={{
+                            ...styles.diffTag,
+                            backgroundColor: "rgba(245, 158, 11, 0.15)",
+                            color: "#FBBF24",
+                            borderColor: "rgba(245, 158, 11, 0.4)",
+                            fontWeight: 600,
+                          }}
+                        >
+                          {q.examYear}년 {q.examRound}회 #{q.questionNumber}
+                        </span>
+                      )}
                     </div>
 
                     <div style={styles.itemQuestionText}>
@@ -1418,10 +1419,9 @@ export const App: React.FC = () => {
       <footer style={styles.footer}>
         <div style={styles.footerContent}>
           <span>
-            jungcheogi-trainer-pc &bull; Phase 6 Adaptive Recommendation &
-            Learning Engine
+            jungcheogi-trainer-pc &bull; 정보처리기사 실기 집중 트레이너
           </span>
-          <span>Node.js Fastify (:8765) + SQLite + React Vite</span>
+          <span>PC 최적화 학습 모드</span>
         </div>
       </footer>
 

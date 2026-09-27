@@ -1,15 +1,16 @@
-import fastify, { FastifyInstance } from 'fastify';
-import cors from '@fastify/cors';
-import { env } from './config/env';
-import { healthRoutes } from './routes/health';
-import { questionRoutes } from './routes/questions';
-import { sessionRoutes } from './routes/sessions';
-import { importRoutes } from './routes/imports';
-import { learningRoutes } from './routes/learning';
+import fastify, { FastifyInstance } from "fastify";
+import cors from "@fastify/cors";
+import { env } from "./config/env.js";
+import { healthRoutes } from "./routes/health.js";
+import { questionRoutes } from "./routes/questions.js";
+import { sessionRoutes } from "./routes/sessions.js";
+import { importRoutes } from "./routes/imports.js";
+import { learningRoutes } from "./routes/learning.js";
+import { aiRoutes } from "./routes/ai.js";
 
 export function buildApp(): FastifyInstance {
   const app = fastify({
-    logger: env.NODE_ENV !== 'test',
+    logger: env.NODE_ENV !== "test",
   });
 
   // Enable CORS for local development and future Cloudflare Tunnel
@@ -23,8 +24,8 @@ export function buildApp(): FastifyInstance {
 
       // Allow localhost and specified CORS_ORIGIN
       if (
-        origin.startsWith('http://localhost:') ||
-        origin.startsWith('http://127.0.0.1:') ||
+        origin.startsWith("http://localhost:") ||
+        origin.startsWith("http://127.0.0.1:") ||
         origin === env.CORS_ORIGIN
       ) {
         cb(null, true);
@@ -42,6 +43,7 @@ export function buildApp(): FastifyInstance {
   app.register(sessionRoutes);
   app.register(importRoutes);
   app.register(learningRoutes);
+  app.register(aiRoutes);
 
   return app;
 }

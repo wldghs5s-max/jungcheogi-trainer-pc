@@ -47,6 +47,11 @@ export interface CodeLineExplanation {
   code: string;
   explanation: string;
   tokens?: Array<{ token: string; desc: string }>;
+  syntaxElements?: string[];
+  userDefinedElements?: string[];
+  runtimeMeaning?: string;
+  surroundingContext?: string;
+  examTip?: string;
 }
 
 /**
@@ -114,6 +119,8 @@ export interface QuestionFilter {
   type?: QuestionType;
   difficulty?: Difficulty;
   sourceType?: QuestionSourceType;
+  examYear?: number;
+  examRound?: number;
   parentQuestionId?: string;
   conceptId?: string;
   search?: string;

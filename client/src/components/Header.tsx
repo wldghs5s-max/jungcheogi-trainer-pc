@@ -20,11 +20,11 @@ export const Header: React.FC<HeaderProps> = ({ health, loading, error, onRefres
           </div>
           <div>
             <div style={styles.titleRow}>
-              <h1 style={styles.title}>정처기 실기 PC 집중학습 플랫폼</h1>
-              <span style={styles.versionBadge}>Phase 1 (기반 구축)</span>
+              <h1 style={styles.title}>정처기 실기 집중 학습</h1>
+              <span style={styles.versionBadge}>실기 모의훈련</span>
             </div>
             <p style={styles.subtitle}>
-              개인 PC 로컬 백엔드(:8765) + SQLite + 능동적 회상 & 코드 해부 학습 플랫폼
+              정보처리기사 실기 기출 풀이 및 프로그래밍 코드 분석 학습 플랫폼
             </p>
           </div>
         </div>

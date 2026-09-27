@@ -16,6 +16,9 @@ interface GetQuestionsQuery {
   difficulty?: Difficulty;
   sourceType?: QuestionSourceType;
   parentQuestionId?: string;
+  conceptId?: string;
+  examYear?: string;
+  examRound?: string;
   search?: string;
   limit?: string;
   offset?: string;
@@ -38,6 +41,9 @@ export async function questionRoutes(fastify: FastifyInstance): Promise<void> {
       difficulty: q.difficulty,
       sourceType: q.sourceType,
       parentQuestionId: q.parentQuestionId,
+      conceptId: q.conceptId,
+      examYear: q.examYear ? parseInt(q.examYear, 10) : undefined,
+      examRound: q.examRound ? parseInt(q.examRound, 10) : undefined,
       search: q.search,
       limit: q.limit ? parseInt(q.limit, 10) : 20,
       offset: q.offset ? parseInt(q.offset, 10) : 0,

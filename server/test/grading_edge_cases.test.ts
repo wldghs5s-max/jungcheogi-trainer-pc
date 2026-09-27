@@ -171,7 +171,24 @@ function runGradingEdgeCasesTests() {
   assert.strictEqual(unknown.isCorrect, false);
   assert.strictEqual(unknown.isUnknown, true);
   assert.strictEqual(unknown.score, 0);
-  console.log("OK   미입력 및 모르겠음 분리 처리 통과");
+  // 8. 숫자 차이 오탈자 방지 및 원문자/기호 정규화 검증
+  console.log("\n--- 8. 숫자 차이 오탈자 방지 및 원문자/기호 정규화 ---");
+  const nf2VsNf3 = checkMatchDetails("제2정규형", "제3정규형");
+  assert.strictEqual(
+    nf2VsNf3.isMatch,
+    false,
+    "제2정규형과 제3정규형은 1글자 차이라도 숫자가 다르므로 오답이어야 함",
+  );
+
+  const nf3Syn = checkMatchDetails("3NF", "제3정규형");
+  assert.strictEqual(nf3Syn.isMatch, true, "3NF와 제3정규형은 동의어 일치");
+
+  const circledMatch = gradeAnswer("①->②->③", "1->2->3");
+  assert.strictEqual(circledMatch.isCorrect, true, "원문자 ①->②->③ 와 1->2->3 매칭");
+
+  const arrowVariant = gradeAnswer("1 → 2 → 3", "1->2->3");
+  assert.strictEqual(arrowVariant.isCorrect, true, "유니코드 화살표 및 공백 정규화 매칭");
+  console.log("OK   숫자 차이 오탈자 방지 및 원문자/화살표 정규화 통과");
 
   console.log("\n🎉 Phase 4 채점 엔진 경계 조건 및 심층 테스트 전체 통과!");
 }
