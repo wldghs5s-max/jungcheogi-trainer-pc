@@ -2,7 +2,8 @@ import { Question } from "./question.js";
 import { VariationType, GeneratedVariation } from "./recommendation.js";
 
 export interface AITutoringExplanationRequest {
-  questionId: string;
+  questionId?: string;
+  questionData?: Question;
   userAnswer?: string | string[];
   isCorrect?: boolean;
   isUnknown?: boolean;
@@ -34,7 +35,8 @@ export interface AITutoringExplanationResponse {
 }
 
 export interface AIProgressiveHintsRequest {
-  questionId: string;
+  questionId?: string;
+  questionData?: Question;
   deepAnalysis?: boolean;
 }
 
@@ -46,7 +48,8 @@ export interface AIProgressiveHintsResponse {
 }
 
 export interface AICodeLineRequest {
-  questionId: string;
+  questionId?: string;
+  questionData?: Question;
   lineNumber: number;
   deepAnalysis?: boolean;
 }
@@ -100,5 +103,27 @@ export interface LearningDomainsResponse {
   languages: string[];
   subjects: string[];
   categories: string[];
+}
+
+export interface AIVariationDrillRequest {
+  parentQuestionId: string;
+}
+
+export interface AIVariationDrillResponse {
+  success: boolean;
+  question: Question;
+  variation: GeneratedVariation;
+  message?: string;
+}
+
+export interface AIStageDrillRequest {
+  variation: GeneratedVariation;
+}
+
+export interface AIStageDrillResponse {
+  success: boolean;
+  stagedQuestionId: string;
+  batchId: string;
+  message?: string;
 }
 

@@ -108,3 +108,54 @@ export async function generateAIVariation(
     return { data: null, error: err?.message || '네트워크 오류가 발생했습니다.' };
   }
 }
+
+/**
+ * 학습용 AI 즉시 변형 문제 풀기 (자동 전략 선택 & Ground Truth 검증)
+ */
+export async function fetchAIVariationDrill(
+  req: { parentQuestionId: string }
+): Promise<{ data: { success: boolean; question: any; variation: any; message?: string } | null; error?: string }> {
+  try {
+    const res = await fetch('/api/ai/variation-drill', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(req),
+    });
+
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      return { data: null, error: err.message || `AI 변형 문제 생성 실패 (${res.status})` };
+    }
+
+    const data = await res.json();
+    return { data };
+  } catch (err: any) {
+    return { data: null, error: err?.message || '네트워크 오류가 발생했습니다.' };
+  }
+}
+
+/**
+ * 학습용 임시 변형 문제를 검수 대기열(Staging)에 저장
+ */
+export async function stageAIVariationDrill(
+  req: { variation: any }
+): Promise<{ data: { success: boolean; stagedQuestionId: string; batchId: string; message?: string } | null; error?: string }> {
+  try {
+    const res = await fetch('/api/ai/stage-drill-question', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(req),
+    });
+
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      return { data: null, error: err.message || `Staging 저장 실패 (${res.status})` };
+    }
+
+    const data = await res.json();
+    return { data };
+  } catch (err: any) {
+    return { data: null, error: err?.message || '네트워크 오류가 발생했습니다.' };
+  }
+}
+

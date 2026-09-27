@@ -32,7 +32,7 @@ import {
   QUESTION_SOURCE_LABELS,
   AITutoringExplanationResponse,
   AICodeLineResponse,
-  VariationType,
+  gradeAnswer,
 } from "@jungcheogi/shared";
 import {
   createStudySession,
@@ -45,7 +45,8 @@ import {
   fetchAIExplanation,
   fetchAIProgressiveHints,
   fetchAICodeLine,
-  generateAIVariation,
+  fetchAIVariationDrill,
+  stageAIVariationDrill,
 } from "../../api/ai";
 
 interface StudySessionModalProps {
@@ -109,14 +110,16 @@ export const StudySessionModal: React.FC<StudySessionModalProps> = ({
   const [loadingAIExplanation, setLoadingAIExplanation] =
     useState<boolean>(false);
 
-  const [showVariationModal, setShowVariationModal] = useState<boolean>(false);
-  const [selectedVariationType, setSelectedVariationType] =
-    useState<VariationType>("PARAMETER_VARIATION");
-  const [generatingVariation, setGeneratingVariation] =
-    useState<boolean>(false);
-  const [variationSuccessMsg, setVariationSuccessMsg] = useState<string | null>(
+  // AI Variation Drill (실시간 학습용 변형 문제 풀기)
+  const [isGeneratingDrill, setIsGeneratingDrill] = useState<boolean>(false);
+  const [activeDrillVariation, setActiveDrillVariation] = useState<any | null>(
     null,
   );
+  const [isDrillQuestion, setIsDrillQuestion] = useState<boolean>(false);
+  const [isDrillSaved, setIsDrillSaved] = useState<boolean>(false);
+  const [isSavingDrill, setIsSavingDrill] = useState<boolean>(false);
+  const [originalQuestionBeforeDrill, setOriginalQuestionBeforeDrill] =
+    useState<Question | null>(null);
 
   // Timer State
   const [elapsedSeconds, setElapsedSeconds] = useState<number>(0);
@@ -150,8 +153,12 @@ export const StudySessionModal: React.FC<StudySessionModalProps> = ({
       setCodeLineCache({});
       setSelectedLineNumber(null);
       setAiExplanationData(null);
-      setShowVariationModal(false);
-      setVariationSuccessMsg(null);
+      setIsGeneratingDrill(false);
+      setActiveDrillVariation(null);
+      setIsDrillQuestion(false);
+      setIsDrillSaved(false);
+      setIsSavingDrill(false);
+      setOriginalQuestionBeforeDrill(null);
     } else {
       if (timerRef.current) clearInterval(timerRef.current);
     }
@@ -170,8 +177,6 @@ export const StudySessionModal: React.FC<StudySessionModalProps> = ({
     setCodeLineCache({});
     setSelectedLineNumber(null);
     setAiExplanationData(null);
-    setShowVariationModal(false);
-    setVariationSuccessMsg(null);
 
     const isMulti = Array.isArray(currentQuestion.groundTruthAnswer);
     const count = isMulti ? currentQuestion.groundTruthAnswer.length : 1;
@@ -241,6 +246,50 @@ export const StudySessionModal: React.FC<StudySessionModalProps> = ({
     if (timerRef.current) clearInterval(timerRef.current);
     setIsSubmitting(true);
 
+    if (isDrillQuestion) {
+      const gradeRes = gradeAnswer(
+        finalAnswer,
+        currentQuestion.groundTruthAnswer,
+        false,
+      );
+      const drillResult: SessionSubmitResponse = {
+        isCorrect: gradeRes.isCorrect,
+        score: gradeRes.score,
+        groundTruthAnswer: currentQuestion.groundTruthAnswer,
+        officialExplanation:
+          currentQuestion.officialExplanation ||
+          currentQuestion.aiExplanation ||
+          "AI 변형 문제 해설입니다.",
+        aiExplanation: currentQuestion.aiExplanation,
+        sessionProgress: {
+          currentIndex: session?.currentIndex ?? 0,
+          totalQuestions: session?.totalQuestions ?? 1,
+          correctCount:
+            (session?.correctCount ?? 0) + (gradeRes.isCorrect ? 1 : 0),
+          wrongCount: (session?.wrongCount ?? 0) + (gradeRes.isCorrect ? 0 : 1),
+          unknownCount: session?.unknownCount ?? 0,
+        },
+        attempt: {
+          id: `drill_att_${Date.now()}`,
+          sessionId: session?.id || "drill_session",
+          questionId: currentQuestion.id,
+          userAnswer: finalAnswer,
+          isCorrect: gradeRes.isCorrect,
+          score: gradeRes.score,
+          timeSpentMs: Math.max(elapsedSeconds * 1000, 1000),
+          hintUsed: showHint || hintLevel > 0,
+          isUnknown: false,
+          solutionRevealed: false,
+          createdAt: new Date().toISOString(),
+        },
+        isSessionCompleted: false,
+      };
+      setIsSubmitting(false);
+      setSubmitResult(drillResult);
+      handleLoadAIExplanation(drillResult);
+      return;
+    }
+
     const timeSpentMs = Math.max(elapsedSeconds * 1000, 1000);
     const res = await submitSessionAnswer(session.id, {
       questionId: currentQuestion.id,
@@ -265,7 +314,49 @@ export const StudySessionModal: React.FC<StudySessionModalProps> = ({
 
   // Handle "모르겠음" quick action
   const handleUnknown = async () => {
-    if (!session || !currentQuestion || isSubmitting) return;
+    if (!currentQuestion || isSubmitting) return;
+
+    if (isDrillQuestion) {
+      if (timerRef.current) clearInterval(timerRef.current);
+      setIsSubmitting(true);
+      const drillResult: SessionSubmitResponse = {
+        isCorrect: false,
+        score: 0,
+        groundTruthAnswer: currentQuestion.groundTruthAnswer,
+        officialExplanation:
+          currentQuestion.officialExplanation ||
+          currentQuestion.aiExplanation ||
+          "AI 변형 문제 해설입니다.",
+        aiExplanation: currentQuestion.aiExplanation,
+        sessionProgress: {
+          currentIndex: session?.currentIndex ?? 0,
+          totalQuestions: session?.totalQuestions ?? 1,
+          correctCount: session?.correctCount ?? 0,
+          wrongCount: session?.wrongCount ?? 0,
+          unknownCount: (session?.unknownCount ?? 0) + 1,
+        },
+        attempt: {
+          id: `drill_att_${Date.now()}`,
+          sessionId: session?.id || "drill_session",
+          questionId: currentQuestion.id,
+          userAnswer: "(모르겠음)",
+          isCorrect: false,
+          score: 0,
+          timeSpentMs: Math.max(elapsedSeconds * 1000, 1000),
+          hintUsed: showHint || hintLevel > 0,
+          isUnknown: true,
+          solutionRevealed: false,
+          createdAt: new Date().toISOString(),
+        },
+        isSessionCompleted: false,
+      };
+      setIsSubmitting(false);
+      setSubmitResult(drillResult);
+      handleLoadAIExplanation(drillResult);
+      return;
+    }
+
+    if (!session) return;
 
     if (timerRef.current) clearInterval(timerRef.current);
     setIsSubmitting(true);
@@ -316,6 +407,7 @@ export const StudySessionModal: React.FC<StudySessionModalProps> = ({
     setLoadingHints(true);
     const res = await fetchAIProgressiveHints({
       questionId: currentQuestion.id,
+      questionData: currentQuestion,
     });
     setLoadingHints(false);
 
@@ -341,6 +433,7 @@ export const StudySessionModal: React.FC<StudySessionModalProps> = ({
     setLoadingLineNumber(lineNum);
     const res = await fetchAICodeLine({
       questionId: currentQuestion.id,
+      questionData: currentQuestion,
       lineNumber: lineNum,
     });
     setLoadingLineNumber(null);
@@ -362,6 +455,7 @@ export const StudySessionModal: React.FC<StudySessionModalProps> = ({
     setLoadingAIExplanation(true);
     const res = await fetchAIExplanation({
       questionId: currentQuestion.id,
+      questionData: currentQuestion,
       userAnswer: result.attempt.userAnswer,
       isCorrect: result.isCorrect,
       isUnknown: result.attempt.isUnknown,
@@ -374,30 +468,88 @@ export const StudySessionModal: React.FC<StudySessionModalProps> = ({
     }
   };
 
-  // Phase 8: AI Variation Generator
-  const handleGenerateVariation = async () => {
-    if (!currentQuestion) return;
-    setGeneratingVariation(true);
-    setVariationSuccessMsg(null);
+  // Phase 8: 학습용 AI 즉시 변형 문제 풀기 (No strategy selection, instant transition)
+  const handleStartAIVariationDrill = async () => {
+    if (!currentQuestion || isGeneratingDrill) return;
+    setIsGeneratingDrill(true);
 
-    const res = await generateAIVariation({
-      parentQuestionId: currentQuestion.id,
-      variationType: selectedVariationType,
+    const res = await fetchAIVariationDrill({
+      parentQuestionId: originalQuestionBeforeDrill?.id || currentQuestion.id,
     });
-    setGeneratingVariation(false);
+    setIsGeneratingDrill(false);
 
-    if (res.data) {
-      setVariationSuccessMsg(
-        `AI 변형 문제가 검수 대기열(Staging)에 안전하게 등록되었습니다! (ID: ${res.data.stagedQuestionId})\n[문제 데이터 등록 및 검수] 모달에서 검수 후 승인하시면 실전 문제로 출제됩니다.`,
+    if (!res.data || !res.data.question) {
+      alert(
+        res.error || "AI 변형 문제 생성에 실패했습니다. 다시 시도해주세요.",
       );
+      return;
+    }
+
+    if (!isDrillQuestion) {
+      setOriginalQuestionBeforeDrill(currentQuestion);
+    }
+
+    // 즉시 새 문제 풀이 모드로 전환 (정답 및 해설은 가려진 상태로 시작)
+    setIsDrillQuestion(true);
+    setActiveDrillVariation(res.data.variation);
+    setIsDrillSaved(false);
+    setCurrentQuestion(res.data.question);
+    const count = Array.isArray(res.data.question.groundTruthAnswer)
+      ? res.data.question.groundTruthAnswer.length
+      : 1;
+    setUserInputs(new Array(count).fill(""));
+    setShowHint(false);
+    setHintLevel(0);
+    setSubmitResult(null);
+    setAiExplanationData(null);
+    setElapsedSeconds(0);
+    setAiHints(null);
+    setCodeLineCache({});
+    setSelectedLineNumber(null);
+  };
+
+  // 임시 변형 문제를 Staging 검수 대기열에 저장
+  const handleSaveDrillQuestion = async () => {
+    if (!activeDrillVariation || isDrillSaved || isSavingDrill) return;
+    setIsSavingDrill(true);
+    const res = await stageAIVariationDrill({
+      variation: activeDrillVariation,
+    });
+    setIsSavingDrill(false);
+    if (res.data) {
+      setIsDrillSaved(true);
     } else {
-      alert(res.error || "AI 변형 문제 생성 중 오류가 발생했습니다.");
+      alert(res.error || "Staging 저장 중 오류가 발생했습니다.");
     }
   };
 
   // Advance to next question or show summary
   const handleNextQuestion = async () => {
     if (!session) return;
+
+    if (isDrillQuestion) {
+      // 변형 문제 풀이 완료 후 기존 세션의 다음 문제로 복귀
+      setIsDrillQuestion(false);
+      setActiveDrillVariation(null);
+      setIsDrillSaved(false);
+      setOriginalQuestionBeforeDrill(null);
+
+      const sessionRes = await fetchStudySession(session.id);
+      if (sessionRes.data && sessionRes.data.currentQuestion) {
+        setSession(sessionRes.data.session);
+        setCurrentQuestion(sessionRes.data.currentQuestion);
+        setSubmitResult(null);
+      } else {
+        setPhase("SUMMARY");
+        setLoadingSummary(true);
+        const sumResult = await fetchSessionSummary(session.id);
+        setLoadingSummary(false);
+        if (sumResult.data) {
+          setSummary(sumResult.data);
+        }
+      }
+      return;
+    }
 
     if (submitResult?.isSessionCompleted) {
       // Load session summary
@@ -686,6 +838,25 @@ export const StudySessionModal: React.FC<StudySessionModalProps> = ({
             <div style={styles.practiceContainer}>
               {/* QUESTION HEADER BADGES */}
               <div style={styles.qMetaRow}>
+                {isDrillQuestion && (
+                  <span
+                    style={{
+                      display: "inline-flex",
+                      alignItems: "center",
+                      gap: "4px",
+                      backgroundColor: "rgba(245, 158, 11, 0.2)",
+                      color: "#FBBF24",
+                      border: "1px solid #F59E0B",
+                      borderRadius: "4px",
+                      padding: "3px 8px",
+                      fontSize: "12px",
+                      fontWeight: 700,
+                    }}
+                  >
+                    <Zap size={13} color="#FBBF24" />
+                    AI 맞춤 변형 문제
+                  </span>
+                )}
                 <span style={styles.qSubjectBadge}>
                   {currentQuestion.subject}
                 </span>
@@ -708,15 +879,19 @@ export const StudySessionModal: React.FC<StudySessionModalProps> = ({
                 </span>
                 <span style={styles.qSourceBadge}>
                   출처:{" "}
-                  {QUESTION_SOURCE_LABELS[currentQuestion.sourceType] ||
-                    currentQuestion.sourceType}
+                  {isDrillQuestion
+                    ? "실시간 AI 변형 생성"
+                    : QUESTION_SOURCE_LABELS[currentQuestion.sourceType] ||
+                      currentQuestion.sourceType}
                 </span>
               </div>
 
               {/* QUESTION STATEMENT */}
               <div style={styles.statementBox}>
                 <div style={styles.qIndexIndicator}>
-                  Q.{session ? session.currentIndex + 1 : 1}
+                  {isDrillQuestion
+                    ? "AI 변형"
+                    : `Q.${session ? session.currentIndex + 1 : 1}`}
                 </div>
                 <div style={styles.qText}>{currentQuestion.question}</div>
               </div>
@@ -1331,26 +1506,60 @@ export const StudySessionModal: React.FC<StudySessionModalProps> = ({
                           </div>
                         )}
 
-                        {/* AI VARIATION TRIGGER BUTTON */}
+                        {/* AI VARIATION DRILL TRIGGER BUTTON */}
                         <div style={styles.variationRow}>
                           <button
                             type="button"
-                            onClick={() => setShowVariationModal(true)}
-                            style={styles.variationBtn}
+                            onClick={handleStartAIVariationDrill}
+                            disabled={isGeneratingDrill}
+                            style={styles.drillStartBtn}
                           >
-                            <Zap size={16} color="#F59E0B" />
-                            <span>
-                              이 문제의 AI 변형 문제 생성 (Staging 대기열)
-                            </span>
+                            {isGeneratingDrill ? (
+                              <>
+                                <RefreshCw
+                                  size={16}
+                                  className="spin"
+                                  color="#F59E0B"
+                                />
+                                <span>
+                                  AI가 문제 특성을 분석하여 맞춤 변형 문제를
+                                  생성 및 검증하는 중...
+                                </span>
+                              </>
+                            ) : (
+                              <>
+                                <Zap size={16} color="#F59E0B" />
+                                <span>💡 이 문제의 AI 변형 문제 풀기</span>
+                              </>
+                            )}
                           </button>
                         </div>
 
-                        {variationSuccessMsg && (
-                          <div style={styles.variationSuccessAlert}>
-                            <CheckCircle2 size={18} color="#10B981" />
-                            <span style={{ whiteSpace: "pre-line" }}>
-                              {variationSuccessMsg}
-                            </span>
+                        {/* If this is an answered drill question, offer optional staging save */}
+                        {isDrillQuestion && activeDrillVariation && (
+                          <div style={styles.drillSaveContainer}>
+                            {!isDrillSaved ? (
+                              <button
+                                type="button"
+                                onClick={handleSaveDrillQuestion}
+                                disabled={isSavingDrill}
+                                style={styles.saveDrillBtn}
+                              >
+                                <CheckCircle2 size={15} color="#10B981" />
+                                <span>
+                                  {isSavingDrill
+                                    ? "저장 중..."
+                                    : "이 문제 저장 (검수 대기열로 보내기)"}
+                                </span>
+                              </button>
+                            ) : (
+                              <div style={styles.drillSavedBadge}>
+                                <CheckCircle2 size={16} color="#10B981" />
+                                <span>
+                                  ✅ 검수 대기열(Staging)에 저장 완료되었습니다!
+                                </span>
+                              </div>
+                            )}
                           </div>
                         )}
                       </div>
@@ -1642,136 +1851,6 @@ export const StudySessionModal: React.FC<StudySessionModalProps> = ({
             </div>
           )}
         </div>
-
-        {/* Phase 8: AI VARIATION GENERATION MODAL */}
-        {showVariationModal && (
-          <div style={styles.variationModalOverlay}>
-            <div style={styles.variationModalCard}>
-              <div style={styles.variationModalHeader}>
-                <div
-                  style={{ display: "flex", alignItems: "center", gap: "8px" }}
-                >
-                  <Zap size={20} color="#F59E0B" />
-                  <h3 style={styles.variationModalTitle}>AI 변형 문제 생성</h3>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => setShowVariationModal(false)}
-                  style={styles.closeInlineBtn}
-                >
-                  ✕
-                </button>
-              </div>
-
-              <p style={styles.variationModalDesc}>
-                기출 문제(#{currentQuestion?.id})를 기반으로 원본의 핵심 개념을
-                철저히 유지하면서 다양한 변형 문제를 생성하여 Staging 검수
-                대기열에 등록합니다.
-              </p>
-
-              <div style={styles.variationTypeGrid}>
-                {[
-                  {
-                    type: "PARAMETER_VARIATION" as VariationType,
-                    title: "수치/초기값 변형",
-                    desc: "배열 크기, 루프 시작/종료값, 포인터 오프셋 값 변형",
-                  },
-                  {
-                    type: "CODE_VARIATION" as VariationType,
-                    title: "코드/구조 변형",
-                    desc: "for ↔ while 루프 전환, if 조건 부등호 및 탈출 조건 변경",
-                  },
-                  {
-                    type: "CONCEPT_VARIATION" as VariationType,
-                    title: "개념 확장/보완",
-                    desc: "동일 범주의 심화 개념 (예: LRU ↔ LFU, 3NF ↔ BCNF)",
-                  },
-                  {
-                    type: "SCENARIO_VARIATION" as VariationType,
-                    title: "시나리오/상황 변형",
-                    desc: "다른 비즈니스 도메인이나 테이블 스키마 상황으로 변형",
-                  },
-                  {
-                    type: "DIFFICULTY_VARIATION" as VariationType,
-                    title: "난이도 심화 변형",
-                    desc: "다중 중첩 루프나 복합 포인터 등 심화 변형",
-                  },
-                ].map((item) => (
-                  <div
-                    key={item.type}
-                    onClick={() => setSelectedVariationType(item.type)}
-                    style={{
-                      ...styles.variationOptionCard,
-                      borderColor:
-                        selectedVariationType === item.type
-                          ? "#3B82F6"
-                          : "#334155",
-                      backgroundColor:
-                        selectedVariationType === item.type
-                          ? "rgba(59, 130, 246, 0.12)"
-                          : "rgba(15, 23, 42, 0.6)",
-                    }}
-                  >
-                    <div
-                      style={{
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "space-between",
-                      }}
-                    >
-                      <strong
-                        style={{
-                          color:
-                            selectedVariationType === item.type
-                              ? "#60A5FA"
-                              : "#F8FAFC",
-                        }}
-                      >
-                        {item.title}
-                      </strong>
-                      <span style={{ fontSize: "11px", color: "#94A3B8" }}>
-                        {item.type}
-                      </span>
-                    </div>
-                    <p style={styles.variationOptionDesc}>{item.desc}</p>
-                  </div>
-                ))}
-              </div>
-
-              {variationSuccessMsg && (
-                <div style={styles.variationSuccessAlert}>
-                  <CheckCircle2 size={18} color="#10B981" />
-                  <span style={{ whiteSpace: "pre-line" }}>
-                    {variationSuccessMsg}
-                  </span>
-                </div>
-              )}
-
-              <div style={styles.variationModalActionRow}>
-                <button
-                  type="button"
-                  onClick={() => setShowVariationModal(false)}
-                  style={styles.cancelBtn}
-                >
-                  닫기
-                </button>
-                <button
-                  type="button"
-                  onClick={handleGenerateVariation}
-                  disabled={generatingVariation}
-                  style={styles.variationSubmitBtn}
-                >
-                  <Sparkles size={16} />
-                  <span>
-                    {generatingVariation
-                      ? "변형 문제 생성 및 검증 중..."
-                      : "변형 문제 생성 (Staging 등록)"}
-                  </span>
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
       </div>
     </div>
   );
@@ -2976,113 +3055,50 @@ const styles: Record<string, React.CSSProperties> = {
     justifyContent: "flex-end",
     marginTop: "6px",
   },
-  variationBtn: {
-    display: "flex",
-    alignItems: "center",
-    gap: "8px",
-    backgroundColor: "rgba(245, 158, 11, 0.15)",
-    border: "1px solid rgba(245, 158, 11, 0.4)",
-    color: "#F59E0B",
-    borderRadius: "8px",
-    padding: "10px 18px",
-    fontSize: "14px",
-    fontWeight: 600,
-    cursor: "pointer",
-  },
-  variationSuccessAlert: {
-    display: "flex",
-    alignItems: "center",
-    gap: "8px",
-    backgroundColor: "rgba(16, 185, 129, 0.15)",
-    border: "1px solid #10B981",
-    color: "#A7F3D0",
-    borderRadius: "8px",
-    padding: "12px 16px",
-    fontSize: "13.5px",
-    lineHeight: 1.5,
-  },
-
-  // VARIATION MODAL STYLES
-  variationModalOverlay: {
-    position: "absolute",
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    backgroundColor: "rgba(0, 0, 0, 0.75)",
-    backdropFilter: "blur(4px)",
+  drillStartBtn: {
     display: "flex",
     alignItems: "center",
     justifyContent: "center",
-    zIndex: 1100,
-    padding: "20px",
-  },
-  variationModalCard: {
-    backgroundColor: "#0F172A",
-    border: "1px solid #334155",
-    borderRadius: "14px",
-    width: "100%",
-    maxWidth: "680px",
-    padding: "24px",
-    display: "flex",
-    flexDirection: "column",
-    gap: "16px",
-    boxShadow: "0 20px 25px -5px rgba(0, 0, 0, 0.5)",
-  },
-  variationModalHeader: {
-    display: "flex",
-    justifyContent: "space-between",
-    alignItems: "center",
-  },
-  variationModalTitle: {
-    fontSize: "18px",
-    fontWeight: 700,
-    color: "#F8FAFC",
-    margin: 0,
-  },
-  variationModalDesc: {
-    fontSize: "13.5px",
-    color: "#94A3B8",
-    lineHeight: 1.5,
-    margin: 0,
-  },
-  variationTypeGrid: {
-    display: "flex",
-    flexDirection: "column",
     gap: "8px",
-    maxHeight: "320px",
-    overflowY: "auto",
-  },
-  variationOptionCard: {
-    padding: "12px 16px",
+    backgroundColor: "rgba(245, 158, 11, 0.15)",
+    border: "1.5px solid #F59E0B",
+    color: "#FDE68A",
     borderRadius: "8px",
-    border: "1.5px solid",
+    padding: "11px 18px",
+    fontSize: "14px",
+    fontWeight: 700,
     cursor: "pointer",
+    width: "100%",
     transition: "all 0.15s ease",
   },
-  variationOptionDesc: {
-    margin: "4px 0 0 0",
-    fontSize: "12.5px",
-    color: "#CBD5E1",
-    lineHeight: 1.4,
-  },
-  variationModalActionRow: {
-    display: "flex",
-    justifyContent: "flex-end",
-    gap: "12px",
-    marginTop: "8px",
-  },
-  variationSubmitBtn: {
+  drillSaveContainer: {
     display: "flex",
     alignItems: "center",
-    gap: "8px",
-    padding: "10px 20px",
-    borderRadius: "8px",
-    backgroundColor: "#3B82F6",
-    color: "#FFFFFF",
+    justifyContent: "flex-end",
+    marginTop: "4px",
+  },
+  saveDrillBtn: {
+    display: "flex",
+    alignItems: "center",
+    gap: "6px",
+    backgroundColor: "rgba(16, 185, 129, 0.15)",
+    border: "1px solid #10B981",
+    color: "#A7F3D0",
+    borderRadius: "6px",
+    padding: "8px 14px",
+    fontSize: "13px",
     fontWeight: 600,
-    fontSize: "14px",
     cursor: "pointer",
-    border: "none",
+  },
+  drillSavedBadge: {
+    display: "flex",
+    alignItems: "center",
+    gap: "6px",
+    color: "#10B981",
+    fontSize: "13px",
+    fontWeight: 600,
+    backgroundColor: "rgba(16, 185, 129, 0.1)",
+    padding: "6px 12px",
+    borderRadius: "6px",
   },
 };

@@ -151,8 +151,8 @@ async function verifyRealQuality() {
   console.log(
     `모델: ${lineRes.modelUsed} | 지연시간: ${lineElapsed}ms | 승격사유: ${lineRes.promotionReason || "기본"}`,
   );
-  console.log(`• 문법 요소: ${lineRes.syntaxElements.join(", ")}`);
-  console.log(`• 식별자: ${lineRes.userDefinedElements.join(", ")}`);
+  console.log(`• 문법 요소: ${lineRes.syntaxElements?.join(", ")}`);
+  console.log(`• 식별자: ${lineRes.userDefinedElements?.join(", ")}`);
   console.log(`• 런타임/메모리 동작: ${lineRes.runtimeMeaning}`);
   console.log(`• 문맥 설명: ${lineRes.surroundingContext}`);
   console.log(`• 기출 주의점: ${lineRes.examTip}\n`);
