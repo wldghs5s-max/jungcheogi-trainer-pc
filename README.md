@@ -1,5 +1,13 @@
 # 정처기 실기 PC 집중학습 플랫폼 (jungcheogi-trainer-pc)
 
+<!-- TUNNEL_URL_START -->
+> ### 📱 실시간 모바일 / 외부 접속 링크
+> **[👉 정처기 학습 플랫폼 바로가기 (클릭)](https://til-cnet-downloaded-mardi.trycloudflare.com)**  
+> - **실시간 URL**: `https://til-cnet-downloaded-mardi.trycloudflare.com`  
+> - **마지막 갱신**: 2026-09-28 23:07:36 KST
+<!-- TUNNEL_URL_END -->
+
+
 > **정보처리기사 실기 시험 대비를 위한 PC 환경 맞춤형 집중학습 플랫폼**  
 > 모바일 환경의 단순 암기/퀴즈를 넘어, **PC의 넓은 화면, 키보드 입력, 다중 창, 능동적 회상(Active Recall) 및 코드 해부(Code Dissection)**를 극대화하는 데스크톱 지향 학습 도구입니다.
 
