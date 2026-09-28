@@ -526,10 +526,10 @@ export class ImportBatchRepository {
       .prepare(
         `SELECT
           COUNT(*) as total,
-          SUM(CASE WHEN review_status = 'PENDING' THEN 1 ELSE 0 END) as pending,
-          SUM(CASE WHEN review_status = 'APPROVED' THEN 1 ELSE 0 END) as approved,
-          SUM(CASE WHEN review_status = 'REJECTED' THEN 1 ELSE 0 END) as rejected,
-          SUM(CASE WHEN review_status = 'COMMITTED' THEN 1 ELSE 0 END) as committed
+          COALESCE(SUM(CASE WHEN review_status = 'PENDING' THEN 1 ELSE 0 END), 0) as pending,
+          COALESCE(SUM(CASE WHEN review_status = 'APPROVED' THEN 1 ELSE 0 END), 0) as approved,
+          COALESCE(SUM(CASE WHEN review_status = 'REJECTED' THEN 1 ELSE 0 END), 0) as rejected,
+          COALESCE(SUM(CASE WHEN review_status = 'COMMITTED' THEN 1 ELSE 0 END), 0) as committed
         FROM staged_questions WHERE batch_id = ?`,
       )
       .get(batchId) as {

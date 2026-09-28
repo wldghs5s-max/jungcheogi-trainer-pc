@@ -76,6 +76,25 @@ export const GenerateQuestionModal: React.FC<GenerateQuestionModalProps> = ({
         }),
       });
 
+      const contentType = res.headers.get("content-type") || "";
+      if (!contentType.includes("application/json")) {
+        const rawText = await res.text();
+        if (
+          res.status === 524 ||
+          res.status === 504 ||
+          rawText.includes("524") ||
+          rawText.includes("timeout") ||
+          rawText.includes("Cloudflare")
+        ) {
+          throw new Error(
+            "요청 시간이 초과되었습니다 (클라우드플레어 터널 100초 제한). 백엔드에서 생성 및 검증 작업이 백그라운드로 계속 진행되어 [검수 대기열]에 이미 등록되었을 수 있습니다. 외부터널 접속 시에는 3~5개 생성을 권장합니다.",
+          );
+        }
+        throw new Error(
+          `서버 응답 오류 (상태 코드 ${res.status}): JSON 응답이 아닙니다.`,
+        );
+      }
+
       const data = await res.json();
       if (!res.ok || data.success === false || !data.count) {
         setResult(null);
@@ -238,9 +257,14 @@ export const GenerateQuestionModal: React.FC<GenerateQuestionModalProps> = ({
 
               {/* Count Select */}
               <div style={styles.formGroup}>
-                <label style={styles.label}>생성 문제 수</label>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: "6px" }}>
+                  <label style={{ ...styles.label, marginBottom: 0 }}>생성 문제 수</label>
+                  <span style={{ fontSize: "11px", color: "var(--color-text-muted, #94a3b8)" }}>
+                    * 외부터널 접속 시 100초 초과 방지를 위해 3~5개 권장
+                  </span>
+                </div>
                 <div style={styles.countButtonGroup}>
-                  {[5, 10].map((num) => (
+                  {[3, 5, 10].map((num) => (
                     <button
                       key={num}
                       type="button"
@@ -272,15 +296,42 @@ export const GenerateQuestionModal: React.FC<GenerateQuestionModalProps> = ({
 
               {domainsError && (
                 <div style={styles.errorBox}>
-                  <AlertTriangle size={16} color="#F59E0B" />
+                  <AlertTriangle size={16} color="#F59E0B" style={{ flexShrink: 0, marginTop: "2px" }} />
                   <span>{domainsError}</span>
                 </div>
               )}
 
               {error && (
                 <div style={styles.errorBox}>
-                  <AlertTriangle size={16} color="#EF4444" />
-                  <span>{error}</span>
+                  <AlertTriangle size={16} color="#EF4444" style={{ flexShrink: 0, marginTop: "2px" }} />
+                  <div style={{ display: "flex", flexDirection: "column", gap: "8px", flex: 1 }}>
+                    <span style={{ lineHeight: 1.4 }}>{error}</span>
+                    {error.includes("검수 대기열") && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          onClose();
+                          onOpenReviewStaging();
+                        }}
+                        style={{
+                          alignSelf: "flex-start",
+                          background: "#3B82F6",
+                          color: "#FFFFFF",
+                          border: "none",
+                          padding: "6px 12px",
+                          borderRadius: "6px",
+                          fontSize: "12px",
+                          fontWeight: 600,
+                          cursor: "pointer",
+                          display: "inline-flex",
+                          alignItems: "center",
+                          gap: "4px",
+                        }}
+                      >
+                        검수 대기열(Staging) 열기 →
+                      </button>
+                    )}
+                  </div>
                 </div>
               )}
 
@@ -419,7 +470,7 @@ const styles: Record<string, React.CSSProperties> = {
   },
   countButtonGroup: {
     display: "grid",
-    gridTemplateColumns: "1fr 1fr",
+    gridTemplateColumns: "repeat(3, 1fr)",
     gap: "10px",
   },
   countButton: {
@@ -438,7 +489,7 @@ const styles: Record<string, React.CSSProperties> = {
   },
   errorBox: {
     display: "flex",
-    alignItems: "center",
+    alignItems: "flex-start",
     gap: "8px",
     backgroundColor: "rgba(239, 68, 68, 0.15)",
     border: "1px solid rgba(239, 68, 68, 0.3)",

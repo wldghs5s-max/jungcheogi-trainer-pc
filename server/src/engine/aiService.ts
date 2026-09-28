@@ -51,16 +51,20 @@ export function getSmartModel(): string {
  * 튜터용 폴백 후보 리스트 (3.5 우선)
  */
 export const TUTOR_MODELS = [
+  "gemini-3.1-flash-lite",
   "gemini-3.5-flash-lite",
+  "gemini-3.7-flash",
   "gemini-3.5-flash",
   "gemini-3.8-flash",
 ];
 
 /**
- * 생성용 폴백 후보 리스트 (3.8 우선)
+ * 생성용 폴백 후보 리스트 (3.7 / 3.8 우선)
  */
 export const GENERATOR_MODELS = [
+  "gemini-3.7-flash",
   "gemini-3.8-flash",
+  "gemini-3.1-flash-lite",
   "gemini-3.5-flash",
   "gemini-3.5-flash-lite",
 ];
