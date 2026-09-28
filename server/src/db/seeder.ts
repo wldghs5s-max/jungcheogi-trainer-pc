@@ -3,6 +3,7 @@ import { QuestionRepository } from './repositories/questionRepository';
 import { ConceptRepository } from './repositories/conceptRepository';
 import { SEED_QUESTIONS } from './fixtures/seedQuestions';
 
+/** 테스트 DB 전용. 학습용 서버 시작 경로에서는 호출하지 않는다. */
 export function seedFixtureQuestions(customDb?: Database): {
   insertedCount: number;
   totalCount: number;

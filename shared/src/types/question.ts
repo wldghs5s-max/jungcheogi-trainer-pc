@@ -22,6 +22,13 @@ export type AnswerVerificationStatus =
   | 'PROVISIONAL_DRAFT'
   | 'TEST_FIXTURE';
 
+export type StudyVisibility = 'LIVE' | 'TEMPORARY_DRILL';
+
+export type AnswerSource =
+  | 'OFFICIAL'
+  | 'AI_UNVERIFIED'
+  | 'EXECUTION_VERIFIED';
+
 /**
  * 문제 출처 및 신뢰 수준 분류
  * - REAL_EXAM: 실제 공단 기출문제 (출처가 엄격히 검증된 문항)
@@ -93,6 +100,8 @@ export interface Question {
   // Ground Truth (기준 정답 및 원본 해설)
   groundTruthAnswer: string | string[];
   answerVerificationStatus?: AnswerVerificationStatus;
+  studyVisibility?: StudyVisibility;
+  answerSource?: AnswerSource;
   officialExplanation?: string;
 
   // 힌트 목록 (Phase 5 Active Recall 지원)
@@ -127,6 +136,7 @@ export interface QuestionFilter {
   search?: string;
   limit?: number;
   offset?: number;
+  includeTemporaryDrills?: boolean;
 }
 
 export interface QuestionListResponse {

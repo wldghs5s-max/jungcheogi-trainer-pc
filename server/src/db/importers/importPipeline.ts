@@ -7,6 +7,7 @@ import {
   QuestionType,
   Difficulty,
   CodeLanguage,
+  Question,
 } from "@jungcheogi/shared";
 import { parseJsonQuestions } from "./parsers/jsonParser";
 import { parseMarkdownQuestions } from "./parsers/markdownParser";
@@ -56,8 +57,9 @@ export class QuestionImportPipeline {
       throw new Error("문항을 추출할 수 없습니다. 입력 형식을 확인해주세요.");
     }
 
-    // 기존 라이브 DB 문항 전체 로드 (중복 판별용)
-    const existing = this.questionRepo.findMany({ limit: 1000 }).items;
+    // 기존 라이브 DB 문항 전체 로드 (중복 판별용, 페이지 상한 없음)
+    const existing = this.questionRepo.findAllMatching();
+    const inBatchSeen: Question[] = [];
 
     const batchId = `batch_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`;
     const now = new Date().toISOString();
@@ -90,7 +92,7 @@ export class QuestionImportPipeline {
           examRound: raw.examRound,
           questionNumber: raw.questionNumber,
         },
-        existing,
+        [...existing, ...inBatchSeen],
       );
 
       const stagedId = `staged_${batchId}_${i + 1}`;
@@ -132,6 +134,26 @@ export class QuestionImportPipeline {
         validationIssues: validation.issues,
         reviewStatus: "PENDING",
         reviewerNotes: dupAnalysis.reason,
+        createdAt: now,
+      });
+
+      inBatchSeen.push({
+        id: stagedId,
+        sourceType: raw.sourceType || defaultSource,
+        examYear: raw.examYear,
+        examRound: raw.examRound,
+        questionNumber: raw.questionNumber,
+        subject: (raw.subject as Subject) || "소프트웨어설계",
+        category: raw.category || "일반",
+        type:
+          (raw.type as QuestionType) ||
+          (raw.codeSnippet ? "CODE_TRACE" : "SHORT_ANSWER"),
+        question: raw.questionText,
+        code: raw.codeSnippet,
+        groundTruthAnswer: raw.extractedAnswer || "",
+        difficulty: (raw.difficulty as Difficulty) || "MEDIUM",
+        keywords: raw.keywords || [],
+        structuralFingerprint: fingerprint,
         createdAt: now,
       });
     }

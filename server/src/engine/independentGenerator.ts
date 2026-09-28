@@ -113,7 +113,7 @@ int main(void) {
       difficulty: "HARD",
       skill: "*p++와 *++p의 연산자 우선순위 및 위치 추적",
       questionDesign: "배열 포인터 순회 중 전위/후위 증감과 오프셋 덧셈을 결합하여 메모리 주소 이동 추적",
-      stepByStepTrace: "초기 sum=0, p=&arr[0] -> 1단계 sum=10, p=&arr[1] -> 2단계 sum=50, p=&arr[1] -> 3단계 sum=80, p=&arr[2]",
+      stepByStepTrace: "초기 sum=0, p=&arr[0] -> 1단계 sum=10, p=&arr[1] -> 2단계 sum=50, p=&arr[1] -> 3단계 sum=80, p=&arr[2] -> 최종 출력 결과는 80입니다.",
     },
     generationMetadata: {
       model: "mock",
@@ -158,7 +158,7 @@ int main(void) {
       difficulty: "MEDIUM",
       skill: "포인터 매개변수를 통한 원본 변수 값 변조 추적",
       questionDesign: "주소를 전달받은 함수 내부에서 원래 변수 값을 계산 및 교체하는 전형적인 포인터 기출 유형",
-      stepByStepTrace: "x=5, y=3 -> temp=5 -> *a(x)=8 -> *b(y)=10 -> 최종 x=8, y=10",
+      stepByStepTrace: "x=5, y=3 -> temp=5 -> *a(x)=8 -> *b(y)=10 -> 최종 출력 결과는 8 10입니다.",
     },
     generationMetadata: {
       model: "mock",

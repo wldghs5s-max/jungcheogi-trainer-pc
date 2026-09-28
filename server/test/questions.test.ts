@@ -44,7 +44,7 @@ async function testQuestionsDomainAndApi() {
   const javaQuestion = allQuestions.find((q) => q.language === 'JAVA');
   const pythonQuestion = allQuestions.find((q) => q.language === 'PYTHON');
   assert(cQuestion && cQuestion.code && cQuestion.groundTruthAnswer === '40', 'C언어 코드 문제 검증');
-  assert(javaQuestion && javaQuestion.code && javaQuestion.groundTruthAnswer === '3', 'Java 다형성 코드 문제 검증');
+  assert(javaQuestion && javaQuestion.code && javaQuestion.groundTruthAnswer === '1', 'Java 다형성 코드 문제 검증');
   assert(pythonQuestion && pythonQuestion.code && pythonQuestion.groundTruthAnswer === '18', 'Python 슬라이싱 코드 문제 검증');
   console.log('OK   [3] C / Java / Python 코드 추적 문제 모델 검증 통과');
 

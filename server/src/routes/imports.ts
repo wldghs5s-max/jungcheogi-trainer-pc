@@ -209,10 +209,13 @@ export async function importRoutes(fastify: FastifyInstance) {
         });
       }
 
-      batchRepo.approveQuestionsWithoutErrors(id);
+      const approvedCount = batchRepo.approveQuestionsWithoutErrors(id);
       const refreshed = batchRepo.findBatchById(id);
 
-      return reply.status(200).send(refreshed);
+      return reply.status(200).send({
+        ...refreshed,
+        approvedCount,
+      });
     },
   );
 
@@ -296,7 +299,7 @@ export async function importRoutes(fastify: FastifyInstance) {
 
   /**
    * 10. POST /api/staging/questions/:stagedId/approve
-   * 단일 문항 승인 및 Live DB 이관 (commit: true가 기본값 또는 선택)
+   * 단일 문항 승인. Live 이관은 commit: true일 때만 수행한다.
    */
   fastify.post(
     "/api/staging/questions/:stagedId/approve",
@@ -308,9 +311,20 @@ export async function importRoutes(fastify: FastifyInstance) {
       reply: FastifyReply,
     ) => {
       const { stagedId } = request.params;
-      const { commit = true, reviewerNotes } = request.body || {};
+      const { commit = false, reviewerNotes } = request.body || {};
 
       try {
+        const approved = batchRepo.setStagedReviewStatus(
+          stagedId,
+          "APPROVED",
+          reviewerNotes,
+        );
+        if (!approved) {
+          return reply.status(404).send({
+            error: "Not Found",
+            message: `문항 '${stagedId}'을(를) 찾을 수 없습니다.`,
+          });
+        }
         if (commit) {
           const liveQuestion = batchRepo.commitSingleApprovedQuestion(stagedId);
           const stagedQuestion = batchRepo.findStagedById(stagedId);
@@ -320,18 +334,12 @@ export async function importRoutes(fastify: FastifyInstance) {
             liveQuestion,
             stagedQuestion,
           });
-        } else {
-          const updated = batchRepo.setStagedReviewStatus(
-            stagedId,
-            "APPROVED",
-            reviewerNotes,
-          );
-          return reply.status(200).send({
-            success: true,
-            message: `문항 '${stagedId}'이 승인(APPROVED) 상태로 변경되었습니다.`,
-            stagedQuestion: updated,
-          });
         }
+        return reply.status(200).send({
+          success: true,
+          message: `문항 '${stagedId}'이 승인(APPROVED) 상태로 변경되었습니다.`,
+          stagedQuestion: approved,
+        });
       } catch (err) {
         return reply.status(400).send({
           statusCode: 400,

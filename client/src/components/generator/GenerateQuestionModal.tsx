@@ -30,20 +30,31 @@ export const GenerateQuestionModal: React.FC<GenerateQuestionModalProps> = ({
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<AIBatchGenerateResponse | null>(null);
   const [domains, setDomains] = useState<LearningDomainsResponse | null>(null);
+  const [domainsError, setDomainsError] = useState<string | null>(null);
 
   useEffect(() => {
     if (isOpen) {
       setError(null);
       setResult(null);
-      // Fetch available domains from DB
-      apiFetch("/api/ai/learning-domains")
-        .then((res) => (res.ok ? res.json() : null))
-        .then((data: LearningDomainsResponse | null) => {
-          if (data) {
-            setDomains(data);
+      setDomainsError(null);
+      apiFetch("/api/ai/domains")
+        .then(async (res) => {
+          if (!res.ok) {
+            const body = await res.json().catch(() => ({}));
+            throw new Error(body.message || `학습 영역 조회 실패 (${res.status})`);
           }
+          return res.json() as Promise<LearningDomainsResponse>;
         })
-        .catch(() => {});
+        .then((data) => {
+          setDomains(data);
+        })
+        .catch((err: Error) => {
+          setDomains(null);
+          setDomainsError(
+            err?.message ||
+              "학습 영역 목록을 불러오지 못했습니다. 지원 언어(C/Java/Python)는 원본 문제가 없어도 독립 생성이 가능합니다.",
+          );
+        });
     }
   }, [isOpen]);
 
@@ -66,8 +77,14 @@ export const GenerateQuestionModal: React.FC<GenerateQuestionModalProps> = ({
       });
 
       const data = await res.json();
-      if (!res.ok) {
-        setError(data.message || "문제 생성 중 오류가 발생했습니다.");
+      if (!res.ok || data.success === false || !data.count) {
+        setResult(null);
+        setError(
+          data.message ||
+            (data.rejectCount
+              ? `생성된 ${data.rejectCount}개 문제가 검증 기준 미달로 등록되지 않았습니다.`
+              : "문제 생성 중 오류가 발생했습니다."),
+        );
       } else {
         setResult(data as AIBatchGenerateResponse);
       }
@@ -109,7 +126,10 @@ export const GenerateQuestionModal: React.FC<GenerateQuestionModalProps> = ({
               </div>
               <h4 style={styles.resultTitle}>문제 생성 완료!</h4>
               <p style={styles.resultDesc}>
-                <strong>{result.count}개</strong>의 새로운 문제가 생성되어 검수 대기열(Staging)에 안전하게 등록되었습니다.
+                <strong>{result.count}개</strong>의 문제가 검수 대기열(Staging)에 등록되었습니다.
+                {typeof result.reviewCount === "number" || typeof result.rejectCount === "number"
+                  ? ` (검수 필요: ${result.reviewCount || 0}, 폐기: ${result.rejectCount || 0})`
+                  : ""}
               </p>
               <div style={styles.resultInfoBadge}>
                 <Database size={15} color="#60A5FA" />
@@ -189,7 +209,7 @@ export const GenerateQuestionModal: React.FC<GenerateQuestionModalProps> = ({
                     학습 영역 선택
                     {domains && (
                       <span style={{ fontSize: "11px", color: "#64748B", marginLeft: "6px" }}>
-                        (DB 실존 영역 연동)
+                        (DB 실존 영역 {domains.languages.length}개 언어 / 독립 생성 지원: {(domains.supportedIndependentLanguages || ["C", "JAVA", "PYTHON"]).join(", ")})
                       </span>
                     )}
                   </label>
@@ -245,10 +265,17 @@ export const GenerateQuestionModal: React.FC<GenerateQuestionModalProps> = ({
                 <div style={{ display: "flex", alignItems: "flex-start", gap: "8px" }}>
                   <Cpu size={16} color="#818CF8" style={{ marginTop: "2px", flexShrink: 0 }} />
                   <div style={{ fontSize: "12px", color: "#94A3B8", lineHeight: 1.5 }}>
-                    <strong style={{ color: "#CBD5E1" }}>자동 AI 최적화 전략:</strong> 문제의 성격에 따라 코드 구조 변형, 핵심 알고리즘 응용, 파라미터 조정을 AI가 자동 선택하며, 독립 코드 실행 엔진을 통해 정답과 해설의 무결성을 사전 검증합니다.
+                    <strong style={{ color: "#CBD5E1" }}>자동 AI 최적화 전략:</strong> 문제 성격에 따라 독립 출제 또는 변형 전략을 고릅니다. 코드 실행 환경이 없으면 런타임 검증 없이 검수 대기열에 올라가며, 승인 후에만 학습 DB에 반영됩니다.
                   </div>
                 </div>
               </div>
+
+              {domainsError && (
+                <div style={styles.errorBox}>
+                  <AlertTriangle size={16} color="#F59E0B" />
+                  <span>{domainsError}</span>
+                </div>
+              )}
 
               {error && (
                 <div style={styles.errorBox}>

@@ -141,16 +141,83 @@ export interface StepTraceVerificationResult {
   conclusionText?: string;
 }
 
+const CONCLUSION_MARKER =
+  /(?:최종|출력|반환|printf|결과|종료|결론|return|따라서|결과적으로|정답은?)/i;
+
+function escapeRegExp(value: string): string {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+function splitAnswerTokens(answer: string): string[] {
+  return answer
+    .trim()
+    .replace(/[\[\]()]/g, " ")
+    .split(/[\s,;:/|]+/)
+    .filter((token) => token.length > 0);
+}
+
+function tokenPattern(token: string): string {
+  if (/^[+-]?\d+(?:\.\d+)?$/.test(token)) {
+    if (token.startsWith("+") || token.startsWith("-")) {
+      return `${escapeRegExp(token)}(?![0-9.])`;
+    }
+    return `(?<![0-9.+\\-])${escapeRegExp(token)}(?![0-9.])`;
+  }
+  return `(?<![A-Za-z0-9_])${escapeRegExp(token)}(?![A-Za-z0-9_])`;
+}
+
 /**
- * 1. stepTrace 상태 검증 (단순 끝문장 문자열 일치에서 분리)
- * - MATCH: 실행 과정을 통해 정답이 도출됨 (토큰 분할 도출 포함)
- * - CONTRADICTION: 추적표 내에서 정답과 모순되는 계산/할당을 명시적으로 서술함
- * - INSUFFICIENT: 결론 근거가 부족하거나 누락됨 (단, 모순은 아님)
+ * includes 부분 문자열 대신, 부호·소수점·토큰 경계를 보존한 값 일치.
+ * 다중 값은 등장 순서를 요구한다.
+ */
+export function textContainsAnswerValue(text: string, answer: string): boolean {
+  const ans = answer.trim();
+  if (!ans || !text) return false;
+  const tokens = splitAnswerTokens(ans);
+  if (tokens.length === 0) return false;
+  let cursor = 0;
+  for (const token of tokens) {
+    const re = new RegExp(tokenPattern(token), "g");
+    re.lastIndex = cursor;
+    const match = re.exec(text);
+    if (!match) return false;
+    cursor = match.index + match[0].length;
+  }
+  return true;
+}
+
+function splitSentences(text: string): string[] {
+  return text
+    .split(/(?<=[.!?\n|])(?:\s+|$)/)
+    .map((s) => s.trim())
+    .filter(Boolean);
+}
+
+function extractConclusionText(text: string): {
+  conclusionText: string;
+  hasExplicitConclusion: boolean;
+} {
+  const sentences = splitSentences(text);
+  const marked = sentences.filter((s) => CONCLUSION_MARKER.test(s));
+  if (marked.length === 0) {
+    return { conclusionText: "", hasExplicitConclusion: false };
+  }
+  return {
+    conclusionText: marked.join(" "),
+    hasExplicitConclusion: true,
+  };
+}
+
+/**
+ * 1. stepTrace 상태 검증
+ * - MATCH: 명시적 결론에서 정답이 토큰 경계로 도출됨
+ * - CONTRADICTION: 명시적 결론이 다른 최종 값을 제시함
+ * - INSUFFICIENT: 결론을 확정할 수 없음
  */
 export function verifyStepTraceMatch(
   stepTrace: string,
   answer: string,
-  evaluationId?: string,
+  _evaluationId?: string,
 ): StepTraceVerificationResult {
   if (!stepTrace || stepTrace.trim().length < 10) {
     return {
@@ -161,33 +228,6 @@ export function verifyStepTraceMatch(
   }
 
   const ansStr = answer.trim();
-
-  // 고정 회귀 모순 사례 감지
-  if (evaluationId === "EVAL-C-25" || (stepTrace.includes("arr[0] =") && stepTrace.includes("= 8") && ansStr.startsWith("2"))) {
-    return {
-      status: "CONTRADICTION",
-      matches: false,
-      reason: `추적표에서 arr[0]=8로 계산하여 정답("${ansStr}")과 모순`,
-    };
-  }
-
-  if (evaluationId === "EVAL-C-02" || (stepTrace.includes("(*p)++") && stepTrace.includes("'O'(79)를 80") && ansStr.includes("KPSFB"))) {
-    return {
-      status: "CONTRADICTION",
-      matches: false,
-      reason: `추적표 홀수 문자('O')에 대한 짝수 분기(*p++) 오실행 및 정답("${ansStr}") 미도출 모순`,
-    };
-  }
-
-  if (evaluationId === "EVAL-C-09") {
-    return {
-      status: "INSUFFICIENT",
-      matches: false,
-      reason: "추적표 루프 합산(sum=30) 기술 혼선 (해설 및 코드는 정상 6, 8 도출)",
-    };
-  }
-
-  // 1-1. '초기 상태' 선언부 분리
   let executionPart = stepTrace;
   const initSplit = stepTrace.split(
     /(?:초기(?:\s*상태|\s*배열|\s*문자열|\s*변수)?\s*[:=]|initial\s*state)/i,
@@ -200,73 +240,26 @@ export function verifyStepTraceMatch(
     }
   }
 
-  // 1-2. 결론 후보 문장 추출
-  const sentences = executionPart
-    .split(/(?<=[.\n|])/)
-    .map((s) => s.trim())
-    .filter(Boolean);
+  const { conclusionText, hasExplicitConclusion } =
+    extractConclusionText(executionPart);
 
-  const conclusionCandidates = sentences.filter((s) =>
-    /(?:최종|출력|반환|printf|결과|종료|결론|return)/i.test(s),
-  );
-
-  const conclusionText =
-    conclusionCandidates.length > 0
-      ? conclusionCandidates.join(" ")
-      : sentences.slice(-2).join(" ");
-
-  const ansTokens = ansStr.split(/[\s,:]+/).filter(Boolean);
-
-  // A. 단일 값 정답
-  if (ansTokens.length === 1) {
-    const singleAns = ansTokens[0];
-    const inConclusion =
-      conclusionText.includes(singleAns) ||
-      conclusionText.replace(/\s+/g, "").includes(singleAns);
-
-    if (inConclusion) {
-      return { status: "MATCH", matches: true, conclusionText };
-    }
-
-    const inExecution =
-      executionPart.includes(singleAns) ||
-      executionPart.replace(/\s+/g, "").includes(singleAns);
-
-    if (inExecution) {
-      return { status: "MATCH", matches: true, conclusionText };
-    }
-
+  if (!hasExplicitConclusion) {
     return {
       status: "INSUFFICIENT",
       matches: false,
-      reason: `추적표 실행/결론부에 정답("${singleAns}") 미언급`,
+      reason: "추적표에서 최종 결론 문장을 확정할 수 없음",
       conclusionText,
     };
   }
 
-  // B. 다중 값 정답
-  const fullAnsNormalized = ansStr.replace(/[\s,:]+/g, " ");
-  const executionNormalized = executionPart.replace(/[\s,:]+/g, " ");
-
-  if (
-    executionNormalized.includes(fullAnsNormalized) ||
-    executionPart.replace(/\s+/g, "").includes(ansStr.replace(/\s+/g, ""))
-  ) {
-    return { status: "MATCH", matches: true, conclusionText };
-  }
-
-  const allTokensInExec =
-    ansTokens.length > 0 &&
-    ansTokens.every((token) => executionPart.includes(token));
-
-  if (allTokensInExec) {
+  if (textContainsAnswerValue(conclusionText, ansStr)) {
     return { status: "MATCH", matches: true, conclusionText };
   }
 
   return {
     status: "INSUFFICIENT",
     matches: false,
-    reason: `추적표에 정답("${ansStr}")의 핵심 토큰 미도출`,
+    reason: `추적표 결론부에 정답("${ansStr}")이 경계 일치로 도출되지 않음`,
     conclusionText,
   };
 }
@@ -282,18 +275,17 @@ export interface ExplanationVerificationResult {
 
 /**
  * 2. 해설(officialExplanation) 결론 및 일치 판정
- * - MATCH: 최종 결론 문장이 정답과 일치 (다중 변수 개별 서술 x=15, y=10 포함)
- * - CONTRADICTION: 결론 문장이 정답과 다른 값을 도출하거나 자가 정정 후 상충
- * - INSUFFICIENT: 해설 분량 부족
+ * - MATCH: 명시적 결론 문장이 정답과 토큰 경계로 일치
+ * - CONTRADICTION: 명시적 결론이 다른 최종 값을 제시
+ * - INSUFFICIENT: 결론을 확정할 수 없거나 분량 부족
  */
 export function verifyExplanationMatch(
   explanation: string,
   answer: string,
-  evaluationId?: string,
+  _evaluationId?: string,
 ): ExplanationVerificationResult {
   const explStr = explanation || "";
   const ansStr = answer.trim();
-  const ansTokens = ansStr.split(/[\s,:]+/).filter(Boolean);
 
   if (!explStr || explStr.trim().length < 10) {
     return {
@@ -305,13 +297,8 @@ export function verifyExplanationMatch(
     };
   }
 
-  const answerInExplanation =
-    explStr.includes(ansStr) ||
-    explStr.replace(/\s+/g, "").includes(ansStr.replace(/\s+/g, ""));
+  const answerInExplanation = textContainsAnswerValue(explStr, ansStr);
 
-  // 실제 계산 오류/착오 정정 문맥 탐지
-  // - "원본 데이터를 직접 수정한다", "배열 값을 수정한다", "변수를 수정한다" 등 정상 코드 설명은 배제
-  // - "다시 계산하면", "앞선 계산은 잘못", "오류가 있었습니다", "정정하면", "수정된 정답은", "아닙니다. 단계별 재확인" 등 실제 계산 착오만 탐지
   const calculationCorrectionPatterns = [
     /다시\s*계산/i,
     /(?:앞선|이전|위의?)\s*계산(?:은|에서)?\s*(?:잘못|오류)/i,
@@ -329,42 +316,22 @@ export function verifyExplanationMatch(
     pattern.test(explStr),
   );
 
-  // 문장 분리 시 items[0].arr 같은 구조체 멤버 접근 마침표가 오분리되지 않도록 공백/개행 동반 시에만 분리
-  const sentences = explStr
-    .split(/(?<=[.!?\n])(?:\s+|$)/)
-    .map((s) => s.trim())
-    .filter(Boolean);
+  const { conclusionText, hasExplicitConclusion } =
+    extractConclusionText(explStr);
+  const lastConclusionSentence = conclusionText;
 
-  const conclusionSentences = sentences.filter((s) =>
-    /(?:따라서|결과적으로|최종(?:적으로)?|정답은?)/i.test(s),
-  );
-
-  const lastConclusionSentence =
-    conclusionSentences.length > 0
-      ? conclusionSentences[conclusionSentences.length - 1]
-      : sentences[sentences.length - 1] || "";
-
-  // EVAL-C-13 자가 정정 혼선 처리
-  if (evaluationId === "EVAL-C-13") {
+  if (!hasExplicitConclusion) {
     return {
-      status: "CONTRADICTION",
+      status: "INSUFFICIENT",
       conclusionMatches: false,
       answerInExplanation,
-      selfCorrectionDetected: true,
-      reason: "해설 내 자가 정정 혼선 및 결론(25)과 정답(15) 모순",
+      selfCorrectionDetected,
+      reason: "해설에서 최종 결론 문장을 확정할 수 없음",
       conclusionSentence: lastConclusionSentence,
     };
   }
 
-  const containsFullAns =
-    lastConclusionSentence.replace(/[\s,:]+/g, " ").includes(ansStr.replace(/[\s,:]+/g, " ")) ||
-    lastConclusionSentence.replace(/\s+/g, "").includes(ansStr.replace(/\s+/g, ""));
-
-  const containsAllTokens =
-    ansTokens.length > 0 &&
-    ansTokens.every((token) => lastConclusionSentence.includes(token));
-
-  if (containsFullAns || containsAllTokens) {
+  if (textContainsAnswerValue(conclusionText, ansStr)) {
     return {
       status: "MATCH",
       conclusionMatches: true,
@@ -451,6 +418,7 @@ export function evaluateDualConsistency(params: {
   codeExecutionStatus?: "SUCCESS" | "UNAVAILABLE" | "ERROR";
   expectedAnswer: string;
   hasSyntaxIssues?: boolean;
+  selfCorrectionDetected?: boolean;
 }): DualValidationResult {
   const rejectionReasons: string[] = [];
 
@@ -515,7 +483,9 @@ export function evaluateDualConsistency(params: {
     finalDecision = "REJECT";
   } else if (
     textConsistency === "REVIEW" ||
-    codeAnswerConsistency === "REVIEW"
+    codeAnswerConsistency === "REVIEW" ||
+    codeAnswerConsistency === "UNAVAILABLE" ||
+    params.selfCorrectionDetected
   ) {
     finalDecision = "REVIEW";
   }

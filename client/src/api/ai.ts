@@ -7,6 +7,7 @@ import {
   AICodeLineResponse,
   AIGeminiVariationRequest,
   AIGeminiVariationResponse,
+  AIVariationDrillResponse,
 } from '@jungcheogi/shared';
 import { apiFetch } from './http';
 
@@ -115,7 +116,7 @@ export async function generateAIVariation(
  */
 export async function fetchAIVariationDrill(
   req: { parentQuestionId: string }
-): Promise<{ data: { success: boolean; question: any; variation: any; message?: string } | null; error?: string }> {
+): Promise<{ data: AIVariationDrillResponse | null; error?: string }> {
   try {
     const res = await apiFetch('/api/ai/variation-drill', {
       method: 'POST',
@@ -123,12 +124,16 @@ export async function fetchAIVariationDrill(
       body: JSON.stringify(req),
     });
 
-    if (!res.ok) {
-      const err = await res.json().catch(() => ({}));
-      return { data: null, error: err.message || `AI 변형 문제 생성 실패 (${res.status})` };
+    const data = (await res.json().catch(() => ({}))) as AIVariationDrillResponse & {
+      message?: string;
+    };
+    if (!res.ok || data.success === false) {
+      return {
+        data: data.success === false ? data : null,
+        error: data.message || `AI 변형 문제 생성 실패 (${res.status})`,
+      };
     }
 
-    const data = await res.json();
     return { data };
   } catch (err: any) {
     return { data: null, error: err?.message || '네트워크 오류가 발생했습니다.' };

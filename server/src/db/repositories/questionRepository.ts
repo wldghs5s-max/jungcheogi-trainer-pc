@@ -8,7 +8,9 @@ import {
   Difficulty,
   CodeLanguage,
   QuestionSourceType,
+  StudyVisibility,
   stripSubItemPrefix,
+  isStudyEligible,
 } from "@jungcheogi/shared";
 import { getDatabase } from "../database";
 
@@ -58,6 +60,7 @@ interface QuestionRow {
   difficulty: string;
   keywords_json: string | null;
   structural_fingerprint: string | null;
+  study_visibility?: string | null;
   created_at: string;
   updated_at: string | null;
 }
@@ -161,6 +164,7 @@ function mapRowToQuestion(row: QuestionRow): Question {
     difficulty: (row.difficulty as Difficulty) || "MEDIUM",
     keywords,
     structuralFingerprint: row.structural_fingerprint ?? undefined,
+    studyVisibility: (row.study_visibility as StudyVisibility) || "LIVE",
     createdAt: row.created_at,
     updatedAt: row.updated_at ?? undefined,
   };
@@ -209,8 +213,19 @@ export class QuestionRepository {
           }
         }
       }
-      const nextSeq = maxSeq + 1;
-      return `${prefix}-${String(nextSeq).padStart(6, "0")}`;
+      let nextSeq = maxSeq + 1;
+      let candidate = `${prefix}-${String(nextSeq).padStart(6, "0")}`;
+      const exists = this.db.prepare(
+        `SELECT 1 FROM questions WHERE question_code = ?
+         UNION ALL
+         SELECT 1 FROM staged_questions WHERE question_code = ?
+         LIMIT 1`,
+      );
+      while (exists.get(candidate, candidate)) {
+        nextSeq += 1;
+        candidate = `${prefix}-${String(nextSeq).padStart(6, "0")}`;
+      }
+      return candidate;
     } catch {
       return `${prefix}-${Date.now().toString().slice(-6)}`;
     }
@@ -231,12 +246,12 @@ export class QuestionRepository {
         id, question_code, source_type, exam_year, exam_round, question_number, parent_question_id,
         concept_id, subject, category, sub_category, type, question_text, code_snippet, language, options_json,
         ground_truth_answer, official_explanation, hints_json, code_line_explanations_json, active_recall_meta_json,
-        ai_explanation, ai_variation_notes, difficulty, keywords_json, structural_fingerprint, created_at, updated_at
+        ai_explanation, ai_variation_notes, difficulty, keywords_json, structural_fingerprint, study_visibility, created_at, updated_at
       ) VALUES (
         @id, @question_code, @source_type, @exam_year, @exam_round, @question_number, @parent_question_id,
         @concept_id, @subject, @category, @sub_category, @type, @question_text, @code_snippet, @language, @options_json,
         @ground_truth_answer, @official_explanation, @hints_json, @code_line_explanations_json, @active_recall_meta_json,
-        @ai_explanation, @ai_variation_notes, @difficulty, @keywords_json, @structural_fingerprint, @created_at, @updated_at
+        @ai_explanation, @ai_variation_notes, @difficulty, @keywords_json, @structural_fingerprint, @study_visibility, @created_at, @updated_at
       )
     `);
 
@@ -271,6 +286,7 @@ export class QuestionRepository {
       difficulty: q.difficulty,
       keywords_json: JSON.stringify(q.keywords || []),
       structural_fingerprint: q.structuralFingerprint ?? null,
+      study_visibility: q.studyVisibility || "LIVE",
       created_at: q.createdAt || new Date().toISOString(),
       updated_at: q.updatedAt ?? null,
     });
@@ -293,15 +309,20 @@ export class QuestionRepository {
 
   public findVariations(parentQuestionId: string): Question[] {
     const stmt = this.db.prepare(
-      "SELECT * FROM questions WHERE parent_question_id = ? ORDER BY created_at ASC",
+      `SELECT * FROM questions
+       WHERE parent_question_id = ?
+         AND (study_visibility IS NULL OR study_visibility = 'LIVE')
+       ORDER BY created_at ASC`,
     );
     const rows = stmt.all(parentQuestionId) as QuestionRow[];
     return rows.map(mapRowToQuestion);
   }
 
-  public findMany(filter: QuestionFilter = {}): QuestionListResponse {
+  private buildListFilter(
+    filter: QuestionFilter = {},
+  ): { conditions: string[]; params: unknown[] } {
     const conditions: string[] = [];
-    const params: any[] = [];
+    const params: unknown[] = [];
 
     if (filter.subject) {
       conditions.push("subject = ?");
@@ -345,17 +366,24 @@ export class QuestionRepository {
       params.push(term, term, term, term);
     }
 
+    if (!filter.includeTemporaryDrills) {
+      conditions.push("(study_visibility IS NULL OR study_visibility = 'LIVE')");
+    }
+
+    return { conditions, params };
+  }
+
+  public findMany(filter: QuestionFilter = {}): QuestionListResponse {
+    const { conditions, params } = this.buildListFilter(filter);
     const whereClause =
       conditions.length > 0 ? `WHERE ${conditions.join(" AND ")}` : "";
 
-    // Total count query
     const countQuery = `SELECT COUNT(*) as total FROM questions ${whereClause}`;
     const countRow = this.db.prepare(countQuery).get(...params) as {
       total: number;
     };
     const total = countRow ? countRow.total : 0;
 
-    // Items query with pagination
     const limit = Math.min(Math.max(filter.limit ?? 20, 1), 100);
     const offset = Math.max(filter.offset ?? 0, 0);
 
@@ -383,21 +411,32 @@ export class QuestionRepository {
     };
   }
 
+  /**
+   * 사용자 목록의 100건 페이지 제한 없이 내부 비교·후보 선정용 전체 조회
+   */
+  public findAllMatching(
+    filter: Omit<QuestionFilter, "limit" | "offset"> = {},
+  ): Question[] {
+    const { conditions, params } = this.buildListFilter(filter);
+    const whereClause =
+      conditions.length > 0 ? `WHERE ${conditions.join(" AND ")}` : "";
+    const query = `
+      SELECT * FROM questions
+      ${whereClause}
+      ORDER BY
+        CASE WHEN exam_year IS NOT NULL THEN exam_year ELSE 0 END DESC,
+        CASE WHEN exam_round IS NOT NULL THEN exam_round ELSE 0 END DESC,
+        CASE WHEN question_number IS NOT NULL THEN question_number ELSE 999 END ASC,
+        created_at DESC
+    `;
+    const rows = this.db.prepare(query).all(...params) as QuestionRow[];
+    return rows.map(mapRowToQuestion);
+  }
+
   public findCandidateIds(
-    filter: Pick<QuestionFilter, "subject" | "sourceType"> = {},
+    filter: Pick<QuestionFilter, "subject" | "sourceType" | "includeTemporaryDrills"> = {},
   ): string[] {
-    const conditions: string[] = [];
-    const params: any[] = [];
-
-    if (filter.subject) {
-      conditions.push("subject = ?");
-      params.push(filter.subject);
-    }
-    if (filter.sourceType) {
-      conditions.push("source_type = ?");
-      params.push(filter.sourceType);
-    }
-
+    const { conditions, params } = this.buildListFilter(filter);
     const whereClause =
       conditions.length > 0 ? `WHERE ${conditions.join(" AND ")}` : "";
     const query = `
@@ -414,20 +453,32 @@ export class QuestionRepository {
   }
 
   public pickRandom(
-    filter: Pick<QuestionFilter, "subject" | "sourceType">,
+    filter: Pick<QuestionFilter, "subject" | "sourceType" | "includeTemporaryDrills">,
     count: number,
     rng: () => number = Math.random,
   ): Question[] {
     const ids = this.findCandidateIds(filter);
-    const picked = pickRandomIds(ids, count, rng);
+    const picked = pickRandomIds(ids, Math.min(count * 3, ids.length) || count, rng);
     const selected: Question[] = [];
     const seen = new Set<string>();
     for (const id of picked) {
+      if (selected.length >= count) break;
       if (seen.has(id)) continue;
       const question = this.findById(id);
-      if (question) {
+      if (question && isStudyEligible(question)) {
         seen.add(id);
         selected.push(question);
+      }
+    }
+    if (selected.length < count) {
+      for (const id of ids) {
+        if (selected.length >= count) break;
+        if (seen.has(id)) continue;
+        const question = this.findById(id);
+        if (question && isStudyEligible(question)) {
+          seen.add(id);
+          selected.push(question);
+        }
       }
     }
     return selected;
@@ -477,6 +528,7 @@ export class QuestionRepository {
         difficulty = @difficulty,
         keywords_json = @keywords_json,
         structural_fingerprint = @structural_fingerprint,
+        study_visibility = @study_visibility,
         updated_at = @updated_at
       WHERE id = @id
     `);
@@ -512,6 +564,7 @@ export class QuestionRepository {
       difficulty: merged.difficulty,
       keywords_json: JSON.stringify(merged.keywords || []),
       structural_fingerprint: merged.structuralFingerprint ?? null,
+      study_visibility: merged.studyVisibility || "LIVE",
       updated_at: merged.updatedAt,
     });
 
@@ -536,12 +589,12 @@ export class QuestionRepository {
         id, question_code, source_type, exam_year, exam_round, question_number, parent_question_id,
         concept_id, subject, category, sub_category, type, question_text, code_snippet, language, options_json,
         ground_truth_answer, official_explanation, hints_json, code_line_explanations_json, active_recall_meta_json,
-        ai_explanation, ai_variation_notes, difficulty, keywords_json, structural_fingerprint, created_at, updated_at
+        ai_explanation, ai_variation_notes, difficulty, keywords_json, structural_fingerprint, study_visibility, created_at, updated_at
       ) VALUES (
         @id, @question_code, @source_type, @exam_year, @exam_round, @question_number, @parent_question_id,
         @concept_id, @subject, @category, @sub_category, @type, @question_text, @code_snippet, @language, @options_json,
         @ground_truth_answer, @official_explanation, @hints_json, @code_line_explanations_json, @active_recall_meta_json,
-        @ai_explanation, @ai_variation_notes, @difficulty, @keywords_json, @structural_fingerprint, @created_at, @updated_at
+        @ai_explanation, @ai_variation_notes, @difficulty, @keywords_json, @structural_fingerprint, @study_visibility, @created_at, @updated_at
       )
     `);
 
@@ -587,6 +640,7 @@ export class QuestionRepository {
           difficulty: q.difficulty,
           keywords_json: JSON.stringify(q.keywords || []),
           structural_fingerprint: q.structuralFingerprint ?? null,
+          study_visibility: q.studyVisibility || "LIVE",
           created_at: q.createdAt || new Date().toISOString(),
           updated_at: q.updatedAt ?? null,
         });

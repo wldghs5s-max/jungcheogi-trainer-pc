@@ -1,0 +1,671 @@
+{
+  "schemaVersion": "photo-transcription-v1",
+  "purpose": "개인 정보처리기사 실기 학습용 문항·정답·해설. 기출 고증보다 학습 정확도를 우선한다.",
+  "exam": "2024년 1회 (사진 하단: 2024년 4월 시행)",
+  "sourceKind": "교재의 수험생 기억 기반 기출 복원 문항",
+  "sourceCaveat": "교재는 수험생 기억 기반 복원이며 정답·해설에도 휴먼 에러가 있을 수 있다. 이 파일의 답은 학습용 검수본이다. 공식 시험지 원문으로 단정하지 않는다.",
+  "transcriptionPolicy": "사진을 직접 읽어 전사. 줄바꿈과 들여쓰기는 가독성 정리. 코드 토큰과 값은 보존. 원문과 전사자 설명은 메모로 구분.",
+  "questionCount": 18,
+  "imageCount": 11,
+  "answerPolicy": "공단 공식 답안이 아니다. 코드 문항은 컴파일러/인터프리터로 실행해 검증했고, 개념 문항은 표준 정의로 답을 달았다. 교재 오기(지문 언어, 알파벳 모듈로 등)는 학습에 맞게 고쳤다.",
+  "missingMaterials": [
+    "19·20번은 교재에도 복원되지 않아 만들지 않았다."
+  ],
+  "questions": [
+    {
+      "id": "photo-2024-01-01",
+      "examYear": 2024,
+      "examRound": 1,
+      "questionNumber": 1,
+      "points": 5,
+      "sourceImage": "public/20260927_080043.jpg",
+      "questionText": "다음 C로 구현된 프로그램을 분석하여 그 실행 결과를 쓰시오. (단, 출력문의 출력 서식을 준수하시오.)",
+      "code": "#include <stdio.h>\n#include <stdlib.h>\n\nint main(int argc, char *argv[]) {\n    int v1 = 0;\n    int v2 = 35;\n    int v3 = 29;\n    if (v1 > v2 ? v2 : v1)\n        v2 = v2 << 2;\n    else\n        v3 = v3 << 2;\n    printf(\"%d\", v2 + v3);\n    return 0;\n}",
+      "language": "C",
+      "options": [],
+      "tables": [],
+      "groundTruthAnswer": "151",
+      "officialExplanation": "삼항 연산 `v1 > v2 ? v2 : v1`은 0 > 35가 거짓이므로 v1인 0이다. if (0)은 거짓이라 else에서 v3 = 29 << 2 = 116이 된다. printf는 35 + 116 = 151을 출력한다.",
+      "transcriptionStatus": "REVIEWED",
+      "answerStatus": "STUDY_ANSWERED",
+      "readyForGrading": true,
+      "reviewNotes": [
+        "사진 지문의 JAVA는 코드가 C이므로 오타로 보고 C로 고쳤다.",
+        "사진의 생략된 main 반환형은 int로 명시했다. 실행 결과는 같다.",
+        "C89로 실행해 출력이 151인지 확인했다."
+      ]
+    },
+    {
+      "id": "photo-2024-01-02",
+      "examYear": 2024,
+      "examRound": 1,
+      "questionNumber": 2,
+      "points": 5,
+      "sourceImage": "public/20260927_080043.jpg",
+      "questionText": "다음 설명에 해당하는 라우팅 프로토콜을 쓰시오.\n• RIP의 단점을 해결하여 새로운 기능을 지원하는 인터넷 프로토콜이다.\n• 최단 경로 탐색에 Dijkstra 알고리즘을 사용한다.\n• 대규모 네트워크에서 많이 사용된다.\n• 링크 상태를 실시간으로 반영하여 최단 경로로 라우팅을 지원한다.",
+      "code": null,
+      "language": null,
+      "options": [],
+      "tables": [],
+      "groundTruthAnswer": "OSPF",
+      "officialExplanation": "RIP의 한계를 보완하고, 링크 상태를 쓰며 Dijkstra로 최단 경로를 구하는 대규모 인터넷 라우팅 프로토콜은 OSPF이다. RIP는 거리 벡터, BGP는 경로 벡터(정책 라우팅)라 이 설명과 맞지 않는다.",
+      "transcriptionStatus": "REVIEWED",
+      "answerStatus": "STUDY_ANSWERED",
+      "readyForGrading": true,
+      "reviewNotes": []
+    },
+    {
+      "id": "photo-2024-01-03",
+      "examYear": 2024,
+      "examRound": 1,
+      "questionNumber": 3,
+      "points": 5,
+      "sourceImage": "public/20260927_080053.jpg",
+      "questionText": "다음의 정규화(Normalization) 과정은 어떤 단계의 정규화 과정인지 <보기>에서 찾아 쓰시오.",
+      "code": null,
+      "language": null,
+      "options": [
+        "제1정규형",
+        "제2정규형",
+        "제3정규형",
+        "보이스/코드 정규형",
+        "제4정규형",
+        "제5정규형"
+      ],
+      "tables": [
+        {
+          "name": "분해 전 주문",
+          "columns": [
+            "주문번호",
+            "고객번호",
+            "주소"
+          ],
+          "rows": [
+            [
+              "A345",
+              "100",
+              "서울"
+            ],
+            [
+              "D347",
+              "200",
+              "부산"
+            ],
+            [
+              "A210",
+              "300",
+              "광주"
+            ],
+            [
+              "B230",
+              "200",
+              "부산"
+            ]
+          ]
+        },
+        {
+          "name": "분해 후 주문",
+          "columns": [
+            "주문번호",
+            "고객번호"
+          ],
+          "rows": [
+            [
+              "A345",
+              "100"
+            ],
+            [
+              "D347",
+              "200"
+            ],
+            [
+              "A210",
+              "300"
+            ],
+            [
+              "B230",
+              "200"
+            ]
+          ]
+        },
+        {
+          "name": "분해 후 고객",
+          "columns": [
+            "고객번호",
+            "주소"
+          ],
+          "rows": [
+            [
+              "100",
+              "서울"
+            ],
+            [
+              "200",
+              "부산"
+            ],
+            [
+              "300",
+              "광주"
+            ]
+          ]
+        }
+      ],
+      "groundTruthAnswer": "제3정규형",
+      "officialExplanation": "분해 전 <주문>의 기본키는 주문번호다. 주소는 고객번호에 종속되고, 고객번호는 주문번호에 종속되므로 주문번호 → 고객번호 → 주소의 이행 종속이 있다. 이를 <주문>(주문번호, 고객번호)와 <고객>(고객번호, 주소)로 분해하는 과정이 제3정규형이다. 기본키가 단일 속성이라 부분 함수 종속을 제거하는 제2정규형 단계는 해당하지 않는다.",
+      "transcriptionStatus": "REVIEWED",
+      "answerStatus": "STUDY_ANSWERED",
+      "readyForGrading": true,
+      "reviewNotes": [
+        "사진에는 분해 전 <주문>, 분해 후 <주문>, 분해 후 <고객> 표가 있다.",
+        "사진에서 분해 전 주문번호, 분해 후 주문번호, 고객 테이블의 고객번호에 밑줄이 있다. 기본키 표시로 보이며 값을 바꾸지 않았다."
+      ]
+    },
+    {
+      "id": "photo-2024-01-04",
+      "examYear": 2024,
+      "examRound": 1,
+      "questionNumber": 4,
+      "points": 5,
+      "sourceImage": "public/20260927_080053.jpg",
+      "questionText": "다음에 제시된 응집도(Cohesion)를 높은 순에서 낮은 순으로 나열하시오.\n답: (   ) → (   ) → (   ) → (   )",
+      "code": null,
+      "language": null,
+      "options": [
+        "① 기능적 응집도(Functional Cohesion)",
+        "② 교환적 응집도(Communication Cohesion)",
+        "③ 우연적 응집도(Coincidental Cohesion)",
+        "④ 시간적 응집도(Temporal Cohesion)"
+      ],
+      "tables": [],
+      "groundTruthAnswer": "① → ② → ④ → ③",
+      "officialExplanation": "응집도는 기능적 > 순차적 > 교환적(통신적) > 절차적 > 시간적 > 논리적 > 우연적 순으로 높다. 보기에 있는 네 가지만 쓰면 기능적(①) → 교환적(②) → 시간적(④) → 우연적(③)이다.",
+      "transcriptionStatus": "REVIEWED",
+      "answerStatus": "STUDY_ANSWERED",
+      "readyForGrading": true,
+      "reviewNotes": [
+        "사진 보기는 ㄱㄴㄷㄹ이 아니라 원 숫자 ①②③④이다. 답란 형식도 ( ) → ( ) → ( ) → ( )이다."
+      ]
+    },
+    {
+      "id": "photo-2024-01-05",
+      "examYear": 2024,
+      "examRound": 1,
+      "questionNumber": 5,
+      "points": 5,
+      "sourceImage": "public/20260927_080106.jpg",
+      "questionText": "다음 JAVA로 구현된 프로그램을 분석하여 그 실행 결과를 쓰시오. (단, 출력문의 출력 서식을 준수하시오.)",
+      "code": "class Connection {\n    private static Connection _inst = null;\n    private int count = 0;\n    public static Connection get() {\n        if (_inst == null) {\n            _inst = new Connection();\n            return _inst;\n        }\n        return _inst;\n    }\n    public void count() { count++; }\n    public int getCount() { return count; }\n}\npublic class Test {\n    public static void main(String[] args) {\n        Connection conn1 = Connection.get();\n        conn1.count();\n        Connection conn2 = Connection.get();\n        conn2.count();\n        Connection conn3 = Connection.get();\n        conn3.count();\n        conn1.count();\n        System.out.print(conn1.getCount());\n    }\n}",
+      "language": "JAVA",
+      "options": [],
+      "tables": [],
+      "groundTruthAnswer": "4",
+      "officialExplanation": "get()은 _inst가 없을 때만 객체를 만들고 이후에는 같은 인스턴스를 반환한다. conn1, conn2, conn3는 모두 동일 객체이므로 count() 네 번이면 count는 4다. System.out.print이므로 줄바꿈 없이 4만 출력한다.",
+      "transcriptionStatus": "REVIEWED",
+      "answerStatus": "STUDY_ANSWERED",
+      "readyForGrading": true,
+      "reviewNotes": [
+        "javac로 실행해 출력이 4인지 확인했다."
+      ]
+    },
+    {
+      "id": "photo-2024-01-06",
+      "examYear": 2024,
+      "examRound": 1,
+      "questionNumber": 6,
+      "points": 5,
+      "sourceImage": "public/20260927_080118.jpg",
+      "questionText": "다음 설명에 해당하는 디자인 패턴을 <보기>에서 찾아 쓰시오.\n• 구체적인 클래스에 의존하지 않고, 인터페이스를 통해 서로 연관·의존하는 객체들의 그룹으로 생성하여 추상적으로 표현한다.\n• 키트(Kit) 패턴이라고도 불린다.\n• 연관된 서브 클래스를 묶어 한 번에 교체하는 것이 가능하다.",
+      "code": null,
+      "language": null,
+      "options": [],
+      "tables": [
+        {
+          "name": "보기",
+          "columns": [
+            "생성 패턴",
+            "구조 패턴",
+            "행위 패턴"
+          ],
+          "rows": [
+            [
+              "Abstract Factory",
+              "Adapter",
+              "Command"
+            ],
+            [
+              "Builder",
+              "Bridge",
+              "Interpreter"
+            ],
+            [
+              "Factory Method",
+              "Composite",
+              "Iterator"
+            ],
+            [
+              "Prototype",
+              "Decorator",
+              "Mediator"
+            ],
+            [
+              "Singleton",
+              "Proxy",
+              "Observer"
+            ]
+          ]
+        }
+      ],
+      "groundTruthAnswer": "Abstract Factory",
+      "officialExplanation": "연관된 객체 군을 인터페이스로 한꺼번에 생성하고, 제품군을 통째로 교체할 수 있으며 Kit 패턴이라고도 부르는 생성 패턴은 Abstract Factory다. Factory Method는 객체 하나를 생성하는 뼈대이고, Builder는 복잡한 객체 조립, Singleton은 인스턴스 하나 보장이다.",
+      "transcriptionStatus": "REVIEWED",
+      "answerStatus": "STUDY_ANSWERED",
+      "readyForGrading": true,
+      "reviewNotes": []
+    },
+    {
+      "id": "photo-2024-01-07",
+      "examYear": 2024,
+      "examRound": 1,
+      "questionNumber": 7,
+      "points": 5,
+      "sourceImage": "public/20260927_080118.jpg",
+      "questionText": "3개의 페이지를 수용할 수 있는 주기억장치가 있으며, 초기에는 모두 비어 있다고 가정한다. 다음의 순서로 페이지 참조가 발생할 때, LRU와 LFU 페이지 교체 알고리즘을 사용하면 각각 페이지 결함의 발생 횟수를 쓰시오.\n답: ① LRU :    ② LFU :",
+      "code": null,
+      "language": null,
+      "options": [],
+      "tables": [
+        {
+          "name": "페이지 참조 순서",
+          "columns": [
+            "알고리즘",
+            "페이지 참조 순서"
+          ],
+          "rows": [
+            [
+              "LRU",
+              "1, 2, 3, 1, 2, 4, 5, 1"
+            ],
+            [
+              "LFU",
+              "1, 2, 3, 1, 2, 4, 1, 2, 3, 4"
+            ]
+          ]
+        }
+      ],
+      "groundTruthAnswer": "① 6\n② 6",
+      "officialExplanation": "프레임은 3개, 처음은 비어 있다.\nLRU 참조 1,2,3,1,2,4,5,1: 적중은 네 번째(1)와 다섯 번째(2)뿐이고 나머지 6번은 부재다.\nLFU 참조 1,2,3,1,2,4,1,2,3,4: 빈도 최소 페이지를 교체하고 빈도가 같으면 먼저 들어온 페이지를 뺀다. 4 진입 시 빈도 1인 3을 제거하고, 3 재진입 시 빈도 1인 4를 제거한 뒤, 마지막 4에서 다시 3을 제거한다. 부재는 6번이다.",
+      "transcriptionStatus": "REVIEWED",
+      "answerStatus": "STUDY_ANSWERED",
+      "readyForGrading": true,
+      "reviewNotes": [
+        "사진에서 LRU/LFU 참조 순서는 표로 제시되고, ① LRU / ② LFU는 답란이다. 참조 순서를 보기 번호처럼 적지 않았다."
+      ]
+    },
+    {
+      "id": "photo-2024-01-08",
+      "examYear": 2024,
+      "examRound": 1,
+      "questionNumber": 8,
+      "points": 5,
+      "sourceImage": "public/20260927_081256.jpg",
+      "questionText": "다음 Python으로 구현된 프로그램을 분석하여 그 실행 결과를 쓰시오. (단, 출력문의 출력 서식을 준수하시오.)",
+      "code": "a = ['Seoul', 'Kyeonggi', 'Incheon', 'Daejeon', 'Daegu', 'Pusan'];\nstr01 = 'S'\nfor i in a:\n    str01 = str01 + i[1]\nprint(str01)",
+      "language": "PYTHON",
+      "options": [],
+      "tables": [],
+      "groundTruthAnswer": "Seynaau",
+      "officialExplanation": "각 문자열의 인덱스 1 문자를 이어 붙인다. e(Seoul), y(Kyeonggi), n(Incheon), a(Daejeon), a(Daegu), u(Pusan). 초깃값 S와 합치면 Seynaau.",
+      "transcriptionStatus": "REVIEWED",
+      "answerStatus": "STUDY_ANSWERED",
+      "readyForGrading": true,
+      "reviewNotes": [
+        "Python으로 실행해 출력이 Seynaau인지 확인했다."
+      ]
+    },
+    {
+      "id": "photo-2024-01-09",
+      "examYear": 2024,
+      "examRound": 1,
+      "questionNumber": 9,
+      "points": 5,
+      "sourceImage": "public/20260927_081256.jpg",
+      "questionText": "다음은 조인(Join)에 대한 설명이다. 괄호(①~③)에 들어갈 알맞은 조인의 종류를 <보기>에서 찾아 쓰시오.\n• (①)은 조인에 참여하는 두 릴레이션의 속성 값을 비교하여 조건을 만족하는 튜플만 반환하는 조인이다.\n• (②)은 (①)에서 = 연산자를 사용한 조인으로, 일반적으로 조인이라고 하면 (②)을 의미한다.\n• (②)의 결과 릴레이션의 차수는 첫 번째 릴레이션과 두 번째 릴레이션의 차수를 합한 것이다.\n• (③)은 (②)의 결과 릴레이션에서 중복된 속성을 제거하여 수행하는 연산, 즉 (②)에서 중복 속성 중 하나가 제거된 것이다.\n• (③)의 핵심은 두 릴레이션의 공통된 속성을 매개체로 하여 두 릴레이션의 정보를 ‘관계’로 묶어 내는 것이다.",
+      "code": null,
+      "language": null,
+      "options": [
+        "자연 조인",
+        "외부 조인",
+        "셀프 조인",
+        "세타 조인",
+        "동등 조인",
+        "교차 조인",
+        "자동 조인"
+      ],
+      "tables": [],
+      "groundTruthAnswer": "① 세타 조인\n② 동등 조인\n③ 자연 조인",
+      "officialExplanation": "속성 값을 비교해 조건에 맞는 튜플만 남기는 조인이 세타 조인이다. 그 중 비교 연산이 =이면 동등 조인이고, 일반적으로 조인이라 하면 이것을 가리킨다. 동등 조인 결과에서 중복 속성을 하나 제거한 것이 자연 조인이다.",
+      "transcriptionStatus": "REVIEWED",
+      "answerStatus": "STUDY_ANSWERED",
+      "readyForGrading": true,
+      "reviewNotes": [
+        "보기에서 중복된 자연 조인 한 줄을 제거했다. 정답에 필요한 항목은 그대로다."
+      ]
+    },
+    {
+      "id": "photo-2024-01-10",
+      "examYear": 2024,
+      "examRound": 1,
+      "questionNumber": 10,
+      "points": 5,
+      "sourceImage": "public/20260927_081302.jpg",
+      "questionText": "다음 C 언어로 구현된 프로그램을 분석하여 그 실행 결과를 쓰시오. (단, 출력문의 출력 서식을 준수하시오.)",
+      "code": "#include <stdio.h>\n#include <string.h>\n\nvoid inverse(char *str, int len) {\n    for (int i = 0, j = len - 1; i < j; i++, j--) {\n        char ch = str[i];\n        str[i] = str[j];\n        str[j] = ch;\n    }\n}\n\nint main() {\n    char str[100] = \"ABCDEFGH\";\n    int len = strlen(str);\n    inverse(str, len);\n    for (int i = 1; i < len; i += 2) {\n        printf(\"%c\", str[i]);\n    }\n    return 0;\n}",
+      "language": "C",
+      "options": [],
+      "tables": [],
+      "groundTruthAnswer": "GECA",
+      "officialExplanation": "초깃값 \"ABCDEFGH\"를 inverse하면 HGFEDCBA가 된다. i=1부터 2씩 증가하며 출력하므로 인덱스 1,3,5,7인 G,E,C,A가 나온다.",
+      "transcriptionStatus": "REVIEWED",
+      "answerStatus": "STUDY_ANSWERED",
+      "readyForGrading": true,
+      "reviewNotes": [
+        "문자열 초깃값은 ABCDEFGH로 확정했다.",
+        "gcc로 실행해 출력이 GECA인지 확인했다."
+      ]
+    },
+    {
+      "id": "photo-2024-01-11",
+      "examYear": 2024,
+      "examRound": 1,
+      "questionNumber": 11,
+      "points": 5,
+      "sourceImage": "public/20260927_080143.jpg",
+      "questionText": "다음 Java로 구현된 프로그램의 실행 순서를 나열하시오. (단, 같은 번호는 중복해서 작성하지 마시오.)",
+      "code": "class Parent {\n    int x, y;\n    Parent(int x, int y) { // ①\n        this.x = x;\n        this.y = y;\n    }\n    int getX() { // ②\n        return x*y;\n    }\n}\nclass Child extends Parent {\n    int x;\n    Child(int x) { // ③\n        super(x+1, x);\n        this.x = x;\n    }\n    int getX(int n) { // ④\n        return super.getX() + n;\n    }\n}\npublic class Main {\n    public static void main(String[] args) { // ⑤\n        Parent parent = new Child(10); // ⑥\n        System.out.println(parent.getX()); // ⑦\n    }\n}",
+      "language": "JAVA",
+      "options": [],
+      "tables": [],
+      "groundTruthAnswer": "⑤ → ⑥ → ③ → ① → ⑦ → ②",
+      "officialExplanation": "실행은 main(⑤)에서 시작한다. ⑥ new Child(10)에서 자식 생성자(③)가 호출되고, super(x+1, x)로 부모 생성자(①)가 실행된다. 생성이 끝난 뒤에 ⑦ 출력문으로 넘어간다. println의 parent.getX()는 참조 타입이 Parent이고 getX(int n)은 오버로드라 ④는 호출되지 않으며, 인자 없는 ②가 실행된다. ⑦을 생성자보다 앞에 두면 안 된다. class Main 선언에는 번호가 없다.",
+      "transcriptionStatus": "REVIEWED",
+      "answerStatus": "STUDY_ANSWERED",
+      "readyForGrading": true,
+      "reviewNotes": [
+        "사진의 원 숫자는 코드 왼쪽 여백에 있다. 전사본에는 같은 위치에 // ① 형태로만 표시했다.",
+        "① Parent 생성자, ② Parent.getX(), ③ Child 생성자, ④ Child.getX(int n), ⑤ main, ⑥ new Child(10), ⑦ println.",
+        "public class Main 줄에는 원 숫자가 없다."
+      ]
+    },
+    {
+      "id": "photo-2024-01-12",
+      "examYear": 2024,
+      "examRound": 1,
+      "questionNumber": 12,
+      "points": 5,
+      "sourceImage": "public/20260927_080153.jpg",
+      "questionText": "다음 <R1>과 <R2> 테이블을 참조하여 <SQL문>을 실행했을 때 출력되는 결과를 쓰시오. (SQL을 실행하였을 때 출력되는 속성명과 값들을 모두 답안에 적으시오.)",
+      "code": "SELECT B\nFROM R1\nWHERE C IN (SELECT C FROM R2 WHERE D='k');",
+      "language": "SQL",
+      "options": [],
+      "tables": [
+        {
+          "name": "R1",
+          "columns": [
+            "A",
+            "B",
+            "C"
+          ],
+          "rows": [
+            [
+              "1",
+              "a",
+              "x"
+            ],
+            [
+              "2",
+              "b",
+              "y"
+            ],
+            [
+              "3",
+              "c",
+              "t"
+            ]
+          ]
+        },
+        {
+          "name": "R2",
+          "columns": [
+            "C",
+            "D",
+            "E"
+          ],
+          "rows": [
+            [
+              "x",
+              "k",
+              "k"
+            ],
+            [
+              "y",
+              "k",
+              "t"
+            ],
+            [
+              "z",
+              "p",
+              "k"
+            ]
+          ]
+        }
+      ],
+      "groundTruthAnswer": "B\na\nb",
+      "officialExplanation": "서브쿼리 WHERE D='k'의 C는 x, y다. R1에서 C가 그 집합에 있는 행의 B는 a, b다. 문제 조건대로 속성명 B와 값 a, b를 모두 적는다. z 행은 D='p'라 서브쿼리에 없고, R1의 t도 IN 집합에 없다.",
+      "transcriptionStatus": "REVIEWED",
+      "answerStatus": "STUDY_ANSWERED",
+      "readyForGrading": true,
+      "reviewNotes": []
+    },
+    {
+      "id": "photo-2024-01-13",
+      "examYear": 2024,
+      "examRound": 1,
+      "questionNumber": 13,
+      "points": 5,
+      "sourceImage": "public/20260927_080153.jpg",
+      "questionText": "다음 C 언어로 구현된 프로그램을 분석하여 그 실행 결과를 쓰시오. (단, 출력문의 출력 서식을 준수하시오.)",
+      "code": "#include <stdio.h>\n#include <ctype.h>\n\nint main() {\n    char *p = \"It is 8\";\n    char result[100];\n    int i;\n    for (i = 0; p[i] != '\\0'; i++) {\n        if (isupper(p[i]))\n            result[i] = (p[i] - 'A' + 5) % 26 + 'A';\n        else if (islower(p[i]))\n            result[i] = (p[i] - 'a' + 10) % 26 + 'a';\n        else if (isdigit(p[i]))\n            result[i] = (p[i] - '0' + 3) % 10 + '0';\n        else if (!(isupper(p[i]) || islower(p[i]) || isdigit(p[i])))\n            result[i] = p[i];\n    }\n    result[i] = '\\0';\n    printf(\"변환된 문자열 : %s\\n\", result);\n    return 0;\n}",
+      "language": "C",
+      "options": [],
+      "tables": [],
+      "groundTruthAnswer": "변환된 문자열 : Nd sc 1",
+      "officialExplanation": "문자열 \"It is 8\"을 한 글자씩 변환한다. 대문자 I는 +5 → N, 소문자 t/i/s는 +10 후 26으로 순환 → d/s/c, 공백은 그대로, 숫자 8은 +3 → 1. printf 서식 그대로 `변환된 문자열 : Nd sc 1`이 한 줄로 출력된다.",
+      "transcriptionStatus": "REVIEWED",
+      "answerStatus": "STUDY_ANSWERED",
+      "readyForGrading": true,
+      "reviewNotes": [
+        "사진의 대문자 분기 % 25는 알파벳 순환이 아니므로 소문자와 같이 % 26으로 고쳤다.",
+        "이 입력에서는 % 25와 % 26의 출력 문자열이 같다. gcc로 확인했다."
+      ]
+    },
+    {
+      "id": "photo-2024-01-14",
+      "examYear": 2024,
+      "examRound": 1,
+      "questionNumber": 14,
+      "points": 5,
+      "sourceImage": "public/20260927_080203.jpg",
+      "questionText": "다음 설명에 해당하는 커버리지(Coverage)를 <보기>에서 찾아 쓰시오.\n• 개별 조건식이 다른 개별 조건식의 영향을 받지 않고 전체 조건식의 결과에 독립적으로 영향을 주는 구조적 테스트 케이스이다.\n• 해당 개별 조건식이 전체 조건식의 결과에 영향을 주는 조건 조합을 찾아 커버리지를 테스트하는 방법이다.\n• 프로그램에 있는 모든 결정 포인트 내의 전체 조건식이 적어도 한 번은 참과 거짓을 만족해야 한다.\n• 프로그램에 있는 결정 포인트 내의 모든 개별 조건식이 적어도 한 번은 참과 거짓을 만족해야 한다.",
+      "code": null,
+      "language": null,
+      "options": [
+        "All Path",
+        "Multiple Condition",
+        "MC/DC",
+        "Condition/Decision",
+        "Condition",
+        "Decision",
+        "Statement"
+      ],
+      "tables": [],
+      "groundTruthAnswer": "MC/DC",
+      "officialExplanation": "개별 조건이 다른 조건에 가려지지 않고 전체 결과에 독립적으로 영향을 주는 조합을 찾는 기준이 MC/DC다. Condition/Decision은 전체·개별 조건의 참/거짓만 각 한 번 만족하면 되고, Multiple Condition은 모든 조건 조합을 요구해 더 강하다.",
+      "transcriptionStatus": "REVIEWED",
+      "answerStatus": "STUDY_ANSWERED",
+      "readyForGrading": true,
+      "reviewNotes": []
+    },
+    {
+      "id": "photo-2024-01-15",
+      "examYear": 2024,
+      "examRound": 1,
+      "questionNumber": 15,
+      "points": 5,
+      "sourceImage": "public/20260927_080203.jpg",
+      "questionText": "보안 위협에 대한 다음 설명에 해당하는 용어를 <보기>에서 찾아 쓰시오.\n• 시스템에 침입한 후 침입 사실을 숨긴 채 백도어, 트로이목마를 설치하고, 원격 접근, 내부 사용 흔적 삭제, 관리자 권한 획득 등 주로 불법적인 해킹에 사용되는 기능들을 제공하는 프로그램들의 모음이다.\n• 자신 또는 다른 소프트웨어의 존재를 감춰줌과 동시에 허가되지 않은 컴퓨터나 소프트웨어의 영역에 접근할 수 있게 하는 용도로 설계되었다.\n• 이 프로그램이 설치되면 자신이 뚫고 들어온 모든 경로를 바꾸어 놓고, 명령어들을 은폐해 놓기 때문에 해커가 시스템을 원격에서 해킹하고 있어도 이 프로그램이 설치되어 있는 사실조차 감지하기 어렵다.\n• 공격자가 보안 관리자나 보안 시스템의 탐지를 피하면서 시스템을 제어하기 위해 설치하는 악성 프로그램으로, 운영체제의 합법적인 명령어를 해킹하여 모아놓았다.\n• 운영체제에서 실행 파일과 실행 중인 프로세스를 숨김으로써 운영체제 검사 및 백신 프로그램의 탐지를 피할 수 있다.",
+      "code": null,
+      "language": null,
+      "options": [
+        "Worm",
+        "Logic Bomb",
+        "Spyware",
+        "Honeypot",
+        "Bug Bounty",
+        "Rootkit",
+        "Bootkit",
+        "Ransomware"
+      ],
+      "tables": [],
+      "groundTruthAnswer": "Rootkit",
+      "officialExplanation": "침입 은닉, 백도어·권한 획득, 프로세스·명령어 은폐로 탐지를 피하는 프로그램 모음은 루트킷이다. Bootkit은 부트 과정을 노리는 하위 유형이고, Worm은 자체 복제 전파, Logic Bomb은 조건 충족 시 동작, Honeypot은 방어 함정이다.",
+      "transcriptionStatus": "REVIEWED",
+      "answerStatus": "STUDY_ANSWERED",
+      "readyForGrading": true,
+      "reviewNotes": []
+    },
+    {
+      "id": "photo-2024-01-16",
+      "examYear": 2024,
+      "examRound": 1,
+      "questionNumber": 16,
+      "points": 5,
+      "sourceImage": "public/20260927_080211.jpg",
+      "questionText": "다음 설명에 해당하는 용어를 <보기>에서 찾아 쓰시오.\n다양한 IT 기술과 방식들을 이용해 조직적으로 특정 기업이나 조직 네트워크에 침투해 활동 거점을 마련한 뒤 때를 기다리면서 보안을 무력화시키고 정보를 수집한 다음 외부로 빼돌리는 형태의 공격으로, 일반적으로 공격은 침투, 검색, 수집, 유출의 4단계로 실행된다.\n• 침투(Infiltration): 목표로 하는 시스템을 악성코드로 감염시켜 네트워크에 침투한다.\n• 검색(Exploration): 시스템에 대한 정보를 수집하고 기밀 데이터를 검색한다.\n• 수집(Collection): 보호되지 않은 시스템의 데이터를 수집하고, 시스템 운영을 방해하는 악성코드를 설치한다.\n• 유출(Exfiltration): 수집한 데이터를 외부로 유출한다.",
+      "code": null,
+      "language": null,
+      "options": [
+        "MITM",
+        "ATM",
+        "XDR",
+        "APT",
+        "Key Logger Attack",
+        "사회공학 기법",
+        "TearDrop",
+        "SMURFING"
+      ],
+      "tables": [],
+      "groundTruthAnswer": "APT",
+      "officialExplanation": "특정 조직을 목표로 거점을 만들고 침투·검색·수집·유출을 장기간 수행하는 공격이 APT다. MITM은 통신 가로채기, TearDrop·SMURFING은 패킷/플러딩형 장애 공격, XDR은 탐지·대응 제품군이다.",
+      "transcriptionStatus": "REVIEWED",
+      "answerStatus": "STUDY_ANSWERED",
+      "readyForGrading": true,
+      "reviewNotes": []
+    },
+    {
+      "id": "photo-2024-01-17",
+      "examYear": 2024,
+      "examRound": 1,
+      "questionNumber": 17,
+      "points": 5,
+      "sourceImage": "public/20260927_080211.jpg",
+      "questionText": "<EMP_TBL> 테이블을 참고하여 <SQL문>의 실행 결과를 쓰시오.",
+      "code": "SELECT COUNT(*) FROM EMP_TBL WHERE EMPNO > 100 AND SAL >= 3000 OR EMPNO = 200;",
+      "language": "SQL",
+      "options": [],
+      "tables": [
+        {
+          "name": "EMP_TBL",
+          "columns": [
+            "EMPNO",
+            "SAL"
+          ],
+          "rows": [
+            [
+              "100",
+              "1500"
+            ],
+            [
+              "200",
+              "3000"
+            ],
+            [
+              "300",
+              "2000"
+            ]
+          ]
+        }
+      ],
+      "groundTruthAnswer": "1",
+      "officialExplanation": "AND가 OR보다 먼저 묶이므로 조건은 (EMPNO > 100 AND SAL >= 3000) OR EMPNO = 200 이다. 100번 행은 둘 다 거짓, 200번 행은 EMPNO=200이라 참, 300번 행은 SAL이 2000이라 AND가 거짓이고 EMPNO도 200이 아니다. COUNT(*)는 1이다.",
+      "transcriptionStatus": "REVIEWED",
+      "answerStatus": "STUDY_ANSWERED",
+      "readyForGrading": true,
+      "reviewNotes": [
+        "사진 SQL 상자 제목은 <처리 조건>이지만 문장은 그대로 두었다.",
+        "SQLite로 실행해 결과가 1인지 확인했다."
+      ]
+    },
+    {
+      "id": "photo-2024-01-18",
+      "examYear": 2024,
+      "examRound": 1,
+      "questionNumber": 18,
+      "points": 5,
+      "sourceImage": "public/20260927_080228.jpg",
+      "questionText": "다음 JAVA로 구현된 프로그램을 분석하여 그 실행 결과를 쓰시오. (단, 출력문의 출력 서식을 준수하시오.)",
+      "code": "class firstArea {\n    int x, y;\n    public firstArea(int x, int y) {\n        this.x = x;\n        this.y = y;\n    }\n    public void print() {\n        System.out.println(x+y);\n    }\n}\nclass secondArea extends firstArea {\n    int bb = 3;\n    public secondArea(int i) {\n        super(i, i+1);\n    }\n    public void print() {\n        System.out.println(bb*bb);\n    }\n}\npublic class Main {\n    public static void main(String[] args) {\n        firstArea st = new secondArea(10);\n        st.print();\n    }\n}",
+      "language": "JAVA",
+      "options": [],
+      "tables": [],
+      "groundTruthAnswer": "9",
+      "officialExplanation": "st의 실제 객체는 secondArea이므로 print()는 자식이 오버라이드한 메서드가 호출된다. bb는 3이므로 3*3=9를 출력한다. 부모 print의 x+y=21은 실행되지 않는다.",
+      "transcriptionStatus": "REVIEWED",
+      "answerStatus": "STUDY_ANSWERED",
+      "readyForGrading": true,
+      "reviewNotes": [
+        "javac로 실행해 출력이 9인지 확인했다."
+      ]
+    }
+  ],
+  "collation": {
+    "status": "photo-checked",
+    "checkedImages": [
+      "public/20260927_080043.jpg",
+      "public/20260927_080053.jpg",
+      "public/20260927_080106.jpg",
+      "public/20260927_080118.jpg",
+      "public/20260927_081256.jpg",
+      "public/20260927_081302.jpg",
+      "public/20260927_080143.jpg",
+      "public/20260927_080153.jpg",
+      "public/20260927_080203.jpg",
+      "public/20260927_080211.jpg",
+      "public/20260927_080228.jpg"
+    ],
+    "definiteCorrections": [
+      "4번 보기 번호를 ㄱㄴㄷㄹ에서 사진의 ①②③④로 수정",
+      "3번 지문에서 전사자 밑줄 설명을 제거하고 메모로 이동",
+      "7번 페이지 참조 순서를 표로 분리하고 ①②를 답란으로 복원",
+      "11번 원 숫자: ⑤ main, ⑥ new Child(10), ⑦ println. class Main에는 번호 없음"
+    ],
+    "studyReview": [
+      "1번 지문 JAVA → C, main 반환형 int 명시",
+      "9번 보기 중복 자연 조인 제거",
+      "10번 문자열 ABCDEFGH 확정",
+      "13번 대문자 분기 % 25 → % 26",
+      "11번 실행 순서를 ⑤→⑥→③→①→⑦→②로 정정. ⑦은 출력문이며 생성자보다 앞이면 안 됨",
+      "1~18번 학습용 정답·해설 작성. 코드 문항은 실행 검증",
+      "DB 미변경, 앱 기능 미변경"
+    ]
+  }
+}

@@ -11,6 +11,7 @@ import {
   MissType,
   CodeLanguage,
   QuestionType,
+  hasValidGroundTruth,
 } from '@jungcheogi/shared';
 import { SessionRepository } from '../db/repositories/sessionRepository';
 import { AttemptRepository } from '../db/repositories/attemptRepository';
@@ -168,6 +169,17 @@ export async function sessionRoutes(fastify: FastifyInstance): Promise<void> {
         payload: {
           error: 'Not Found',
           message: `문제 '${questionId}'을(를) 찾을 수 없습니다.`,
+        },
+      };
+    }
+
+    if (!hasValidGroundTruth(question.groundTruthAnswer)) {
+      return {
+        status: 422,
+        payload: {
+          error: 'UNGRADEABLE',
+          failureReason: 'MISSING_ANSWER',
+          message: '유효한 정답이 없어 채점할 수 없습니다. 다시 생성하거나 검수 대기열로 보내세요.',
         },
       };
     }
@@ -371,10 +383,10 @@ export async function sessionRoutes(fastify: FastifyInstance): Promise<void> {
         mode,
       } = request.body || {};
 
-      if (groundTruthAnswer === undefined || groundTruthAnswer === null) {
+      if (!hasValidGroundTruth(groundTruthAnswer)) {
         return reply.status(400).send({
           error: 'Bad Request',
-          message: '기준 정답(groundTruthAnswer)은 필수입니다.',
+          message: '유효한 기준 정답(groundTruthAnswer)이 없어 채점할 수 없습니다. 숫자 0은 허용됩니다.',
         });
       }
 

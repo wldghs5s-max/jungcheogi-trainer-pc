@@ -21,6 +21,14 @@ import {
   C_CORE_SKILLS,
   MOCK_INDEPENDENT_C_QUESTIONS,
 } from "./independentGenerator.js";
+import {
+  buildIndependentGenerationPrompt,
+  isIndependentLanguage,
+  normalizeLanguage,
+  pickMockIndependentQuestion,
+  UnsupportedIndependentGenerationError,
+} from "./languageGeneration.js";
+import { hasValidGroundTruth } from "@jungcheogi/shared";
 
 export const DISCONTINUED_MODEL_REGEX = /gemini-(?:1\.5|2\.0|2\.5)/i;
 
@@ -268,6 +276,19 @@ export interface VariationContext {
   concept?: Concept | null;
   variationType: VariationType;
   instructions?: string;
+}
+
+export function resolveGeneratedGroundTruth(
+  generatedAnswer: string | string[] | undefined,
+  parentAnswer: string | string[],
+  generatedCode?: string,
+  parentCode?: string,
+): string | string[] {
+  if (hasValidGroundTruth(generatedAnswer)) {
+    return generatedAnswer as string | string[];
+  }
+  const codeChanged = Boolean(generatedCode && parentCode && generatedCode !== parentCode);
+  return codeChanged ? "" : parentAnswer;
 }
 
 export interface IAIService {
@@ -700,37 +721,19 @@ export class MockAIService implements IAIService {
         "LIVE_GENERATION_UNAVAILABLE: MockAIService called in strictLive mode",
       );
     }
-    const lang = (context.language || context.domain || "C").toUpperCase();
-    if (lang === "C" || lang.includes("C")) {
-      const candidates = MOCK_INDEPENDENT_C_QUESTIONS;
-      const idx = Math.floor(Math.random() * candidates.length);
-      const chosen: GeneratedIndependentQuestion = JSON.parse(
-        JSON.stringify(candidates[idx]),
+    const lang = normalizeLanguage(context.language || context.domain);
+    if (!isIndependentLanguage(lang)) {
+      throw new UnsupportedIndependentGenerationError(
+        lang === "SQL"
+          ? "SQL 독립 생성기는 현재 지원하지 않습니다."
+          : `독립 생성을 지원하지 않는 언어입니다: ${context.language || context.domain || "(없음)"}`,
       );
-      chosen.correlationId = context.correlationId || `mock_${Date.now()}`;
-      chosen.generationMetadata = {
-        model: "mock",
-        generator: "MockAIService",
-        generatedAt: new Date().toISOString(),
-        strategy: "MOCK",
-      };
-      if (context.difficulty) {
-        chosen.difficulty = context.difficulty;
-        chosen.designMetadata.difficulty = context.difficulty;
-      }
-      return chosen;
     }
-    const fallback: GeneratedIndependentQuestion = JSON.parse(
-      JSON.stringify(MOCK_INDEPENDENT_C_QUESTIONS[0]),
+    return pickMockIndependentQuestion(
+      lang,
+      context,
+      MOCK_INDEPENDENT_C_QUESTIONS,
     );
-    fallback.correlationId = context.correlationId || `mock_${Date.now()}`;
-    fallback.generationMetadata = {
-      model: "mock",
-      generator: "MockAIService",
-      generatedAt: new Date().toISOString(),
-      strategy: "MOCK",
-    };
-    return fallback;
   }
 }
 
@@ -1280,8 +1283,12 @@ ${instructions ? `- 특별 요청사항: ${instructions}` : ""}
         codeSnippet: result.codeSnippet || question.code || undefined,
         language: question.language,
         options: result.options || question.options || undefined,
-        groundTruthAnswer:
-          result.groundTruthAnswer || question.groundTruthAnswer,
+        groundTruthAnswer: resolveGeneratedGroundTruth(
+          result.groundTruthAnswer,
+          question.groundTruthAnswer,
+          result.codeSnippet || question.code,
+          question.code,
+        ),
         officialExplanation: undefined, // AI 변형 문항은 공식 기출 해설 필드를 가질 수 없음
         aiExplanation: result.aiExplanation || "AI가 생성한 고품질 변형 해설",
         aiVariationNotes:
@@ -1316,56 +1323,66 @@ ${instructions ? `- 특별 요청사항: ${instructions}` : ""}
   public async generateIndependentQuestion(
     context: IndependentGenerationContext,
   ): Promise<GeneratedIndependentQuestion> {
+    const lang = normalizeLanguage(context.language || context.domain);
+    if (!isIndependentLanguage(lang)) {
+      throw new UnsupportedIndependentGenerationError(
+        lang === "SQL"
+          ? "SQL 독립 생성기는 현재 지원하지 않습니다."
+          : `독립 생성을 지원하지 않는 언어입니다: ${context.language || context.domain || "(없음)"}`,
+      );
+    }
+
     try {
-      const targetLang = (context.language || context.domain || "C").toUpperCase();
       const difficulty = context.difficulty || "MEDIUM";
-
-      const isC = targetLang === "C" || targetLang.includes("C");
-      const skillCatalog = isC
-        ? C_CORE_SKILLS.map(
-            (s: any) =>
-              `- [${s.concept}] (${s.difficulty}): ${s.skill} (코드패턴 힌트: ${s.codePatternTip})`,
-          ).join("\n")
-        : "- 프로그래밍 언어의 제어 흐름, 함수 호출, 변수 스코프 및 클래스/객체 동작 원리 평가";
-
-      const prompt = `당신은 대한민국 '정보처리기사 실기 시험' 출제위원급 AI 전문가입니다.
-기존 문제의 변형이 아닌, **해당 영역에서 수험생이 진정으로 공부할 가치가 있는 새로운 독립형 실기 문제**를 직접 설계하고 생성해야 합니다.
+      let prompt: string;
+      if (lang === "C") {
+        const skillCatalog = C_CORE_SKILLS.map(
+          (s: any) =>
+            `- [${s.concept}] (${s.difficulty}): ${s.skill} (코드패턴 힌트: ${s.codePatternTip})`,
+        ).join("\n");
+        prompt = `당신은 대한민국 '정보처리기사 실기 시험' 출제위원급 AI 전문가입니다.
+기존 문제의 변형이 아닌, **C 언어 실기에서 수험생이 공부할 가치가 있는 새로운 독립형 문제**를 설계하십시오.
 
 [출제 요구 조건]:
-1. 대상 언어/도메인: ${targetLang}
+1. 대상 언어: C
 2. 출제 난이도: ${difficulty}
-3. 핵심 출제 평가 요소 (아래 목록 중 1~2개 핵심 개념을 선별 및 결합):
+3. 핵심 출제 평가 요소 (1~2개 결합):
 ${skillCatalog}
-4. 문제 형식: 수험생이 코드를 추적(Trace)하여 콘솔 실행 결과를 주관식 단답형으로 작성하는 문제
-5. 단순 숫자나 변수명만 바꾸는 단순 변형을 엄격히 배제하며, 실제 출제 기준에 맞는 온전하고 컴파일 가능한 코드를 작성하세요.
-${context.instructions ? `6. 사용자 특별 지침: ${context.instructions}` : ""}
+4. 포인터·배열·문자열·재귀 등 기존 C 생성 품질을 유지하십시오.
+5. int main(...)이 있는 완결된 결정적 출력 코드만 작성하십시오.
+6. 미초기화 변수, 배열 범위 밖 접근, 시퀀스 포인트 위반 등 정의되지 않은 동작(UB)을 피하십시오.
+7. scanf, 파일, 네트워크, 난수, 현재 시간을 사용하지 마십시오.
+${context.instructions ? `8. 사용자 특별 지침: ${context.instructions}` : ""}
 ${
   context.avoidSnippets && context.avoidSnippets.length > 0
-    ? `7. 피해야 할 기존 패턴(중복 배제):\n${context.avoidSnippets.slice(0, 3).join("\n---\n")}`
+    ? `9. 피해야 할 기존 패턴:\n${context.avoidSnippets.slice(0, 3).join("\n---\n")}`
     : ""
 }
 
-[2-Phase 설계 및 상태 추적 필수]:
-먼저 문제의 '설계 의도(designMetadata)'를 수립하고, 코드의 단계별 변수/메모리 변화(stepByStepTrace)를 명확히 역추적하여 정답을 검증한 뒤 코드를 작성하세요.
+[2-Phase 설계]: 설계 의도와 단계별 추적표를 먼저 작성한 뒤 코드를 작성하세요.
+추적표와 해설의 최종 결론은 groundTruthAnswer와 일치해야 합니다.
 
-반드시 오직 유효한 JSON 객체만 반환하세요:
+반드시 유효한 JSON만 반환하세요:
 {
   "designMetadata": {
-    "concept": "핵심 출제 개념 (예: 포인터 증감 연산자와 배열 순회)",
+    "concept": "핵심 출제 개념",
     "difficulty": "${difficulty}",
-    "skill": "출제 의도 및 평가 스킬 (예: *p++ 연산자 우선순위 및 메모리 주소 이동 추적)",
-    "questionDesign": "문제의 설계 요약 설명",
-    "stepByStepTrace": "변수 및 메모리의 단계별 값 변화 추적표 (예: 초기 arr[0]=10, p=&arr[0] -> 1단계 sum=10, p++ -> ...)"
+    "skill": "평가 스킬",
+    "questionDesign": "설계 요약",
+    "stepByStepTrace": "단계별 추적. 마지막에 최종 출력 결론을 명시"
   },
   "questionText": "다음 C 언어로 구현된 프로그램을 분석하여 그 실행 결과를 쓰시오.",
   "code": "#include <stdio.h>\\n\\nint main(void) {\\n    ...\\n    return 0;\\n}",
   "type": "CODE_TRACE",
   "subject": "프로그래밍언어활용",
   "category": "C 언어",
-  "groundTruthAnswer": "정확한 최종 콘솔 출력 문자열 (따옴표나 불필요한 줄바꿈 없이 실제 printf 출력 결과만)",
-  "officialExplanation": "수험생이 이해할 수 있는 단계별 상세 해설 및 주의해야 할 오답 포인트",
-  "keywords": ["핵심키워드1", "핵심키워드2"]
+  "groundTruthAnswer": "실제 printf 출력 결과만",
+  "officialExplanation": "단계별 해설. 마지막 문장에 최종 정답을 명시",
+  "keywords": ["포인터", "배열"]
 }`;
+      } else {
+        prompt = buildIndependentGenerationPrompt(lang, difficulty, context);
+      }
 
       const { data: parsed, modelUsed } = await this.callGeminiWithModels(
         prompt,
@@ -1373,8 +1390,15 @@ ${
         true,
       );
 
-      if (!parsed || !parsed.code || !parsed.groundTruthAnswer) {
+      if (!parsed || !parsed.code || !hasValidGroundTruth(parsed.groundTruthAnswer)) {
         throw new Error("Invalid independent question schema from Gemini");
+      }
+
+      const parsedLang = normalizeLanguage(parsed.language || lang);
+      if (parsedLang !== lang) {
+        throw new Error(
+          `요청 언어(${lang})와 다른 언어 응답(${parsed.language || parsedLang})`,
+        );
       }
 
       const correlationId =
@@ -1385,24 +1409,21 @@ ${
         correlationId,
         questionText:
           parsed.questionText ||
-          "다음 프로그램을 분석하여 그 실행 결과를 쓰시오.",
+          `다음 ${lang} 프로그램을 분석하여 그 실행 결과를 쓰시오.`,
         code: parsed.code,
-        language: targetLang,
+        language: lang,
         type: parsed.type || "CODE_TRACE",
         subject: parsed.subject || "프로그래밍언어활용",
-        category: parsed.category || `${targetLang} 언어`,
+        category: parsed.category || `${lang} 언어`,
         groundTruthAnswer: parsed.groundTruthAnswer,
         officialExplanation: parsed.officialExplanation || "",
         difficulty: (parsed.difficulty || difficulty) as any,
-        keywords: Array.isArray(parsed.keywords)
-          ? parsed.keywords
-          : [targetLang],
+        keywords: Array.isArray(parsed.keywords) ? parsed.keywords : [lang],
         designMetadata: {
           concept: parsed.designMetadata?.concept || "독립형 설계 개념",
           difficulty: (parsed.designMetadata?.difficulty || difficulty) as any,
           skill:
-            parsed.designMetadata?.skill ||
-            "코드 실행 추적 및 상태 분석",
+            parsed.designMetadata?.skill || "코드 실행 추적 및 상태 분석",
           questionDesign: parsed.designMetadata?.questionDesign || "",
           stepByStepTrace: parsed.designMetadata?.stepByStepTrace || "",
         },
@@ -1414,6 +1435,9 @@ ${
         },
       };
     } catch (err: any) {
+      if (err instanceof UnsupportedIndependentGenerationError) {
+        throw err;
+      }
       console.warn(
         "[GeminiAIService] generateIndependentQuestion failed:",
         err?.message,

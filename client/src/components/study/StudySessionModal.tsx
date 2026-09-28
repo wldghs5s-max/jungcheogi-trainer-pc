@@ -122,6 +122,10 @@ export const StudySessionModal: React.FC<StudySessionModalProps> = ({
   const [isSavingDrill, setIsSavingDrill] = useState<boolean>(false);
   const [originalQuestionBeforeDrill, setOriginalQuestionBeforeDrill] =
     useState<Question | null>(null);
+  const [drillSession, setDrillSession] = useState<StudySession | null>(null);
+  const [drillExecutionStatus, setDrillExecutionStatus] = useState<
+    "SUCCESS" | "UNAVAILABLE" | "ERROR" | null
+  >(null);
 
   // Timer State
   const [elapsedSeconds, setElapsedSeconds] = useState<number>(0);
@@ -164,6 +168,8 @@ export const StudySessionModal: React.FC<StudySessionModalProps> = ({
       setIsDrillSaved(false);
       setIsSavingDrill(false);
       setOriginalQuestionBeforeDrill(null);
+      setDrillSession(null);
+      setDrillExecutionStatus(null);
     } else {
       if (timerRef.current) clearInterval(timerRef.current);
     }
@@ -266,17 +272,16 @@ export const StudySessionModal: React.FC<StudySessionModalProps> = ({
     setIsSubmitting(true);
 
     if (isDrillQuestion) {
-      if (!session) {
+      if (!drillSession) {
         setIsSubmitting(false);
-        alert("학습 세션이 없어 드릴 결과를 기록할 수 없습니다.");
+        alert("드릴 세션이 없어 결과를 기록할 수 없습니다.");
         return;
       }
-      const drillRes = await submitSessionAnswer(session.id, {
+      const drillRes = await submitSessionAnswer(drillSession.id, {
         questionId: currentQuestion.id,
         userAnswer: finalAnswer,
         timeSpentMs: Math.max(elapsedSeconds * 1000, 1000),
         hintUsed: showHint || hintLevel > 0,
-        recordOnly: true,
       });
       setIsSubmitting(false);
       if (drillRes.error || !drillRes.data) {
@@ -326,17 +331,16 @@ export const StudySessionModal: React.FC<StudySessionModalProps> = ({
     if (!currentQuestion || isSubmitting) return;
 
     if (isDrillQuestion) {
-      if (!session) {
-        alert("학습 세션이 없어 드릴 결과를 기록할 수 없습니다.");
+      if (!drillSession) {
+        alert("드릴 세션이 없어 결과를 기록할 수 없습니다.");
         return;
       }
       if (timerRef.current) clearInterval(timerRef.current);
       setIsSubmitting(true);
-      const drillRes = await submitSessionUnknown(session.id, {
+      const drillRes = await submitSessionUnknown(drillSession.id, {
         questionId: currentQuestion.id,
         timeSpentMs: Math.max(elapsedSeconds * 1000, 1000),
         hintUsed: showHint || hintLevel > 0,
-        recordOnly: true,
       });
       setIsSubmitting(false);
       if (drillRes.error || !drillRes.data) {
@@ -486,9 +490,11 @@ export const StudySessionModal: React.FC<StudySessionModalProps> = ({
       return;
     }
 
-    if (!res.data || !res.data.question) {
+    if (!res.data || !res.data.success || !res.data.question || !res.data.drillSession) {
       alert(
-        res.error || "AI 변형 문제 생성에 실패했습니다. 다시 시도해주세요.",
+        res.error ||
+          res.data?.message ||
+          "AI 변형 문제 생성에 실패했습니다. 다시 생성하거나 검수 대기열을 이용해주세요.",
       );
       return;
     }
@@ -497,10 +503,11 @@ export const StudySessionModal: React.FC<StudySessionModalProps> = ({
       setOriginalQuestionBeforeDrill(currentQuestion);
     }
 
-    // 즉시 새 문제 풀이 모드로 전환 (정답 및 해설은 가려진 상태로 시작)
     setIsDrillQuestion(true);
-    setActiveDrillVariation(res.data.variation);
+    setActiveDrillVariation(res.data.variation || null);
     setIsDrillSaved(false);
+    setDrillSession(res.data.drillSession);
+    setDrillExecutionStatus(res.data.executionStatus || "UNAVAILABLE");
     setCurrentQuestion(res.data.question);
     const count = Array.isArray(res.data.question.groundTruthAnswer)
       ? res.data.question.groundTruthAnswer.length
@@ -536,11 +543,12 @@ export const StudySessionModal: React.FC<StudySessionModalProps> = ({
     if (!session) return;
 
     if (isDrillQuestion) {
-      // 변형 문제 풀이 완료 후 기존 세션의 다음 문제로 복귀
       setIsDrillQuestion(false);
       setActiveDrillVariation(null);
       setIsDrillSaved(false);
       setOriginalQuestionBeforeDrill(null);
+      setDrillSession(null);
+      setDrillExecutionStatus(null);
 
       const sessionRes = await fetchStudySession(session.id);
       if (sessionRes.data && sessionRes.data.currentQuestion) {
@@ -751,7 +759,25 @@ export const StudySessionModal: React.FC<StudySessionModalProps> = ({
                     }}
                   >
                     <Zap size={13} color="#FBBF24" />
-                    AI 맞춤 변형 문제
+                    임시 AI 변형 드릴
+                  </span>
+                )}
+                {isDrillQuestion && drillExecutionStatus !== "SUCCESS" && (
+                  <span
+                    style={{
+                      display: "inline-flex",
+                      alignItems: "center",
+                      gap: "4px",
+                      backgroundColor: "rgba(239, 68, 68, 0.15)",
+                      color: "#FCA5A5",
+                      border: "1px solid rgba(239, 68, 68, 0.4)",
+                      borderRadius: "4px",
+                      padding: "3px 8px",
+                      fontSize: "12px",
+                      fontWeight: 700,
+                    }}
+                  >
+                    실행 미검증 · 공식 정답 아님
                   </span>
                 )}
                 {(currentQuestion.questionCode || currentQuestion.id) && (
@@ -807,11 +833,11 @@ export const StudySessionModal: React.FC<StudySessionModalProps> = ({
                   난이도: {currentQuestion.difficulty}
                 </span>
                 <span style={styles.qSourceBadge}>
-                  출처:{" "}
-                  {isDrillQuestion
-                    ? "실시간 AI 변형 생성"
-                    : QUESTION_SOURCE_LABELS[currentQuestion.sourceType] ||
-                      currentQuestion.sourceType}
+                        출처:{" "}
+                        {isDrillQuestion
+                          ? "임시 AI 드릴 (문제집 미포함)"
+                          : QUESTION_SOURCE_LABELS[currentQuestion.sourceType] ||
+                            currentQuestion.sourceType}
                 </span>
               </div>
 
@@ -1257,7 +1283,9 @@ export const StudySessionModal: React.FC<StudySessionModalProps> = ({
                           color: "var(--color-success)",
                         }}
                       >
-                        기준 정답 (Ground Truth)
+                        {isDrillQuestion
+                          ? "AI 제시 정답 (공식 정답 아님)"
+                          : "기준 정답 (Ground Truth)"}
                       </span>
                       <div style={styles.groundTruthVal}>
                         {Array.isArray(submitResult.groundTruthAnswer)
@@ -1614,9 +1642,13 @@ export const StudySessionModal: React.FC<StudySessionModalProps> = ({
                   <div style={styles.nextActionRow}>
                     <button onClick={handleNextQuestion} style={styles.nextBtn}>
                       <span>
-                        {submitResult.isSessionCompleted
-                          ? "세션 완료! 종합 결과 확인 🏆"
-                          : "다음 문제로 이동 (Enter / Space) ➔"}
+                        {isDrillQuestion
+                          ? session?.status === "COMPLETED"
+                            ? "원래 학습 결과 요약으로 돌아가기"
+                            : "원래 학습으로 돌아가기"
+                          : submitResult.isSessionCompleted
+                            ? "세션 완료! 종합 결과 확인 🏆"
+                            : "다음 문제로 이동 (Enter / Space) ➔"}
                       </span>
                       <ArrowRight size={18} />
                     </button>

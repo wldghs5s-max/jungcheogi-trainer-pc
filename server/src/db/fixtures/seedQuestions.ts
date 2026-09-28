@@ -1,19 +1,8 @@
 import { Question } from '@jungcheogi/shared';
 
 /**
- * Phase 2 검증용 테스트 Fixture 데이터 (총 12문항)
- * 
- * [목적]:
- * 실제 시험 전체 DB 적재가 아닌, Question 도메인 모델, 필터링 API,
- * Ground Truth vs AI 분리, parentQuestionId 계층 관계를 검증하기 위한 데이터셋.
- * 
- * [포함 유형]:
- * 1. 주관식 단답형 (Single Keyword)
- * 2. 복수 키워드 문제 (Multiple Blanks/Keywords)
- * 3. 코드 문제 (C / Java / Python 실행 흐름 및 출력 예측)
- * 4. SQL 문제
- * 5. 설명/서술형 문제 (Descriptive)
- * 6. 실제 기출에서 파생된 AI 변형 문제 (AI_VARIATION, parentQuestionId 연동)
+ * 자동 테스트 전용 Fixture. 학습 DB에 넣지 않는다.
+ * 서버 시작 시 빈 테이블에 자동 적재하지 않는다.
  */
 export const SEED_QUESTIONS: Question[] = [
   // 1. [실제 기출] 주관식 단답형 - 디자인 패턴 (소프트웨어설계)
@@ -168,11 +157,11 @@ public class Main {
     }
 }`,
     language: 'JAVA',
-    groundTruthAnswer: '3',
+    groundTruthAnswer: '1',
     officialExplanation:
-      'Parent 타입 참조변수 p가 실제 Child 인스턴스를 참조하므로 가상 메서드 호출에 의해 Child 클래스의 compute 메서드가 실행됩니다. compute(4) = compute(3) + compute(1), compute(3) = compute(2) + compute(0)... 재귀 계산 결과 최종값은 3입니다.',
+      'Parent 참조가 실제 Child 객체를 가리키므로 항상 Child.compute가 호출된다. compute(4)=compute(3)+compute(1), compute(3)=compute(2)+compute(0), compute(2)=compute(1)+compute(-1). num<=1이면 그 값을 그대로 반환하므로 compute(-1)=-1, compute(0)=0, compute(1)=1이고 결과는 1이다.',
     aiExplanation:
-      '동적 바인딩(Dynamic Binding)으로 인해 오버라이딩된 Child의 compute(4)가 호출되는 과정의 추적 문제입니다.',
+      '동적 바인딩으로 Child.compute만 탄다. 기저 조건이 num<=1이라 음수도 그대로 반환된다.',
     difficulty: 'HARD',
     keywords: ['Java', '다형성', '오버라이딩', '재귀함수', '동적 바인딩'],
     createdAt: '2026-09-26T06:03:00.000Z',

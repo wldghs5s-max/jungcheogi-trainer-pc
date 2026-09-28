@@ -18,10 +18,13 @@ import {
   AIVariationDrillResponse,
   AIStageDrillRequest,
   AIStageDrillResponse,
+  StudySession,
+  hasValidGroundTruth,
 } from "@jungcheogi/shared";
 import { QuestionRepository } from "../db/repositories/questionRepository.js";
 import { ConceptRepository } from "../db/repositories/conceptRepository.js";
 import { ImportBatchRepository } from "../db/repositories/importBatchRepository.js";
+import { SessionRepository } from "../db/repositories/sessionRepository.js";
 import { getDatabase } from "../db/database.js";
 import { getAIService } from "../engine/aiService.js";
 import { MockQuestionVariationGenerator } from "../engine/variationGenerator.js";
@@ -33,10 +36,17 @@ import {
   calculateCodeSimilarity,
   evaluateDualConsistency,
 } from "../engine/evaluationValidator.js";
+import {
+  analyzeCodeStructure,
+  isIndependentLanguage,
+  normalizeLanguage,
+  UnsupportedIndependentGenerationError,
+} from "../engine/languageGeneration.js";
 
 export async function aiRoutes(fastify: FastifyInstance): Promise<void> {
   const questionRepo = new QuestionRepository();
   const conceptRepo = new ConceptRepository();
+  const sessionRepo = new SessionRepository();
   const aiService = getAIService();
   const variationStager = new MockQuestionVariationGenerator();
 
@@ -245,17 +255,17 @@ export async function aiRoutes(fastify: FastifyInstance): Promise<void> {
     const db = getDatabase();
     const langRows = db
       .prepare(
-        "SELECT DISTINCT language FROM questions WHERE language IS NOT NULL AND language != ''",
+        "SELECT DISTINCT language FROM questions WHERE language IS NOT NULL AND language != '' AND (study_visibility IS NULL OR study_visibility = 'LIVE')",
       )
       .all() as { language: string }[];
     const subjRows = db
       .prepare(
-        "SELECT DISTINCT subject FROM questions WHERE subject IS NOT NULL AND subject != ''",
+        "SELECT DISTINCT subject FROM questions WHERE subject IS NOT NULL AND subject != '' AND (study_visibility IS NULL OR study_visibility = 'LIVE')",
       )
       .all() as { subject: string }[];
     const catRows = db
       .prepare(
-        "SELECT DISTINCT category FROM questions WHERE category IS NOT NULL AND category != ''",
+        "SELECT DISTINCT category FROM questions WHERE category IS NOT NULL AND category != '' AND (study_visibility IS NULL OR study_visibility = 'LIVE')",
       )
       .all() as { category: string }[];
 
@@ -263,6 +273,7 @@ export async function aiRoutes(fastify: FastifyInstance): Promise<void> {
       languages: langRows.map((r) => r.language),
       subjects: subjRows.map((r) => r.subject),
       categories: catRows.map((r) => r.category),
+      supportedIndependentLanguages: ["C", "JAVA", "PYTHON"],
     };
     return reply.status(200).send(response);
   });
@@ -276,85 +287,68 @@ export async function aiRoutes(fastify: FastifyInstance): Promise<void> {
     ) => {
       const { mode, domain, count = 5 } = request.body || {};
       const numQuestions = Math.min(Math.max(Number(count) || 5, 1), 20);
+      const requestedLang = normalizeLanguage(domain);
+      const independentLang = isIndependentLanguage(requestedLang)
+        ? requestedLang
+        : null;
 
-      // 1. 후보 문제 선정
-      const allQuestions: Question[] = questionRepo.findMany({ limit: 200 }).items;
+      const allQuestions: Question[] = questionRepo.findAllMatching();
       let candidatePool: Question[] = allQuestions.filter(
         (q: Question) => q.sourceType !== "AI_VARIATION",
       );
-      if (candidatePool.length === 0) {
-        candidatePool = allQuestions;
-      }
 
       if (mode === "DOMAIN" && domain) {
         const dTrim = domain.trim().toLowerCase();
         const matched = candidatePool.filter((q: Question) => {
-          const langMatch = q.language && q.language.toLowerCase() === dTrim;
-          const subjMatch = q.subject && q.subject.toLowerCase().includes(dTrim);
-          const catMatch = q.category && q.category.toLowerCase().includes(dTrim);
-          const cDirectMatch =
-            (dTrim === "c" || dTrim === "c언어" || dTrim === "c 언어") &&
-            ((q.language && q.language.toUpperCase() === "C") ||
-              (q.category && q.category.toLowerCase().includes("c")) ||
-              Boolean(q.code && /#include/i.test(q.code)));
-          const javaDirectMatch =
-            (dTrim === "java" || dTrim === "자바") &&
-            ((q.language && q.language.toUpperCase() === "JAVA") ||
-              (q.category && q.category.toLowerCase().includes("java")) ||
-              Boolean(q.code && /class\s+/i.test(q.code)));
-          const pyDirectMatch =
-            (dTrim === "python" || dTrim === "파이썬") &&
-            ((q.language && q.language.toUpperCase() === "PYTHON") ||
-              (q.category && q.category.toLowerCase().includes("python")));
-          const sqlDirectMatch =
-            (dTrim === "sql" || dTrim === "데이터베이스") &&
-            (Boolean(q.subject && q.subject.includes("데이터베이스")) ||
-              Boolean(q.category && q.category.toLowerCase().includes("sql")) ||
-              q.type === "SQL");
-          return (
-            langMatch ||
-            subjMatch ||
-            catMatch ||
-            cDirectMatch ||
-            javaDirectMatch ||
-            pyDirectMatch ||
-            sqlDirectMatch
-          );
+          if (requestedLang && q.language === requestedLang) return true;
+          const langMatch =
+            q.language && q.language.toLowerCase() === dTrim;
+          const subjMatch =
+            q.subject && q.subject.toLowerCase().includes(dTrim);
+          const catMatch =
+            q.category && q.category.toLowerCase().includes(dTrim);
+          return Boolean(langMatch || subjMatch || catMatch);
         });
-        if (matched.length > 0) {
+        if (independentLang) {
+          candidatePool = matched;
+        } else if (requestedLang === "SQL") {
+          if (matched.length === 0) {
+            return reply.status(404).send({
+              error: "Not Found",
+              message:
+                "SQL 독립 생성기는 지원하지 않습니다. 선택한 영역에 원본 SQL 문제가 없어 변형 생성도 할 수 없습니다.",
+            });
+          }
+          candidatePool = matched;
+        } else if (matched.length === 0) {
+          return reply.status(404).send({
+            error: "Not Found",
+            message: `선택한 영역(${domain})에 해당하는 원본 문제가 없습니다. 다른 영역으로 대체하지 않습니다.`,
+          });
+        } else {
           candidatePool = matched;
         }
       }
 
-      if (candidatePool.length === 0) {
+      if (!independentLang && candidatePool.length === 0) {
         return reply.status(404).send({
           error: "Not Found",
           message: "선택한 조건에 부합하는 기준 원본 문제를 찾을 수 없습니다.",
         });
       }
 
-      // 2. 독립형 생성 우선 여부 판단 (C 언어 및 프로그래밍 도메인은 단순 변형 대신 새로운 문제 설계 우선)
-      const dTrim = (domain || "").trim().toLowerCase();
-      const isProgDomain =
-        dTrim === "c" ||
-        dTrim === "c언어" ||
-        dTrim === "c 언어" ||
-        dTrim === "java" ||
-        dTrim === "자바" ||
-        dTrim === "python" ||
-        dTrim === "파이썬" ||
-        dTrim === "sql" ||
-        dTrim.includes("프로그래밍");
-
-      // Shuffle candidatePool to ensure variety and prevent cycling repetitive questions
       const shuffledCandidates = [...candidatePool].sort(
         () => Math.random() - 0.5,
       );
 
-      // 기존 문제들의 코드 스니펫 목록 수집 (중복 배제 프롬프트용)
       const existingCodeSnippets = allQuestions
-        .filter((q) => q.code && q.code.length > 20)
-        .slice(0, 5)
+        .filter(
+          (q) =>
+            q.code &&
+            q.code.length > 20 &&
+            (!independentLang || q.language === independentLang),
+        )
+        .slice(0, 8)
         .map((q) => q.code as string);
 
       let targetBatchId: string | undefined = undefined;
@@ -365,31 +359,27 @@ export async function aiRoutes(fastify: FastifyInstance): Promise<void> {
       const batchGeneratedCodes: string[] = [];
 
       for (let i = 0; i < numQuestions; i++) {
-        // C 언어 또는 프로그래밍 도메인이거나, 독립형 생성이 적절한 경우
-        if (isProgDomain || (mode === "DOMAIN" && (dTrim === "c" || dTrim.includes("c")))) {
+        if (independentLang) {
           try {
             const indepQuestion = await aiService.generateIndependentQuestion({
-              domain: domain || "C",
-              language: (dTrim === "c" || dTrim === "c언어") ? "C" : undefined,
+              domain: independentLang,
+              language: independentLang,
               difficulty: i % 2 === 0 ? "HARD" : "MEDIUM",
               avoidSnippets: existingCodeSnippets,
             });
 
-            // 1. 코드 구문 검사 (괄호 및 main 함수)
-            const codeStr = indepQuestion.code || "";
-            let brace = 0;
-            let paren = 0;
-            for (const ch of codeStr) {
-              if (ch === "{") brace++;
-              if (ch === "}") brace--;
-              if (ch === "(") paren++;
-              if (ch === ")") paren--;
+            if (normalizeLanguage(indepQuestion.language) !== independentLang) {
+              rejectedItems.push({
+                reason: `요청 언어(${independentLang})와 다른 언어 응답`,
+                details: { language: indepQuestion.language },
+              });
+              continue;
             }
-            const isBalanced = brace === 0 && paren === 0;
-            const hasMain = /int\s+main\s*\(/.test(codeStr);
-            const hasSyntaxIssues = !isBalanced || !hasMain;
 
-            // 2. 기존 문제 및 동반 생성 문항과의 유사도/복제 검사
+            const codeStr = indepQuestion.code || "";
+            const structure = analyzeCodeStructure(codeStr, independentLang);
+            const hasSyntaxIssues = structure.hasSyntaxIssues;
+
             let cloneType: "NONE" | "IDENTICAL" | "MUTATION_CLONE" = "NONE";
             for (const eq of allQuestions) {
               if (eq.code) {
@@ -397,7 +387,10 @@ export async function aiRoutes(fastify: FastifyInstance): Promise<void> {
                 if (sim.category === "IDENTICAL") {
                   cloneType = "IDENTICAL";
                   break;
-                } else if (sim.category === "MUTATION_CLONE" && cloneType === "NONE") {
+                } else if (
+                  sim.category === "MUTATION_CLONE" &&
+                  cloneType === "NONE"
+                ) {
                   cloneType = "MUTATION_CLONE";
                 }
               }
@@ -414,16 +407,14 @@ export async function aiRoutes(fastify: FastifyInstance): Promise<void> {
               }
             }
 
-            // 3. 추적표(stepTrace) 검증
             const stepTrace = indepQuestion.designMetadata?.stepByStepTrace || "";
-            const ansStr = String(indepQuestion.groundTruthAnswer).trim();
+            const ansStr = Array.isArray(indepQuestion.groundTruthAnswer)
+              ? indepQuestion.groundTruthAnswer.join(" ")
+              : String(indepQuestion.groundTruthAnswer ?? "").trim();
             const traceResult = verifyStepTraceMatch(stepTrace, ansStr);
-
-            // 4. 해설(explanation) 검증
             const explStr = indepQuestion.officialExplanation || "";
             const explResult = verifyExplanationMatch(explStr, ansStr);
 
-            // 5. 종합 판정 (evaluateDualConsistency)
             const dualResult = evaluateDualConsistency({
               stepTraceStatus: traceResult.status,
               explanationStatus: explResult.status,
@@ -432,22 +423,25 @@ export async function aiRoutes(fastify: FastifyInstance): Promise<void> {
               codeExecutionStatus: "UNAVAILABLE",
               expectedAnswer: ansStr,
               hasSyntaxIssues,
+              selfCorrectionDetected: explResult.selfCorrectionDetected,
             });
 
-            // REJECT: Staging에 올리지 않고 폐기 (거절 사유 기록)
             if (dualResult.finalDecision === "REJECT") {
               rejectedItems.push({
-                reason: dualResult.rejectionReasons.join("; ") || "정합성 또는 복제 결함",
+                reason:
+                  dualResult.rejectionReasons.join("; ") ||
+                  structure.reason ||
+                  "정합성 또는 복제 결함",
                 details: {
                   concept: indepQuestion.designMetadata?.concept,
                   answer: ansStr,
+                  language: independentLang,
                   reasons: dualResult.rejectionReasons,
                 },
               });
               continue;
             }
 
-            // PASS 또는 REVIEW: Staging에 저장 (사람 검수 대기)
             if (dualResult.finalDecision === "PASS") {
               passCount++;
             } else {
@@ -462,20 +456,32 @@ export async function aiRoutes(fastify: FastifyInstance): Promise<void> {
                 decision: dualResult.finalDecision,
                 rejectionReasons: dualResult.rejectionReasons,
                 model: (indepQuestion as any).model,
-              }
+              },
             );
             targetBatchId = stagedResult.batchId;
             stagedIds.push(stagedResult.stagedQuestion.id);
             continue;
           } catch (indepErr) {
-            console.warn(
-              `[BatchGenerate] independent generation failed, falling back to variation:`,
-              indepErr instanceof Error ? indepErr.message : indepErr,
-            );
+            const message =
+              indepErr instanceof Error ? indepErr.message : String(indepErr);
+            rejectedItems.push({
+              reason:
+                indepErr instanceof UnsupportedIndependentGenerationError
+                  ? message
+                  : `독립 생성 실패(${independentLang}): ${message}`,
+              details: { language: independentLang },
+            });
+            continue;
           }
         }
 
-        // 기존 문제 변형 모드 (이론 문제 또는 독립형 생성 fallback)
+        if (shuffledCandidates.length === 0) {
+          rejectedItems.push({
+            reason: "변형 생성에 사용할 원본 문제가 없습니다.",
+          });
+          continue;
+        }
+
         const baseQuestion = shuffledCandidates[i % shuffledCandidates.length];
         const concept = baseQuestion.conceptId
           ? conceptRepo.findById(baseQuestion.conceptId)
@@ -512,13 +518,14 @@ export async function aiRoutes(fastify: FastifyInstance): Promise<void> {
             variationType: chosenStrategy,
           });
 
+          variation.aiVariationNotes = `${variation.aiVariationNotes || ""} (사람 검수 필요)`;
           const stagedResult = await variationStager.stageVariation(
             variation,
             targetBatchId,
           );
           targetBatchId = stagedResult.batchId;
           stagedIds.push(stagedResult.stagedQuestion.id);
-          passCount++;
+          reviewCount++;
         } catch (err) {
           console.warn(
             `[BatchGenerate] variation failed for ${baseQuestion.id}:`,
@@ -591,10 +598,11 @@ export async function aiRoutes(fastify: FastifyInstance): Promise<void> {
         ? conceptRepo.findById(parentQuestion.conceptId)
         : null;
 
-      // 1. AI가 문제 특성을 분석하여 최적의 변형 전략 자동 선택
       const optimalStrategy = selectOptimalVariationStrategy(parentQuestion);
 
       let variation: GeneratedVariation | null = null;
+      let executionStatus: "SUCCESS" | "UNAVAILABLE" | "ERROR" = "UNAVAILABLE";
+      let conflict = false;
       let attempts = 0;
       const strategiesToTry: VariationType[] = [
         optimalStrategy,
@@ -615,24 +623,39 @@ export async function aiRoutes(fastify: FastifyInstance): Promise<void> {
             variationType: currentStrategy,
           });
 
+          conflict = false;
+          executionStatus = "UNAVAILABLE";
+
           if (gen.codeSnippet) {
             const evalResult = await evaluateCodeOutput(
               gen.codeSnippet,
               gen.language,
             );
+            executionStatus =
+              evalResult.status === "SUCCESS"
+                ? "SUCCESS"
+                : evalResult.status === "ERROR"
+                  ? "ERROR"
+                  : "UNAVAILABLE";
             const parentCode = parentQuestion.code || "";
             const codeChanged = Boolean(gen.codeSnippet !== parentCode);
-            const parentGt = JSON.stringify(parentQuestion.groundTruthAnswer ?? "");
+            const parentGt = JSON.stringify(
+              parentQuestion.groundTruthAnswer ?? "",
+            );
             const genGt = JSON.stringify(gen.groundTruthAnswer ?? "");
             const inheritedOfficialAnswer = codeChanged && parentGt === genGt;
 
-            if (evalResult.status === "SUCCESS" && evalResult.output !== undefined) {
+            if (
+              evalResult.status === "SUCCESS" &&
+              evalResult.output !== undefined
+            ) {
               const calcOut = evalResult.output.trim();
               const gt = Array.isArray(gen.groundTruthAnswer)
                 ? String(gen.groundTruthAnswer[0] ?? "")
                 : String(gen.groundTruthAnswer ?? "");
 
               if (calcOut && gt && calcOut !== gt.trim()) {
+                conflict = true;
                 gen.aiVariationNotes = `${gen.aiVariationNotes || ""} (정답 충돌: 저장된 정답="${gt}", 실행 결과="${calcOut}". 공식 정답은 변경하지 않음)`;
                 gen.aiExplanation =
                   `[정답 충돌] 저장된 정답="${gt}", 코드 실행 결과="${calcOut}". 공식 정답은 변경하지 않았습니다.\n` +
@@ -668,11 +691,46 @@ export async function aiRoutes(fastify: FastifyInstance): Promise<void> {
 
       if (!variation) {
         return reply.status(500).send({
-          error: "Generation Failed",
+          error: "GENERATION_FAILED",
+          failureReason: "GENERATION_FAILED",
+          success: false,
           message:
-            "변형 문제 생성 및 검증에 실패했습니다. 잠시 후 다시 시도해주세요.",
+            "변형 문제 생성에 실패했습니다. 다시 생성하거나 검수 흐름을 이용해주세요.",
         });
       }
+
+      if (conflict) {
+        return reply.status(422).send({
+          error: "ANSWER_CONFLICT",
+          failureReason: "ANSWER_CONFLICT",
+          success: false,
+          variation,
+          executionStatus,
+          message:
+            "생성된 코드의 실행 결과와 제시 정답이 충돌합니다. 이 문제는 채점할 수 없습니다. 다시 생성하거나 검수 대기열로 보내세요.",
+        });
+      }
+
+      if (!hasValidGroundTruth(variation.groundTruthAnswer)) {
+        const reason =
+          executionStatus === "UNAVAILABLE" || executionStatus === "ERROR"
+            ? "EXECUTION_UNVERIFIED"
+            : "MISSING_ANSWER";
+        return reply.status(422).send({
+          error: reason,
+          failureReason: reason,
+          success: false,
+          variation,
+          executionStatus,
+          message:
+            reason === "EXECUTION_UNVERIFIED"
+              ? "실행 검증을 하지 못해 채점 가능한 정답을 확정하지 못했습니다. 다시 생성하거나 검수 대기열로 보내세요."
+              : "유효한 정답이 없어 채점 가능한 문제로 제공할 수 없습니다.",
+        });
+      }
+
+      const answerSource =
+        executionStatus === "SUCCESS" ? "EXECUTION_VERIFIED" : "AI_UNVERIFIED";
 
       const drillQuestion: Question = {
         id: `q_drill_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
@@ -693,18 +751,41 @@ export async function aiRoutes(fastify: FastifyInstance): Promise<void> {
         difficulty: parentQuestion.difficulty,
         conceptId: variation.conceptId || parentQuestion.conceptId,
         keywords: parentQuestion.keywords || [],
+        studyVisibility: "TEMPORARY_DRILL",
+        answerVerificationStatus: "PROVISIONAL_DRAFT",
+        answerSource,
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
       };
 
-      questionRepo.create(drillQuestion);
+      const createdQuestion = questionRepo.create(drillQuestion);
+
+      const drillSession: StudySession = sessionRepo.create({
+        id: `sess_drill_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
+        title: "AI 변형 드릴",
+        subjectFilter: parentQuestion.subject,
+        questionIds: [createdQuestion.id],
+        currentIndex: 0,
+        status: "ACTIVE",
+        totalQuestions: 1,
+        correctCount: 0,
+        wrongCount: 0,
+        unknownCount: 0,
+        totalTimeSpentMs: 0,
+        startedAt: new Date().toISOString(),
+      });
 
       const response: AIVariationDrillResponse = {
         success: true,
-        question: drillQuestion,
+        question: { ...createdQuestion, answerSource },
         variation,
+        drillSession,
+        executionStatus,
+        answerSource,
         message:
-          "AI 변형 문제가 성공적으로 생성되었습니다. 바로 풀이를 시작하세요!",
+          executionStatus === "SUCCESS"
+            ? "임시 AI 변형 드릴이 생성되었습니다. 검수 승인 전까지 일반 문제집에 들어가지 않습니다."
+            : "임시 AI 변형 드릴입니다. 코드 실행 검증은 완료되지 않았으며 공식 정답이 아닙니다.",
       };
 
       return reply.status(200).send(response);

@@ -8,9 +8,10 @@ import { importRoutes } from "./routes/imports.js";
 import { learningRoutes } from "./routes/learning.js";
 import { aiRoutes } from "./routes/ai.js";
 
-function isAllowedAddress(ip?: string): boolean {
+export function isAllowedAddress(ip?: string): boolean {
   if (!ip) return false;
   // Loopback (127.0.0.1, ::1, ::ffff:127.0.0.1)
+  // Cloudflare Quick Tunnel(cloudflared)도 보통 이 주소로 로컬 서버에 붙는다.
   if (
     ip === "127.0.0.1" ||
     ip === "::1" ||
@@ -41,12 +42,11 @@ export function buildApp(): FastifyInstance {
     const socketIp = request.socket?.remoteAddress;
     const isLocalSocket = isAllowedAddress(socketIp);
     const isLocalIp = isAllowedAddress(request.ip);
-    const isCloudflareTunnel = Boolean(request.headers["cf-ray"]);
 
-    if (!isLocalSocket && !isLocalIp && !isCloudflareTunnel) {
+    if (!isLocalSocket && !isLocalIp) {
       return reply.status(403).send({
         error: "Forbidden",
-        message: "이 API는 로컬, 내부 네트워크(LAN) 및 Cloudflare Tunnel에서만 사용할 수 있습니다.",
+        message: "이 API는 로컬호스트 또는 내부 네트워크(LAN)에서만 사용할 수 있습니다.",
       });
     }
 

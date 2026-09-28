@@ -351,15 +351,15 @@ export class MockQuestionVariationGenerator implements QuestionVariationGenerato
     const reasons = evaluatorMeta?.rejectionReasons || [];
     const model = evaluatorMeta?.model || (question as any).model || 'AI';
 
-    let variationNotes = `[독립형 출제 설계: ${question.designMetadata.concept}] (${question.designMetadata.skill})\n- 모델: ${model}\n- 검증 상태: ${decision} (코드 실행 상태: UNAVAILABLE - 실제 C 런타임 미검증)`;
+    let variationNotes = `[독립형 출제 설계: ${question.designMetadata.concept}] (${question.designMetadata.skill})\n- 모델: ${model}\n- 검증 상태: ${decision} (코드 실행 상태: UNAVAILABLE - 정적 검사만, 런타임 미검증)`;
     if (question.designMetadata.stepByStepTrace) {
       variationNotes += `\n- 단계별 추적표:\n${question.designMetadata.stepByStepTrace}`;
     }
 
     const reviewerNotes =
-      decision === 'REVIEW'
-        ? `[검수 필요: Evaluator REVIEW] ${reasons.join('; ') || '세부 검토 권장'}`
-        : `[정적 정합성 검증 통과: Evaluator PASS] (실제 C 런타임 미검증)`;
+      decision === 'PASS'
+        ? `[Evaluator PASS] 코드 실행 검증은 별도로 필요합니다.`
+        : `[검수 필요: Evaluator ${decision}] ${reasons.join('; ') || '실행 미검증 또는 세부 검토 권장'}`;
 
     const stagedId = `stg_indep_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`;
     const stagedQuestion: StagedQuestion = {
@@ -375,7 +375,7 @@ export class MockQuestionVariationGenerator implements QuestionVariationGenerato
       codeSnippet: question.code,
       language: (question.language as CodeLanguage) ?? undefined,
       groundTruthAnswer: question.groundTruthAnswer,
-      officialExplanation: question.officialExplanation,
+      officialExplanation: undefined,
       aiExplanation: question.officialExplanation,
       aiVariationNotes: variationNotes,
       difficulty: question.difficulty,

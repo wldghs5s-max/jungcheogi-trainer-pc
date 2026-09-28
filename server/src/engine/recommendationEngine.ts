@@ -13,6 +13,7 @@ import {
   DailyLearningQueueSummary,
   DailySessionRequest,
   DrillSessionRequest,
+  isStudyEligible,
 } from '@jungcheogi/shared';
 import { getDatabase } from '../db/database.js';
 import { QuestionRepository } from '../db/repositories/questionRepository.js';
@@ -205,17 +206,14 @@ export class RecommendationEngine {
     const now = new Date();
 
     // 1. 후보 문제 목록 조회
-    const filter = {
+    let candidates = this.questionRepo.findAllMatching({
       conceptId: options.conceptId,
       subject: options.subject,
-      sourceType: options.excludeTestFixtures ? undefined : undefined,
-      limit: 100, // 충분한 후보군 확보
-    };
-
-    let candidates = this.questionRepo.findMany(filter).items;
+    });
     if (options.excludeTestFixtures) {
       candidates = candidates.filter((q) => q.sourceType !== 'TEST_FIXTURE');
     }
+    candidates = candidates.filter((q) => isStudyEligible(q));
 
     if (candidates.length === 0) {
       return [];
@@ -399,10 +397,15 @@ export class RecommendationEngine {
     }
 
     // --- 카테고리 3: 신규 미풀이 (New Unstudied) 문항 추출 ---
-    const allCandidates = this.questionRepo.findMany({
-      subject: options.subject && options.subject !== 'ALL' ? (options.subject as Subject) : undefined,
-      limit: 100,
-    }).items.filter((q) => !excludeFixtures || q.sourceType !== 'TEST_FIXTURE');
+    const allCandidates = this.questionRepo
+      .findAllMatching({
+        subject:
+          options.subject && options.subject !== "ALL"
+            ? (options.subject as Subject)
+            : undefined,
+      })
+      .filter((q) => !excludeFixtures || q.sourceType !== "TEST_FIXTURE")
+      .filter((q) => isStudyEligible(q));
 
     for (const q of allCandidates) {
       if (selectedQuestions.length >= totalCount) break;
@@ -473,10 +476,11 @@ export class RecommendationEngine {
     }
 
     // 해당 개념에 속한 문항만 조회
-    const candidateQuestions = this.questionRepo.findMany({
-      conceptId,
-      limit: 100,
-    }).items;
+    const candidateQuestions = this.questionRepo
+      .findAllMatching({
+        conceptId,
+      })
+      .filter((q) => isStudyEligible(q));
 
     if (candidateQuestions.length === 0) {
       throw new Error(`개념 '${concept.title}'에 등록된 문제가 없습니다.`);

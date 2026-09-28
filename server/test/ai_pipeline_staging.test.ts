@@ -8,6 +8,7 @@ import {
   verifyStepTraceMatch,
   verifyExplanationMatch,
 } from "../src/engine/evaluationValidator";
+import { resolveGeneratedGroundTruth } from "../src/engine/aiService";
 import { GeneratedIndependentQuestion, StagedQuestion } from "@jungcheogi/shared";
 
 function setupTestDb() {
@@ -42,6 +43,7 @@ function setupTestDb() {
       difficulty TEXT NOT NULL DEFAULT 'MEDIUM',
       keywords_json TEXT NOT NULL DEFAULT '[]',
       structural_fingerprint TEXT,
+      study_visibility TEXT NOT NULL DEFAULT 'LIVE',
       created_at TEXT NOT NULL,
       updated_at TEXT
     );
@@ -184,8 +186,16 @@ async function runTests() {
     "aiVariationNotes must include stepByStepTrace"
   );
   assert.ok(
-    stagedResult.stagedQuestion.reviewerNotes?.includes("정적 정합성 검증 통과: Evaluator PASS"),
-    "reviewerNotes must record Evaluator PASS"
+    !stagedResult.stagedQuestion.officialExplanation,
+    "AI 독립형 문항은 officialExplanation을 비워야 함",
+  );
+  assert.ok(
+    stagedResult.stagedQuestion.aiExplanation,
+    "AI 해설은 aiExplanation에만 저장",
+  );
+  assert.ok(
+    stagedResult.stagedQuestion.reviewerNotes?.includes("Evaluator PASS"),
+    "reviewerNotes must record Evaluator decision",
   );
   console.log(`  ✓ Stage independent question passed (assigned: ${stagedResult.stagedQuestion.questionCode})`);
 
@@ -207,6 +217,20 @@ async function runTests() {
 
   assert.strictEqual(rejectDual.finalDecision, "REJECT", "Contradictory trace/explanation must be REJECTED");
   assert.ok(rejectDual.rejectionReasons.length > 0, "Must have rejection reasons");
+
+  const unverifiedPass = evaluateDualConsistency({
+    stepTraceStatus: "MATCH",
+    explanationStatus: "MATCH",
+    cloneType: "NONE",
+    actualCodeOutput: undefined,
+    codeExecutionStatus: "UNAVAILABLE",
+    expectedAnswer: "20",
+  });
+  assert.strictEqual(
+    unverifiedPass.finalDecision,
+    "REVIEW",
+    "코드 실행 UNAVAILABLE이면 PASS가 아니라 REVIEW",
+  );
   console.log("  ✓ Evaluator REJECT detection passed");
 
   // 4. Test Staging -> Commit Single Question to Live DB
@@ -214,6 +238,14 @@ async function runTests() {
   const stagedId = stagedResult.stagedQuestion.id;
   const originalQuestionCode = stagedResult.stagedQuestion.questionCode!;
 
+  let pendingCommitFailed = false;
+  try {
+    batchRepo.commitSingleApprovedQuestion(stagedId);
+  } catch {
+    pendingCommitFailed = true;
+  }
+  assert.ok(pendingCommitFailed, "PENDING 문항은 Live 커밋이 거부되어야 함");
+  batchRepo.setStagedReviewStatus(stagedId, "APPROVED");
   const liveQuestion = batchRepo.commitSingleApprovedQuestion(stagedId);
   assert.ok(liveQuestion.id, "Live question must have ID");
   assert.strictEqual(
@@ -238,6 +270,31 @@ async function runTests() {
   const filterRes = batchRepo.findStagedQuestions({ sourceType: "AI_GENERATED" });
   assert.ok(filterRes.items.length >= 2, "Should find staged questions with AI_GENERATED filter");
   console.log("  ✓ findStagedQuestions filter passed");
+
+  console.log("Test 6: REJECTED 문항은 일괄 승인에서 제외");
+  batchRepo.setStagedReviewStatus("stg1", "REJECTED");
+  batchRepo.approveQuestionsWithoutErrors("b1");
+  assert.strictEqual(
+    batchRepo.findStagedById("stg1")?.reviewStatus,
+    "REJECTED",
+    "반려 문항은 approve-all로 재승인되면 안 됨",
+  );
+  console.log("  ✓ REJECTED skip in approve-all passed");
+
+  console.log("Test 7: 변형 정답은 코드가 바뀌면 원본 GT를 상속하지 않음");
+  assert.strictEqual(
+    resolveGeneratedGroundTruth(undefined, "20", "int x=2;", "int x=1;"),
+    "",
+  );
+  assert.strictEqual(
+    resolveGeneratedGroundTruth("8", "20", "int x=2;", "int x=1;"),
+    "8",
+  );
+  assert.strictEqual(
+    resolveGeneratedGroundTruth(undefined, "20", "same", "same"),
+    "20",
+  );
+  console.log("  ✓ generated GT inheritance guard passed");
 
   console.log("\n All AI Pipeline & Staging Integration Tests PASSED successfully!");
 }

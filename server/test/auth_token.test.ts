@@ -1,5 +1,5 @@
 import assert from "node:assert";
-import { buildApp } from "../src/app.js";
+import { buildApp, isAllowedAddress } from "../src/app.js";
 import { setupIsolatedTestDb } from "./helpers/testDb.js";
 
 async function withTokenEnv(token: string | undefined, run: () => Promise<void>) {
@@ -86,6 +86,11 @@ async function testAuthToken() {
       const unknownBody = JSON.parse(unknown.body);
       assert.strictEqual(unknownBody.attempt.isUnknown, true);
       console.log("OK   정상 토큰으로 unknown 내부 처리(재inject 없음)");
+
+      assert.strictEqual(isAllowedAddress("127.0.0.1"), true);
+      assert.strictEqual(isAllowedAddress("192.168.0.10"), true);
+      assert.strictEqual(isAllowedAddress("8.8.8.8"), false);
+      console.log("OK   cf-ray만으로는 외부 IP를 허용하지 않음(소켓이 로컬/LAN이어야 함)");
 
       await app.close();
     });

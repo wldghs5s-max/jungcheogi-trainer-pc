@@ -1,5 +1,7 @@
 import { Question } from "./question.js";
+import { StudySession } from "./session.js";
 import { VariationType, GeneratedVariation } from "./recommendation.js";
+import { DrillFailureReason } from "../utils/answerValidity.js";
 
 export interface AITutoringExplanationRequest {
   questionId?: string;
@@ -110,6 +112,7 @@ export interface LearningDomainsResponse {
   languages: string[];
   subjects: string[];
   categories: string[];
+  supportedIndependentLanguages: Array<"C" | "JAVA" | "PYTHON">;
 }
 
 export interface AIVariationDrillRequest {
@@ -118,8 +121,12 @@ export interface AIVariationDrillRequest {
 
 export interface AIVariationDrillResponse {
   success: boolean;
-  question: Question;
-  variation: GeneratedVariation;
+  question?: Question;
+  variation?: GeneratedVariation;
+  drillSession?: StudySession;
+  executionStatus?: "SUCCESS" | "UNAVAILABLE" | "ERROR";
+  answerSource?: "OFFICIAL" | "AI_UNVERIFIED" | "EXECUTION_VERIFIED";
+  failureReason?: DrillFailureReason;
   message?: string;
 }
 

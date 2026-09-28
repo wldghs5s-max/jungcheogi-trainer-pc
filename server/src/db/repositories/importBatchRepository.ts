@@ -335,6 +335,10 @@ export class ImportBatchRepository {
       if (existing) return existing;
     }
 
+    if (staged.reviewStatus !== "APPROVED") {
+      throw new Error("APPROVED 상태인 문항만 Live DB로 커밋할 수 있습니다.");
+    }
+
     const hasError = (staged.validationIssues || []).some(
       (issue) => issue.severity === "ERROR",
     );
@@ -490,7 +494,7 @@ export class ImportBatchRepository {
 
     let approved = 0;
     for (const staged of batch.stagedQuestions) {
-      if (staged.reviewStatus === "COMMITTED") continue;
+      if (staged.reviewStatus === "COMMITTED" || staged.reviewStatus === "REJECTED") continue;
       const hasError = (staged.validationIssues || []).some(
         (issue) => issue.severity === "ERROR",
       );

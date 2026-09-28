@@ -170,9 +170,13 @@ export async function approveAllStagedApi(
       };
     }
 
-    const data = (await res.json()) as {
-      batch: ImportBatch;
-      approvedCount: number;
+    const raw = (await res.json()) as {
+      batch?: ImportBatch;
+      approvedCount?: number;
+    };
+    const data = {
+      batch: raw.batch as ImportBatch,
+      approvedCount: Number(raw.approvedCount || 0),
     };
     return { data };
   } catch (err) {
