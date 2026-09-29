@@ -2,9 +2,9 @@
 
 <!-- TUNNEL_URL_START -->
 > ### 📱 실시간 모바일 / 외부 접속 링크
-> **[👉 정처기 학습 플랫폼 바로가기 (클릭)](https://das-important-teams-hearings.trycloudflare.com)**  
-> - **실시간 URL**: `https://das-important-teams-hearings.trycloudflare.com`  
-> - **마지막 갱신**: 2026-09-29 07:45:51 KST
+> **[👉 정처기 학습 플랫폼 바로가기 (클릭)](https://operational-voting-answers-copied.trycloudflare.com)**  
+> - **실시간 URL**: `https://operational-voting-answers-copied.trycloudflare.com`  
+> - **마지막 갱신**: 2026-09-30 07:38:32 KST
 <!-- TUNNEL_URL_END -->
 
 
