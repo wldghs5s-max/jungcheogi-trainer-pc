@@ -31,6 +31,13 @@ function updateReadmeAndPush(tunnelUrl) {
   console.log(`====================================================\n`);
 
   try {
+    try {
+      console.log('1-1. 원격 최신 변경사항 동기화 (git pull --rebase)...');
+      execSync('git pull --rebase origin master', { cwd: ROOT_DIR, stdio: 'inherit' });
+    } catch (pullErr) {
+      console.warn('[동기화 경고]:', pullErr.message);
+    }
+
     let readme = fs.readFileSync(README_PATH, 'utf8');
 
     const now = new Date();
