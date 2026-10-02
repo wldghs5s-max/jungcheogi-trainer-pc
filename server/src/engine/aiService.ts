@@ -51,20 +51,16 @@ export function getSmartModel(): string {
  * 튜터용 폴백 후보 리스트 (3.5 우선)
  */
 export const TUTOR_MODELS = [
-  "gemini-3.1-flash-lite",
   "gemini-3.5-flash-lite",
-  "gemini-3.7-flash",
   "gemini-3.5-flash",
   "gemini-3.8-flash",
 ];
 
 /**
- * 생성용 폴백 후보 리스트 (3.7 / 3.8 우선)
+ * 생성용 폴백 후보 리스트 (3.8 우선)
  */
 export const GENERATOR_MODELS = [
-  "gemini-3.7-flash",
   "gemini-3.8-flash",
-  "gemini-3.1-flash-lite",
   "gemini-3.5-flash",
   "gemini-3.5-flash-lite",
 ];
@@ -507,10 +503,13 @@ export class MockAIService implements IAIService {
         question.officialExplanation ||
         `${conceptName}의 핵심 규격 및 실행 결과에 따라 도출됩니다.`;
       if (concept?.definition) {
-        keyPoint += `\n* 개념 정의: ${concept.definition}`;
+        keyPoint += `\n\n[개념 정의]\n${concept.definition}`;
+      }
+      if (isUnknown) {
+        keyPoint += `\n\n[필수 배경지식 & 주변 개념]\n- 본 문제는 ${conceptName}의 기본 동작 메커니즘을 묻는 문제입니다.\n- 시험에서는 해당 기술의 정의뿐만 아니라 연관된 상/하위 표준, 주요 특징 및 유사 기술과의 차이점을 함께 비교하여 출제합니다.`;
       }
       if (isLang && question.code) {
-        codeTrace = `[코드 실행 추적]\n1. 변수 초기화 및 메모리 할당 상태를 점검합니다.\n2. 조건문 및 루프의 반복 횟수와 증감식을 단계별로 추적합니다.\n3. 최종 출력 시점의 변수 값은 "${answerStr}"이(가) 됩니다.`;
+        codeTrace = `[초기화 및 변수 선언]\n- 변수 및 메모리 할당 상태를 점검합니다.\n\n[Step 1] 제어 흐름 분석\n- 조건문 및 루프의 반복 횟수와 증감식을 단계별로 추적합니다.\n\n[최종 출력]\n- 프로그램 정상 종료 및 최종 출력값: "${answerStr}"`;
       }
       pitfalls = isLang
         ? "포인터 연산자 우선순위(*ptr++ vs (*ptr)++), 배열의 0번 인덱스 시작, 탈출 조건 부등호(< vs <=)를 주의 깊게 확인해야 합니다."
@@ -520,9 +519,9 @@ export class MockAIService implements IAIService {
     let whyWrong: string | undefined = undefined;
     if (isUnknown) {
       whyWrong =
-        '아직 개념 정리가 완료되지 않아 "모르겠음"을 선택하셨습니다. 이번 기회에 복습 큐에 등록하여 확실히 익혀두세요.';
+        `[문제 접근 길잡이]\n1. 문제 지문과 보기에서 핵심 키워드를 먼저 분리합니다.\n2. ${conceptName} 관련 출제 의도를 파악하고 기본 정의에서부터 차근차근 실마리를 풀어가세요.\n\n현재 개념 정리가 미흡하여 "모르겠음"을 선택하셨으므로, 복습 큐에 자동 등록되어 반복 학습을 돕습니다.`;
     } else if (!isCorrect) {
-      whyWrong = `제출하신 답안 "${userAnsStr}"은(는) 요구하는 정확한 키워드나 코드 연산 결과와 차이가 있습니다. 조건의 경계값 및 연산자 우선순위를 재확인하세요.`;
+      whyWrong = `제출하신 답안 "${userAnsStr}"은(는) 요구하는 정확한 키워드나 코드 연산 결과와 차이가 있습니다.\n조건의 경계값 및 연산자 우선순위를 재확인하세요.`;
     }
 
     const studyTips =
@@ -924,6 +923,45 @@ ${concept ? `- 관련 핵심 개념: ${concept.title} (정의: ${concept.definit
 - 정답 여부: ${isCorrect ? "정답" : "오답"}
 - 모르겠음 선택 여부: ${isUnknown ? "예(모르겠음)" : "아니오"}
 
+[가독성 및 개행(줄바꿈) 필수 지침]
+1. 문단 구분과 줄바꿈:
+   - 모든 해설 항목(summary, keyPoint, whyWrong, codeTrace, pitfalls, studyTips)은 문단과 항목 사이에 반드시 빈 줄(\\n\\n)을 넉넉히 삽입하여 웹/모바일 화면에서 빽빽하지 않고 시원하게 읽히도록 작성하십시오.
+   - 긴 줄글 대신 불릿 포인트(- )와 개행을 적극 활용하십시오.
+
+2. 코드 실행 및 변수 상태 추적 (codeTrace) 가독성 극대화:
+   - 프로그래밍 코드 문제인 경우, 반드시 단계별/구간별 블록 구조를 엄격히 지켜 작성하십시오.
+   - 각 단계 사이에는 반드시 빈 줄(\\n\\n)을 넣어 분리하십시오.
+   - 예시 포맷:
+     [초기화 및 변수 선언]
+     - a = 10, b = 20, sum = 0
+
+     [Step 1] 반복문 1회차 (i = 0)
+     - 조건식 검사: i < 5 (0 < 5 -> 참)
+     - 실행 연산: sum += a (0 + 10)
+     - 변수 상태 변화: sum: 0 -> 10, i: 0 -> 1
+
+     [Step 2] 반복문 2회차 (i = 1)
+     - 조건식 검사: i < 5 (1 < 5 -> 참)
+     - 실행 연산: sum += a (10 + 10)
+     - 변수 상태 변화: sum: 10 -> 20, i: 1 -> 2
+
+     [루프 종료 및 최종 출력]
+     - 루프 탈출 조건: i = 5 (5 < 5 -> 거짓)
+     - 최종 출력: printf("%d", sum) -> 화면 출력값: "50"
+   - 위와 같이 [Step N], 조건식, 실행 연산, 변수 상태 변화(이전값 -> 이후값)를 블록 단위로 명확히 추적하십시오. 이론 문제이거나 코드가 없는 경우 빈 문자열("")을 반환하십시오.
+
+3. "모르겠음(isUnknown: true)" 선택 시 특별 지침:
+   - 학생이 "모르겠음"을 선택했을 경우, 단순히 정답만 일러주는 해설이 아니라 기초부터 문제 해결까지 연결해주는 [심층 배경지식 특강] 형태로 작성하십시오:
+     * whyWrong: "문제 접근 길잡이 & 사고 전개 과정"
+       - 문제 지문과 보기/코드에서 가장 먼저 눈여겨보아야 할 핵심 단서와 키워드
+       - 어떤 순서로 생각을 전개해야 실마리를 찾을 수 있는지(사고의 단계별 가이드)
+     * keyPoint: "핵심 개념 & 주변 필수 배경지식 특강"
+       - (1) 핵심 개념 정의: 본 문제의 핵심 원리와 필수 정의
+       - (2) 주변 필수 배경지식 & 연관 개념: 정보처리기사 실기 시험에 이 토픽과 함께 자주 묶여 출제되는 연관 기술, 상/하위 프로토콜, 유사 명령어/문법 비교 분석
+       - (3) 실전 정답 도출 매커니즘: 시험장에서 이 개념을 만났을 때 정답을 빠르고 정확하게 골라내는 판별 기준
+     * pitfalls: "수험생들이 자주 헷갈리는 함정(Trap)"
+       - 유사한 명칭이나 반대 동작을 하는 연관 기술과의 혼동 주의점
+
 [요구 출력 JSON 스키마]
 반드시 다음 JSON 형식만 순수하게 반환하세요.
 {
@@ -932,17 +970,17 @@ ${concept ? `- 관련 핵심 개념: ${concept.title} (정의: ${concept.definit
   "calculatedAnswer": "실제 코드 시뮬레이션/연산 결과값",
   "groundTruthAnswer": "제공된 공식 기준 정답",
   "conflictMessage": "충돌 시 안내 문구",
-  "keyPoint": "공학적/이론적 핵심 원리 설명 (코드 계산 왜곡 절대 금지)",
-  "whyWrong": "학생이 작성한 오답 원인 객관적 분석 또는 모르겠음을 극복하기 위한 진단 (학생 심리 추측 금지)",
-  "codeTrace": "코드 문제인 경우 줄별/단계별 변수 값 및 메모리 상태 변화 추적 설명 (이론 문제인 경우 빈 문자열 또는 생략)",
+  "keyPoint": "공학적/이론적 핵심 원리 및 주변 배경지식 설명 (코드 계산 왜곡 절대 금지, \\n\\n 문단 분리)",
+  "whyWrong": "오답 원인 객관적 분석 또는 모르겠음 극복을 위한 문제 접근 길잡이 (\\n\\n 문단 분리)",
+  "codeTrace": "코드 문제인 경우 줄별/단계별 블록 변수 상태 추적 (\\n\\n 분리 필수, 이론 문제인 경우 빈 문자열)",
   "pitfalls": "수험생들이 시험장에서 자주 빠지는 결정적 함정 포인트 (불일치 주의사항 포함)",
   "studyTips": "이 유형을 확실하게 내 것으로 만들기 위한 암기 팁 또는 핵심 키워드 정리"
 }
 `;
 
       const candidateModels = promotion.shouldPromote
-        ? [promotion.model, getFastModel()]
-        : [promotion.model];
+        ? [promotion.model, ...TUTOR_MODELS.filter((m) => m !== promotion.model)]
+        : [...TUTOR_MODELS];
 
       const { data: result, modelUsed } = await this.callGeminiWithModels(
         prompt,

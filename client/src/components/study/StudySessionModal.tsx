@@ -116,6 +116,7 @@ export const StudySessionModal: React.FC<StudySessionModalProps> = ({
   const [aiExplanationError, setAiExplanationError] = useState<string | null>(
     null,
   );
+  const isSubmittingRef = useRef<boolean>(false);
   const drillRequestTokenRef = useRef(0);
   const [isDrillQuestion, setIsDrillQuestion] = useState<boolean>(false);
   const [isDrillSaved, setIsDrillSaved] = useState<boolean>(false);
@@ -247,7 +248,7 @@ export const StudySessionModal: React.FC<StudySessionModalProps> = ({
 
   // Handle normal answer submit
   const handleSubmitAnswer = async () => {
-    if (!session || !currentQuestion || isSubmitting) return;
+    if (isSubmittingRef.current || isSubmitting || !session || !currentQuestion) return;
 
     const isMulti =
       userInputs.length > 1 ||
@@ -269,120 +270,123 @@ export const StudySessionModal: React.FC<StudySessionModalProps> = ({
     }
 
     if (timerRef.current) clearInterval(timerRef.current);
+    isSubmittingRef.current = true;
     setIsSubmitting(true);
 
-    if (isDrillQuestion) {
-      if (!drillSession) {
-        setIsSubmitting(false);
-        alert("드릴 세션이 없어 결과를 기록할 수 없습니다.");
+    try {
+      if (isDrillQuestion) {
+        if (!drillSession) {
+          alert("드릴 세션이 없어 결과를 기록할 수 없습니다.");
+          return;
+        }
+        const drillRes = await submitSessionAnswer(drillSession.id, {
+          questionId: currentQuestion.id,
+          userAnswer: finalAnswer,
+          timeSpentMs: Math.max(elapsedSeconds * 1000, 1000),
+          hintUsed: showHint || hintLevel > 0,
+        });
+        if (drillRes.error || !drillRes.data) {
+          alert(drillRes.error || "드릴 답안 제출 중 오류가 발생했습니다.");
+          return;
+        }
+        setSubmitResult(drillRes.data);
+        if (!drillRes.data.isCorrect) {
+          handleLoadAIExplanation(drillRes.data);
+        }
         return;
       }
-      const drillRes = await submitSessionAnswer(drillSession.id, {
+
+      const timeSpentMs = Math.max(elapsedSeconds * 1000, 1000);
+      const res = await submitSessionAnswer(session.id, {
         questionId: currentQuestion.id,
         userAnswer: finalAnswer,
-        timeSpentMs: Math.max(elapsedSeconds * 1000, 1000),
+        timeSpentMs,
         hintUsed: showHint || hintLevel > 0,
       });
-      setIsSubmitting(false);
-      if (drillRes.error || !drillRes.data) {
-        alert(drillRes.error || "드릴 답안 제출 중 오류가 발생했습니다.");
+
+      if (res.error || !res.data) {
+        alert(res.error || "답안 제출 중 오류가 발생했습니다.");
         return;
       }
-      setSubmitResult(drillRes.data);
-      if (!drillRes.data.isCorrect) {
-        handleLoadAIExplanation(drillRes.data);
+
+      setSubmitResult(res.data);
+      setSession((prev) =>
+        prev
+          ? {
+              ...prev,
+              correctCount: res.data!.sessionProgress.correctCount,
+              wrongCount: res.data!.sessionProgress.wrongCount,
+              unknownCount: res.data!.sessionProgress.unknownCount,
+            }
+          : null,
+      );
+      if (!res.data.isCorrect) {
+        handleLoadAIExplanation(res.data);
       }
-      return;
-    }
-
-    const timeSpentMs = Math.max(elapsedSeconds * 1000, 1000);
-    const res = await submitSessionAnswer(session.id, {
-      questionId: currentQuestion.id,
-      userAnswer: finalAnswer,
-      timeSpentMs,
-      hintUsed: showHint || hintLevel > 0,
-    });
-
-    setIsSubmitting(false);
-
-    if (res.error || !res.data) {
-      alert(res.error || "답안 제출 중 오류가 발생했습니다.");
-      return;
-    }
-
-    setSubmitResult(res.data);
-    setSession((prev) =>
-      prev
-        ? {
-            ...prev,
-            correctCount: res.data!.sessionProgress.correctCount,
-            wrongCount: res.data!.sessionProgress.wrongCount,
-            unknownCount: res.data!.sessionProgress.unknownCount,
-          }
-        : null,
-    );
-    if (!res.data.isCorrect) {
-      handleLoadAIExplanation(res.data);
+    } finally {
+      isSubmittingRef.current = false;
+      setIsSubmitting(false);
     }
   };
 
   // Handle "모르겠음" quick action
   const handleUnknown = async () => {
-    if (!currentQuestion || isSubmitting) return;
-
-    if (isDrillQuestion) {
-      if (!drillSession) {
-        alert("드릴 세션이 없어 결과를 기록할 수 없습니다.");
-        return;
-      }
-      if (timerRef.current) clearInterval(timerRef.current);
-      setIsSubmitting(true);
-      const drillRes = await submitSessionUnknown(drillSession.id, {
-        questionId: currentQuestion.id,
-        timeSpentMs: Math.max(elapsedSeconds * 1000, 1000),
-        hintUsed: showHint || hintLevel > 0,
-      });
-      setIsSubmitting(false);
-      if (drillRes.error || !drillRes.data) {
-        alert(drillRes.error || "드릴 모르겠음 처리 중 오류가 발생했습니다.");
-        return;
-      }
-      setSubmitResult(drillRes.data);
-      handleLoadAIExplanation(drillRes.data);
-      return;
-    }
-
-    if (!session) return;
+    if (isSubmittingRef.current || isSubmitting || !currentQuestion) return;
 
     if (timerRef.current) clearInterval(timerRef.current);
+    isSubmittingRef.current = true;
     setIsSubmitting(true);
 
-    const timeSpentMs = Math.max(elapsedSeconds * 1000, 1000);
-    const res = await submitSessionUnknown(session.id, {
-      questionId: currentQuestion.id,
-      timeSpentMs,
-      hintUsed: showHint || hintLevel > 0,
-    });
+    try {
+      if (isDrillQuestion) {
+        if (!drillSession) {
+          alert("드릴 세션이 없어 결과를 기록할 수 없습니다.");
+          return;
+        }
+        const drillRes = await submitSessionUnknown(drillSession.id, {
+          questionId: currentQuestion.id,
+          timeSpentMs: Math.max(elapsedSeconds * 1000, 1000),
+          hintUsed: showHint || hintLevel > 0,
+        });
+        if (drillRes.error || !drillRes.data) {
+          alert(drillRes.error || "드릴 모르겠음 처리 중 오류가 발생했습니다.");
+          return;
+        }
+        setSubmitResult(drillRes.data);
+        handleLoadAIExplanation(drillRes.data);
+        return;
+      }
 
-    setIsSubmitting(false);
+      if (!session) return;
 
-    if (res.error || !res.data) {
-      alert(res.error || "모르겠음 처리 중 오류가 발생했습니다.");
-      return;
+      const timeSpentMs = Math.max(elapsedSeconds * 1000, 1000);
+      const res = await submitSessionUnknown(session.id, {
+        questionId: currentQuestion.id,
+        timeSpentMs,
+        hintUsed: showHint || hintLevel > 0,
+      });
+
+      if (res.error || !res.data) {
+        alert(res.error || "모르겠음 처리 중 오류가 발생했습니다.");
+        return;
+      }
+
+      setSubmitResult(res.data);
+      setSession((prev) =>
+        prev
+          ? {
+              ...prev,
+              correctCount: res.data!.sessionProgress.correctCount,
+              wrongCount: res.data!.sessionProgress.wrongCount,
+              unknownCount: res.data!.sessionProgress.unknownCount,
+            }
+          : null,
+      );
+      handleLoadAIExplanation(res.data);
+    } finally {
+      isSubmittingRef.current = false;
+      setIsSubmitting(false);
     }
-
-    setSubmitResult(res.data);
-    setSession((prev) =>
-      prev
-        ? {
-            ...prev,
-            correctCount: res.data!.sessionProgress.correctCount,
-            wrongCount: res.data!.sessionProgress.wrongCount,
-            unknownCount: res.data!.sessionProgress.unknownCount,
-          }
-        : null,
-    );
-    handleLoadAIExplanation(res.data);
   };
 
   // Phase 8: Progressive 3-step AI hints
@@ -608,22 +612,12 @@ export const StudySessionModal: React.FC<StudySessionModalProps> = ({
           e.preventDefault();
           handleNextQuestion();
         }
-      } else {
-        // If single input and Enter pressed in non-submit mode
-        if (e.key === "Enter" && !e.shiftKey) {
-          const isMulti =
-            currentQuestion && Array.isArray(currentQuestion.groundTruthAnswer);
-          if (!isMulti) {
-            e.preventDefault();
-            handleSubmitAnswer();
-          }
-        }
       }
     };
 
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [isOpen, phase, submitResult, currentQuestion, userInputs]);
+  }, [isOpen, phase, submitResult, currentQuestion]);
 
   // Copy code snippet helper
   const handleCopyCode = () => {
@@ -1148,6 +1142,8 @@ export const StudySessionModal: React.FC<StudySessionModalProps> = ({
                           onKeyDown={(e) => {
                             if (e.key === "Enter" && !e.shiftKey) {
                               e.preventDefault();
+                              e.stopPropagation();
+                              if (isSubmittingRef.current || isSubmitting) return;
                               if (idx < userInputs.length - 1) {
                                 inputRefs.current[idx + 1]?.focus();
                               } else {
@@ -1453,8 +1449,10 @@ export const StudySessionModal: React.FC<StudySessionModalProps> = ({
 
                         {aiExplanationData.whyWrong && (
                           <div style={styles.aiWhyWrongBox}>
-                            <strong style={{ color: "#F87171" }}>
-                              🔍 오답 & 풀이 진단:
+                            <strong style={{ color: submitResult?.attempt?.isUnknown ? "#F59E0B" : "#F87171" }}>
+                              {submitResult?.attempt?.isUnknown
+                                ? "🧭 문제 접근 길잡이 & 사고 전개 과정:"
+                                : "🔍 오답 & 풀이 진단:"}
                             </strong>
                             <p style={styles.aiSectionText}>
                               {aiExplanationData.whyWrong}
@@ -1463,8 +1461,10 @@ export const StudySessionModal: React.FC<StudySessionModalProps> = ({
                         )}
 
                         <div style={styles.aiKeyPointBox}>
-                          <strong style={{ color: "#60A5FA" }}>
-                            💡 핵심 개념 및 공식 정답 성립 원리:
+                          <strong style={{ color: submitResult?.attempt?.isUnknown ? "#38BDF8" : "#60A5FA" }}>
+                            {submitResult?.attempt?.isUnknown
+                              ? "💡 핵심 개념 & 주변 필수 배경지식 특강:"
+                              : "💡 핵심 개념 및 공식 정답 성립 원리:"}
                           </strong>
                           <p style={styles.aiSectionText}>
                             {aiExplanationData.keyPoint}

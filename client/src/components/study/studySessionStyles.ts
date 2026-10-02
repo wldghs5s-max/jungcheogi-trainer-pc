@@ -720,8 +720,10 @@ export const styles: Record<string, CSSProperties> = {
   explanationText: {
     fontSize: "14px",
     color: "#CBD5E1",
-    lineHeight: 1.7,
+    lineHeight: 1.75,
     margin: 0,
+    whiteSpace: "pre-wrap",
+    wordBreak: "break-word",
   },
   aiBox: {
     backgroundColor: "rgba(168, 85, 247, 0.05)",
@@ -1048,6 +1050,8 @@ export const styles: Record<string, CSSProperties> = {
   },
   anatomyMeaning: {
     color: "#E2E8F0",
+    whiteSpace: "pre-wrap",
+    wordBreak: "break-word",
   },
   anatomySyntaxRow: {
     display: "flex",
@@ -1069,6 +1073,8 @@ export const styles: Record<string, CSSProperties> = {
   anatomyContext: {
     color: "#CBD5E1",
     fontSize: "12.5px",
+    whiteSpace: "pre-wrap",
+    wordBreak: "break-word",
   },
   anatomyExamTip: {
     color: "#FCD34D",
@@ -1076,6 +1082,8 @@ export const styles: Record<string, CSSProperties> = {
     padding: "6px 10px",
     borderRadius: "6px",
     border: "1px solid rgba(245, 158, 11, 0.2)",
+    whiteSpace: "pre-wrap",
+    wordBreak: "break-word",
   },
 
   // AI TUTOR SECTION
@@ -1166,12 +1174,18 @@ export const styles: Record<string, CSSProperties> = {
     padding: "12px",
   },
   codeTracePre: {
-    margin: "8px 0 0 0",
-    fontFamily: "monospace",
+    margin: "10px 0 0 0",
+    fontFamily: "'Fira Code', 'Consolas', 'Courier New', monospace",
     fontSize: "13px",
-    color: "#E2E8F0",
-    lineHeight: 1.6,
+    color: "#38BDF8",
+    backgroundColor: "#0B1120",
+    padding: "14px 16px",
+    borderRadius: "8px",
+    border: "1px solid #1E293B",
+    lineHeight: 1.75,
     whiteSpace: "pre-wrap",
+    wordBreak: "break-word",
+    overflowX: "auto",
   },
   aiPitfallsBox: {
     backgroundColor: "rgba(245, 158, 11, 0.1)",
@@ -1189,7 +1203,9 @@ export const styles: Record<string, CSSProperties> = {
     margin: "6px 0 0 0",
     fontSize: "14px",
     color: "#E2E8F0",
-    lineHeight: 1.6,
+    lineHeight: 1.75,
+    whiteSpace: "pre-wrap",
+    wordBreak: "break-word",
   },
   variationRow: {
     display: "flex",
