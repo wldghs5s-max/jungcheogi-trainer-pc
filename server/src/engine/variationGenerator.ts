@@ -13,7 +13,10 @@ import {
 import { getDatabase } from '../db/database.js';
 import { ImportBatchRepository } from '../db/repositories/importBatchRepository.js';
 import { QuestionRepository } from '../db/repositories/questionRepository.js';
-import { generateStructuralFingerprint } from '../db/importers/fingerprint.js';
+import {
+  generateStructuralFingerprint,
+  analyzeDuplicates,
+} from '../db/importers/fingerprint.js';
 import { VariationValidator } from './variationValidator.js';
 import { evaluateCodeOutput } from './codeExecutionEngine.js';
 
@@ -182,9 +185,13 @@ export class MockQuestionVariationGenerator implements QuestionVariationGenerato
   ): Promise<{ batchId: string; stagedQuestion: StagedQuestion }> {
     const nowIso = new Date().toISOString();
 
-    // 검증 결과 확인 (없으면 즉시 검증 실행)
+    const parentQ = variation.parentQuestionId
+      ? this.questionRepo.findById(variation.parentQuestionId)
+      : null;
+
+    // 검증 결과 확인 (없으면 부모 문항과 연계하여 즉시 검증 실행)
     const valResult =
-      variation.validationResult || VariationValidator.validate(variation);
+      variation.validationResult || VariationValidator.validate(variation, parentQ);
 
     // 1. 배치 ID 결정 또는 생성
     let targetBatchId = batchId;
@@ -215,11 +222,24 @@ export class MockQuestionVariationGenerator implements QuestionVariationGenerato
       }
     }
 
-    // 2. Structural Fingerprint 산출
+    // 2. Structural Fingerprint 산출 및 중복 판별
     const fingerprint = generateStructuralFingerprint(
       variation.prompt,
       variation.codeSnippet,
       variation.subject
+    );
+
+    const allQuestions = this.questionRepo.findAllMatching();
+    const dupAnalysis = analyzeDuplicates(
+      {
+        questionText: variation.prompt,
+        codeSnippet: variation.codeSnippet,
+        subject: variation.subject,
+        fingerprint,
+        parentQuestionId: variation.parentQuestionId,
+        sourceType: 'AI_VARIATION',
+      },
+      allQuestions,
     );
 
     // 3. StagedQuestion 엔티티 구성 (상태: PENDING)
@@ -247,7 +267,7 @@ export class MockQuestionVariationGenerator implements QuestionVariationGenerato
       difficulty: 'MEDIUM',
       keywords: [],
       structuralFingerprint: fingerprint,
-      duplicateStatus: 'NEW',
+      duplicateStatus: dupAnalysis.status,
       validationIssues: valResult.issues,
       reviewStatus: 'PENDING', // 반드시 사람이 검수하기 전에는 PENDING
       createdAt: nowIso,

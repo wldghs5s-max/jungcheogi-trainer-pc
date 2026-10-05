@@ -28,6 +28,7 @@ import { SessionRepository } from "../db/repositories/sessionRepository.js";
 import { getDatabase } from "../db/database.js";
 import { getAIService } from "../engine/aiService.js";
 import { MockQuestionVariationGenerator } from "../engine/variationGenerator.js";
+import { VariationValidator } from "../engine/variationValidator.js";
 import { evaluateCodeOutput } from "../engine/codeExecutionEngine.js";
 import { isDuplicateOrTooSimilar } from "../engine/independentGenerator.js";
 import {
@@ -518,6 +519,26 @@ export async function aiRoutes(fastify: FastifyInstance): Promise<void> {
             variationType: chosenStrategy,
           });
 
+          variation.parentQuestionId =
+            variation.parentQuestionId || baseQuestion.id;
+          variation.conceptId = variation.conceptId || baseQuestion.conceptId;
+
+          // 정적 스키마 및 도메인 검증
+          const valResult = VariationValidator.validate(variation, baseQuestion);
+          if (!valResult.isValid) {
+            rejectedItems.push({
+              reason:
+                valResult.issues.map((i) => i.message).join("; ") ||
+                "변형 문제 스키마/도메인 검증 실패",
+              details: {
+                baseQuestionId: baseQuestion.id,
+                strategy: chosenStrategy,
+                issues: valResult.issues,
+              },
+            });
+            continue;
+          }
+
           variation.aiVariationNotes = `${variation.aiVariationNotes || ""} (사람 검수 필요)`;
           const stagedResult = await variationStager.stageVariation(
             variation,
@@ -729,8 +750,25 @@ export async function aiRoutes(fastify: FastifyInstance): Promise<void> {
         });
       }
 
-      const answerSource =
-        executionStatus === "SUCCESS" ? "EXECUTION_VERIFIED" : "AI_UNVERIFIED";
+      // ★ P0 핵심 안전성 가드 (외부 감사 대응):
+      // 실행 검증(executionStatus === 'SUCCESS')이 완료되지 않은 미검증 AI 생성 문제는
+      // 절대로 학습 세션으로 즉시 열거나 사용자에게 직접 노출하지 않는다.
+      // 검증되지 않은 즉석 문제는 검수 대기열(Staging)에 안전 격리 적재하고 안전 실패 응답(422)을 반환한다.
+      if (executionStatus !== "SUCCESS") {
+        const stagedResult = await variationStager.stageVariation(variation);
+        return reply.status(422).send({
+          error: "EXECUTION_UNVERIFIED",
+          failureReason: "EXECUTION_UNVERIFIED",
+          success: false,
+          variation,
+          executionStatus,
+          stagedQuestionId: stagedResult.stagedQuestion.id,
+          message:
+            "현재 즉석 변형 문제는 자동 검증이 완료되지 않아 바로 제공할 수 없습니다. 안전을 위해 검수 대기열(Staging)에 등록되었습니다.",
+        });
+      }
+
+      const answerSource = "EXECUTION_VERIFIED";
 
       const drillQuestion: Question = {
         id: `q_drill_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
@@ -783,9 +821,7 @@ export async function aiRoutes(fastify: FastifyInstance): Promise<void> {
         executionStatus,
         answerSource,
         message:
-          executionStatus === "SUCCESS"
-            ? "임시 AI 변형 드릴이 생성되었습니다. 검수 승인 전까지 일반 문제집에 들어가지 않습니다."
-            : "임시 AI 변형 드릴입니다. 코드 실행 검증은 완료되지 않았으며 공식 정답이 아닙니다.",
+          "실행 검증이 완료된 임시 AI 변형 드릴이 생성되었습니다. 검수 승인 전까지 일반 문제집에 들어가지 않습니다.",
       };
 
       return reply.status(200).send(response);

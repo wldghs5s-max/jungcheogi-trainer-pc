@@ -206,13 +206,12 @@ async function testSessionsAndGrading() {
     url: '/api/ai/variation-drill',
     payload: { parentQuestionId: 'q_2021_01_03' },
   });
-  assert.strictEqual(drillRes.statusCode, 200);
+  assert.strictEqual(drillRes.statusCode, 422);
   const drillData = JSON.parse(drillRes.body);
-  assert.strictEqual(drillData.success, true);
-  assert.ok(drillData.question?.id);
-  const drillNotes = `${drillData.question.aiVariationNotes || ''} ${drillData.question.aiExplanation || ''}`;
-  assert.match(drillNotes, /검증 불가|실행 실패|정답 충돌|실행 검증/);
-  console.log('OK   드릴 생성 시 실행 검증 불가 상태를 명확히 안내');
+  assert.strictEqual(drillData.success, false);
+  assert.strictEqual(drillData.failureReason, 'EXECUTION_UNVERIFIED');
+  assert.match(drillData.message, /자동 검증이 완료되지 않아|검수 대기열/);
+  console.log('OK   드릴 실행 검증 불가 시 사용자 세션 생성 차단 및 Staging 격리 검증');
 
   await app.close();
   closeDatabase();
