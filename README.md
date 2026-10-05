@@ -2,9 +2,9 @@
 
 <!-- TUNNEL_URL_START -->
 > ### 📱 실시간 모바일 / 외부 접속 링크
-> **[👉 정처기 학습 플랫폼 바로가기 (클릭)](https://placed-galleries-diagnosis-city.trycloudflare.com)**  
-> - **실시간 URL**: `https://placed-galleries-diagnosis-city.trycloudflare.com`  
-> - **마지막 갱신**: 2026-10-01 07:47:30 KST
+> **[👉 정처기 학습 플랫폼 바로가기 (클릭)](https://findarticles-ons-status-attorney.trycloudflare.com)**  
+> - **실시간 URL**: `https://findarticles-ons-status-attorney.trycloudflare.com`  
+> - **마지막 갱신**: 2026-10-05 14:43:49 KST
 <!-- TUNNEL_URL_END -->
 
 
