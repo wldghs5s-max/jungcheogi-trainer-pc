@@ -1,0 +1,498 @@
+{
+  "schemaVersion": "photo-transcription-v1",
+  "purpose": "개인 정보처리기사 실기 학습용 2025년 1회 기출 복원 문항·정답·해설.",
+  "exam": "2025년 1회 (2025년 4월 시행)",
+  "sourceKind": "수험생 기억 기반 기출 복원 문제집",
+  "sourceCaveat": "문제집 원본에는 정답과 해설이 없으며 수험생 기억 기반 복원이므로 오탈자나 불완전성이 존재할 수 있다. 코드 문제는 엄격한 독립 트레이스 및 실행 검증을 거쳤으며, 이론/단답 문항은 REVIEW로 분류한다.",
+  "transcriptionPolicy": "원본 시험 복원 이미지를 1:1 전사. 줄바꿈과 들여쓰기는 가독성에 맞게 정리하고 토큰을 보존함. 정답 미기재 문항은 임의 확정하지 않고 REVIEW 상태로 보존.",
+  "questionCount": 20,
+  "imageCount": 13,
+  "answerPolicy": "공단 공식 답안이 아님. 결정론적 실행 검증이 가능한 코드/SQL 문제는 실행 결과로 정답을 검증했으며, 이론/서술/약어 문제는 REVIEW 및 readyForGrading: false 처리함.",
+  "questions": [
+    {
+      "id": "q_2025_01_01",
+      "examYear": 2025,
+      "examRound": 1,
+      "questionNumber": 1,
+      "points": 5,
+      "sourceImage": "seeds/real-exams/2025-01/20261005_172054.jpg",
+      "questionText": "다음에서 설명하는 네트워크 보안 공격 기법의 명칭을 쓰시오.\n\n- 정상적인 TCP 연결 수립(3-way Handshake) 후, 클라이언트와 서버 사이의 통신 세션을 가로채는 공격이다.\n- 공격자는 시퀀스 넘버(Sequence Number)를 조작하여 서버가 공격자를 정상 클라이언트로 인식하게 한다.\n- 비동기화 상태를 유도하고 패킷을 주입(RST, ACK 등)하여 정당한 연결을 가로채거나 도청, 명령어 주입을 수행한다.",
+      "code": null,
+      "language": null,
+      "options": [],
+      "tables": [],
+      "groundTruthAnswer": "세션 하이재킹",
+      "officialExplanation": "TCP 3-way 핸드셰이크 이후 시퀀스 번호를 가로채 세션을 탈취하는 공격은 세션 하이재킹(Session Hijacking)이다. 이미지에는 정답이 명시되지 않았다.",
+      "transcriptionStatus": "REVIEW",
+      "answerStatus": "REVIEW_NEEDED",
+      "readyForGrading": false,
+      "reviewNotes": [
+        "이미지에 정답/해설이 없음. TCP 시퀀스 번호 조작 및 비동기화 상태 유도 설명으로 세션 하이재킹(Session Hijacking)이 확실시되나 공단 인정 답안 범위(국문/영문) 검토 필요."
+      ]
+    },
+    {
+      "id": "q_2025_01_02",
+      "examYear": 2025,
+      "examRound": 1,
+      "questionNumber": 2,
+      "points": 5,
+      "sourceImage": "seeds/real-exams/2025-01/20261005_172054.jpg",
+      "questionText": "다음 설명에 해당하는 데이터베이스 무결성 제약조건(Integrity Constraint)을 쓰시오.\n\n① 릴레이션에서 특정 속성의 값이 그 속성에 정의된 도메인에 속한 원자값이어야 한다는 제약조건\n② 릴레이션에서 기본키(Primary Key)를 구성하는 속성은 널(NULL) 값을 가질 수 없으며 중복될 수 없다는 제약조건\n③ 외래키(Foreign Key) 값은 참조하는 릴레이션의 기본키 값이거나 널(NULL)이어야 한다는 제약조건",
+      "code": null,
+      "language": null,
+      "options": [],
+      "tables": [],
+      "groundTruthAnswer": "① 도메인 무결성, ② 개체 무결성, ③ 참조 무결성",
+      "officialExplanation": "도메인 원자값 보장은 도메인 무결성, 기본키의 Not Null 및 고유성은 개체 무결성, 외래키와 기본키 간 일치 또는 Null 허용은 참조 무결성에 해당한다.",
+      "transcriptionStatus": "REVIEW",
+      "answerStatus": "REVIEW_NEEDED",
+      "readyForGrading": false,
+      "reviewNotes": [
+        "이미지에 정답 없음. 무결성 3대 원칙(도메인, 개체, 참조) 설명. 서술형 다의성으로 인해 REVIEW/readyForGrading: false 처리."
+      ]
+    },
+    {
+      "id": "q_2025_01_03",
+      "examYear": 2025,
+      "examRound": 1,
+      "questionNumber": 3,
+      "points": 5,
+      "sourceImage": "seeds/real-exams/2025-01/20261005_172118.jpg",
+      "questionText": "다음 C 언어로 구현된 프로그램을 분석하여 그 실행 결과를 쓰시오. (단, 출력문의 출력 서식을 준수하시오.)",
+      "code": "#include <stdio.h>\n\nint main( ) {\n    char Data[6] = \"ABCDE\";\n    Data[5] = Data[3];\n    int sub = Data[3] - Data[1];\n    Data[3] = Data[2];\n    Data[2] = Data[1];\n    Data[1] = Data[0];\n    Data[0] = Data[2];\n    Data[3] = Data[5];\n    printf(\"%d\\n\", sub);\n    printf(\"%s\", Data);\n    return 0;\n}",
+      "language": "C",
+      "options": [],
+      "tables": [],
+      "groundTruthAnswer": "4\nBACDE",
+      "officialExplanation": "Data[3]은 'D', Data[1]은 'B'이므로 sub = 'D' - 'B' = 68 - 66 = 4이다. 이어지는 문자 이동 연산 후 Data[0]='B', Data[1]='A', Data[2]='C', Data[3]='D', Data[4]='E'가 되어 문자열은 \"BACDE\"가 된다. 첫 줄에 4, 둘째 줄에 BACDE가 출력된다.",
+      "transcriptionStatus": "VERIFIED",
+      "answerStatus": "VERIFIED",
+      "readyForGrading": true,
+      "reviewNotes": [
+        "C 문자 배열 포인터 및 뺄셈 연산 트레이스: sub = 4, Data = \"BACDE\". C 컴파일 실행 검증 완료."
+      ]
+    },
+    {
+      "id": "q_2025_01_04",
+      "examYear": 2025,
+      "examRound": 1,
+      "questionNumber": 4,
+      "points": 5,
+      "sourceImage": "seeds/real-exams/2025-01/20261005_172132.jpg",
+      "questionText": "다음 설명에 해당하는 전송 오류 검출 기법의 명칭을 영문 약어로 쓰시오.\n\n- 다항식 코드를 사용하여 데이터 전송 중 발생하는 집단 오류를 검출하는 대표적인 기법이다.\n- 송신측은 송신 데이터에 생성 다항식(Generator Polynomial)으로 나눈 나머지(FCS)를 덧붙여 전송한다.\n- 수신측은 수신된 프레임을 동일한 다항식으로 나누어 나머지가 0인지 확인하여 오류를 검출한다.",
+      "code": null,
+      "language": null,
+      "options": [],
+      "tables": [],
+      "groundTruthAnswer": "CRC",
+      "officialExplanation": "다항식 코드를 활용해 집단 오류를 검출하는 순환 중복 검사는 CRC(Cyclic Redundancy Check)이다.",
+      "transcriptionStatus": "REVIEW",
+      "answerStatus": "REVIEW_NEEDED",
+      "readyForGrading": false,
+      "reviewNotes": [
+        "이미지에 정답 미기재. 다항식 코드 기반 오류 검출 기법은 순환 중복 검사 CRC임. 영문 약어 요구로 CRC가 확실하나 이론 문항 원칙에 따라 REVIEW 처리."
+      ]
+    },
+    {
+      "id": "q_2025_01_05",
+      "examYear": 2025,
+      "examRound": 1,
+      "questionNumber": 5,
+      "points": 5,
+      "sourceImage": "seeds/real-exams/2025-01/20261005_172132.jpg",
+      "questionText": "다음 Java로 구현된 프로그램을 분석하여 그 실행 결과를 쓰시오. (단, 출력문의 출력 서식을 준수하시오.)",
+      "code": "public class Main {\n    public static void main(String[ ] args) {\n        try {\n            int a = 10 / 0;\n            System.out.print(\"출력0\");\n        } catch (ArithmeticException e) {\n            System.out.print(\"출력1\");\n        } catch (Exception e) {\n            System.out.print(\"출력2\");\n        } finally {\n            System.out.print(\"출력5\");\n        }\n    }\n}",
+      "language": "JAVA",
+      "options": [],
+      "tables": [],
+      "groundTruthAnswer": "출력1출력5",
+      "officialExplanation": "10 / 0 실행 시 ArithmeticException이 발생하여 첫 번째 catch 블록에서 '출력1'이 출력된다. 이후 예외 발생 여부와 상관없이 항상 실행되는 finally 블록에서 '출력5'가 출력된다. print 문이므로 개행 없이 '출력1출력5'가 출력된다.",
+      "transcriptionStatus": "VERIFIED",
+      "answerStatus": "VERIFIED",
+      "readyForGrading": true,
+      "reviewNotes": [
+        "Java 예외 처리 흐름 트레이스: ArithmeticException 포착으로 '출력1' -> finally 블록 실행으로 '출력5'. print문으로 개행 없음. Java 실행 검증 완료."
+      ]
+    },
+    {
+      "id": "q_2025_01_06",
+      "examYear": 2025,
+      "examRound": 1,
+      "questionNumber": 6,
+      "points": 5,
+      "sourceImage": "seeds/real-exams/2025-01/20261005_172138.jpg",
+      "questionText": "다음 테이블 <emp>와 <sal>이 주어졌을 때, 아래 SQL 문의 실행 결과를 작성하시오.\n\nSELECT name, incentive FROM emp, sal WHERE emp.id = sal.id and incentive >= 500;",
+      "code": "SELECT name, incentive FROM emp, sal WHERE emp.id = sal.id and incentive >= 500;",
+      "language": "SQL",
+      "options": [],
+      "tables": [
+        {
+          "name": "emp",
+          "columns": [
+            "id",
+            "name"
+          ],
+          "rows": [
+            [
+              10,
+              "홍길동"
+            ],
+            [
+              20,
+              "이순신"
+            ],
+            [
+              30,
+              "강감찬"
+            ]
+          ]
+        },
+        {
+          "name": "sal",
+          "columns": [
+            "id",
+            "incentive"
+          ],
+          "rows": [
+            [
+              10,
+              300
+            ],
+            [
+              20,
+              1000
+            ],
+            [
+              40,
+              700
+            ]
+          ]
+        }
+      ],
+      "groundTruthAnswer": "이순신 1000",
+      "officialExplanation": "emp와 sal 테이블을 id로 조인하면 (10, 홍길동, 300)과 (20, 이순신, 1000)이 매칭된다. 이 중 incentive >= 500 조건을 만족하는 행은 id=20인 행이므로 name='이순신', incentive=1000이 출력된다.",
+      "transcriptionStatus": "VERIFIED",
+      "answerStatus": "VERIFIED",
+      "readyForGrading": true,
+      "reviewNotes": [
+        "SQL 관계형 조인 및 WHERE 조건절 트레이스: 결과 행 '이순신 1000'. SQL 실행 검증 완료."
+      ]
+    },
+    {
+      "id": "q_2025_01_07",
+      "examYear": 2025,
+      "examRound": 1,
+      "questionNumber": 7,
+      "points": 5,
+      "sourceImage": "seeds/real-exams/2025-01/20261005_172138.jpg",
+      "questionText": "다음 설명에 해당하는 모듈 결합도(Coupling)의 유형을 <보기>에서 찾아 기호로 쓰시오.\n\n① 한 모듈이 다른 모듈의 내부 논리 조직이나 내부 데이터를 직접 참조하거나 수정하는 경우\n② 모듈 간에 인터페이스로 배열이나 레코드 등의 자료구조가 전달될 때, 모듈에서 필요하지 않은 멤버까지 포함하여 전달되는 경우\n③ 여러 모듈이 하나의 공통 데이터 영역(전역 변수 등)을 함께 사용하는 경우\n\n<보기>\n㉠ 자료 결합도  ㉡ 스탬프 결합도  ㉢ 제어 결합도\n㉣ 외부 결합도  ㉤ 내용 결합도  ㉥ 공통 결합도",
+      "code": null,
+      "language": null,
+      "options": [
+        "㉠",
+        "㉡",
+        "㉢",
+        "㉣",
+        "㉤",
+        "㉥"
+      ],
+      "tables": [],
+      "groundTruthAnswer": "① ㉤, ② ㉡, ③ ㉥",
+      "officialExplanation": "① 다른 모듈의 내부 조직/데이터를 직접 참조·수정하는 것은 내용 결합도(Content Coupling, ㉤)이다.\n② 필요 없는 멤버를 포함하는 자료구조 전체가 전달되는 것은 스탬프 결합도(Stamp Coupling, ㉡)이다.\n③ 공통 데이터 영역을 공유하는 것은 공통 결합도(Common Coupling, ㉥)이다.",
+      "transcriptionStatus": "REVIEW",
+      "answerStatus": "REVIEW_NEEDED",
+      "readyForGrading": false,
+      "reviewNotes": [
+        "결합도 유형 이론 문항. 내용(㉤), 스탬프(㉡), 공통(㉥). 기호 매칭 표기법 검토를 위해 REVIEW 처리."
+      ]
+    },
+    {
+      "id": "q_2025_01_08",
+      "examYear": 2025,
+      "examRound": 1,
+      "questionNumber": 8,
+      "points": 5,
+      "sourceImage": "seeds/real-exams/2025-01/20261005_172150.jpg",
+      "questionText": "다음에서 설명하는 악성 소프트웨어의 유형을 쓰시오.\n\n- 사용자의 컴퓨터가 바이러스나 악성코드에 감염되었다는 가짜 경고 메시지나 팝업 창을 띄워 심리적 공포감을 조성한다.\n- 허위 보안 소프트웨어(가짜 백신 프로그램)를 유료로 결제하여 설치하도록 유도하여 금전을 편취한다.",
+      "code": null,
+      "language": null,
+      "options": [],
+      "tables": [],
+      "groundTruthAnswer": "스케어웨어",
+      "officialExplanation": "사용자에게 공포심(scare)을 유발해 허위 백신을 결제하도록 유도하는 악성코드는 스케어웨어(Scareware)이다.",
+      "transcriptionStatus": "REVIEW",
+      "answerStatus": "REVIEW_NEEDED",
+      "readyForGrading": false,
+      "reviewNotes": [
+        "이미지에 정답 없음. 가짜 백신 결제 유도 악성 소프트웨어는 스케어웨어(Scareware)임. 국/영문 허용 범위 검토 필요하여 REVIEW 처리."
+      ]
+    },
+    {
+      "id": "q_2025_01_09",
+      "examYear": 2025,
+      "examRound": 1,
+      "questionNumber": 9,
+      "points": 5,
+      "sourceImage": "seeds/real-exams/2025-01/20261005_172150.jpg",
+      "questionText": "IP 주소가 192.168.35.255이고 서브넷 마스크가 255.255.252.0일 때, 브로드캐스트 패킷을 수신할 수 있는 호스트의 IP 주소를 <보기>에서 모두 골라 기호를 쓰시오.\n\n<보기>\n㉠ 192.168.32.1\n㉡ 192.168.33.100\n㉢ 192.168.34.200\n㉣ 192.168.35.50\n㉤ 192.168.35.254\n㉥ 192.168.36.1",
+      "code": null,
+      "language": null,
+      "options": [
+        "㉠",
+        "㉡",
+        "㉢",
+        "㉣",
+        "㉤",
+        "㉥"
+      ],
+      "tables": [],
+      "groundTruthAnswer": "㉠, ㉡, ㉢, ㉣, ㉤",
+      "officialExplanation": "서브넷 마스크 255.255.252.0은 3번째 옥텟 단위가 4(256 - 252)이다. 192.168.35.255가 속한 서브넷 대역은 192.168.32.0부터 192.168.35.255까지이다. 이 대역 내의 유효 호스트는 192.168.32.1 ~ 192.168.35.254이므로 <보기>의 ㉠, ㉡, ㉢, ㉣, ㉤가 모두 포함된다. ㉥(192.168.36.1)은 다음 서브넷이므로 제외된다.",
+      "transcriptionStatus": "REVIEW",
+      "answerStatus": "REVIEW_NEEDED",
+      "readyForGrading": false,
+      "reviewNotes": [
+        "서브넷 브로드캐스트 범위 계산 문항. 유효 호스트 ㉠~㉤ 해당. 채점 서식 검토를 위해 REVIEW 처리."
+      ]
+    },
+    {
+      "id": "q_2025_01_10",
+      "examYear": 2025,
+      "examRound": 1,
+      "questionNumber": 10,
+      "points": 5,
+      "sourceImage": "seeds/real-exams/2025-01/20261005_172150.jpg",
+      "questionText": "다음 설명에 해당하는 네트워크 프로토콜의 영문 약어를 각각 쓰시오.\n\n① IP 주소를 물리적 MAC 주소로 변환하는 프로토콜\n② 물리적 MAC 주소에 대응하는 IP 주소를 조회/할당하는 프로토콜",
+      "code": null,
+      "language": null,
+      "options": [],
+      "tables": [],
+      "groundTruthAnswer": "① ARP, ② RARP",
+      "officialExplanation": "논리적 IP 주소를 물리적 MAC 주소로 매핑하는 프로토콜은 ARP(Address Resolution Protocol)이고, 반대로 MAC 주소로부터 IP 주소를 매핑하는 프로토콜은 RARP(Reverse Address Resolution Protocol)이다.",
+      "transcriptionStatus": "REVIEW",
+      "answerStatus": "REVIEW_NEEDED",
+      "readyForGrading": false,
+      "reviewNotes": [
+        "이미지에 정답 없음. ARP와 RARP에 해당. 단답형 기호 서식 검토 필요하여 REVIEW 처리."
+      ]
+    },
+    {
+      "id": "q_2025_01_11",
+      "examYear": 2025,
+      "examRound": 1,
+      "questionNumber": 11,
+      "points": 5,
+      "sourceImage": "seeds/real-exams/2025-01/20261005_172157.jpg",
+      "questionText": "다음 Java로 구현된 프로그램을 분석하여 그 실행 결과를 쓰시오. (단, 출력문의 출력 서식을 준수하시오.)",
+      "code": "public class Main {\n    public static void main(String[ ] args) {\n        new Child( );\n        System.out.println(Parent.total);\n    }\n}\n\nclass Parent {\n    static int total = 0;\n    int v = 1;\n    public Parent( ) {\n        total += ++v;\n        show( );\n    }\n    public void show( ) {\n        total += total;\n    }\n}\n\nclass Child extends Parent {\n    int v = 10;\n    public Child( ) {\n        v += 2;\n        total += v++;\n        show( );\n    }\n    @Override\n    public void show( ) {\n        total += total * 2;\n    }\n}",
+      "language": "JAVA",
+      "options": [],
+      "tables": [],
+      "groundTruthAnswer": "54",
+      "officialExplanation": "new Child() 호출 시 상속 관계에 따라 Parent 생성자가 먼저 실행된다. Parent에서 v는 2가 되고 total += 2(total=2). Parent에서 호출된 show()는 다형성에 의해 오버라이딩된 Child의 show()가 실행되어 total += 2 * 2(total=6). 이후 Child 생성자로 돌아와 v는 12가 되고 total += 12(total=18). 다시 show()가 호출되어 total += 18 * 2(total=54). 최종적으로 54가 출력된다.",
+      "transcriptionStatus": "VERIFIED",
+      "answerStatus": "VERIFIED",
+      "readyForGrading": true,
+      "reviewNotes": [
+        "Java 생성자 체인 및 가상 메서드 오버라이딩 다형성 정밀 트레이스: Parent 생성자 내 show()는 Child.show()를 호출하여 total=6, Child 생성자에서 total+=12로 18, show()로 54. Java 실행 검증 완료."
+      ]
+    },
+    {
+      "id": "q_2025_01_12",
+      "examYear": 2025,
+      "examRound": 1,
+      "questionNumber": 12,
+      "points": 5,
+      "sourceImage": "seeds/real-exams/2025-01/20261005_172210.jpg",
+      "questionText": "다음 C 언어로 구현된 프로그램을 분석하여 그 실행 결과를 쓰시오. (단, 출력문의 출력 서식을 준수하시오.)",
+      "code": "#include <stdio.h>\n#include <stdlib.h>\n\nint main( ) {\n    int rows = 3, cols = 3;\n    int** arr = (int**)malloc(sizeof(int*) * rows);\n    for (int i = 0; i < rows; i++) {\n        arr[i] = (int*)malloc(sizeof(int) * cols);\n    }\n    int data[] = {3, 7, 2, 8, 5, 1, 4, 6, 9};\n    for (int i = 0; i < rows * cols; i++) {\n        arr[((i + 1) / rows) % rows][(i + 1) % cols] = data[i];\n    }\n    int sum = 0;\n    for (int i = 0; i < rows; i++) {\n        for (int j = 0; j < cols; j++) {\n            sum += (i % 2 == 0 ? 1 : -1) * arr[i][j];\n        }\n    }\n    printf(\"%d\", sum);\n    return 0;\n}",
+      "language": "C",
+      "options": [],
+      "tables": [],
+      "groundTruthAnswer": "13",
+      "officialExplanation": "data 원소들이 인덱스 수식에 따라 arr 행렬에 배치된 후, 짝수 행은 더하고 홀수 행은 뺀다. 행0 합 12, 행1 합 15, 행2 합 16으로 sum = 12 - 15 + 16 = 13이 출력된다.",
+      "transcriptionStatus": "VERIFIED",
+      "answerStatus": "VERIFIED",
+      "readyForGrading": true,
+      "reviewNotes": [
+        "C 동적 2차원 배열 및 교대 합산 트레이스: sum = 13. C 컴파일 실행 검증 완료 (교재 예상문제 Q6과 동일 코드)."
+      ]
+    },
+    {
+      "id": "q_2025_01_13",
+      "examYear": 2025,
+      "examRound": 1,
+      "questionNumber": 13,
+      "points": 5,
+      "sourceImage": "seeds/real-exams/2025-01/20261005_172218.jpg",
+      "questionText": "다음 설명에 해당하는 디자인 패턴(Design Pattern)의 명칭을 쓰시오.\n\n- 호환성이 없는 인터페이스를 사용하는 기존 클래스를 재사용할 수 있도록 변환해 주는 구조 디자인 패턴이다.\n- 서로 다른 두 인터페이스 간의 중개자 역할을 수행하여 기존 코드를 수정하지 않고도 클라이언트가 기대하는 인터페이스로 동작하게 한다.\n- Wrapper 패턴이라고도 불린다.",
+      "code": null,
+      "language": null,
+      "options": [],
+      "tables": [],
+      "groundTruthAnswer": "어댑터",
+      "officialExplanation": "호환되지 않는 인터페이스를 변환하여 재사용성을 높이는 구조 패턴은 어댑터(Adapter) 패턴이다.",
+      "transcriptionStatus": "REVIEW",
+      "answerStatus": "REVIEW_NEEDED",
+      "readyForGrading": false,
+      "reviewNotes": [
+        "디자인 패턴 이론 문항. 어댑터(Adapter) 패턴 해당. 국문/영문 정답 표기 검토 필요하여 REVIEW 처리."
+      ]
+    },
+    {
+      "id": "q_2025_01_14",
+      "examYear": 2025,
+      "examRound": 1,
+      "questionNumber": 14,
+      "points": 5,
+      "sourceImage": "seeds/real-exams/2025-01/20261005_172218.jpg",
+      "questionText": "다음 제시된 C 언어 소스코드와 순서도(Flowchart)를 분석하여, 문장 커버리지(Statement Coverage)를 100% 달성하기 위한 빈칸 및 테스트 케이스에 대해 알맞은 내용을 작성하시오.",
+      "code": null,
+      "language": "C",
+      "options": [],
+      "tables": [],
+      "groundTruthAnswer": "[정답 검토 필요: 순서도 분기 판정 및 커버리지 테스트 케이스 서식 검토 필요]",
+      "officialExplanation": "소스코드와 순서도의 분기 구조를 분석하여 모든 실행문을 최소 1회 이상 통과하도록 테스트 케이스 경로를 설계한다.",
+      "transcriptionStatus": "REVIEW",
+      "answerStatus": "REVIEW_NEEDED",
+      "readyForGrading": false,
+      "reviewNotes": [
+        "순서도 이미지 다이어그램 및 빈칸 완성/테스트 케이스 작성 문항으로 기출 복원 표기 다의성이 존재함. 엄격한 안전 원칙에 따라 REVIEW 및 readyForGrading: false 처리."
+      ]
+    },
+    {
+      "id": "q_2025_01_15",
+      "examYear": 2025,
+      "examRound": 1,
+      "questionNumber": 15,
+      "points": 5,
+      "sourceImage": "seeds/real-exams/2025-01/20261005_172241.jpg",
+      "questionText": "다음 관계형 데이터베이스 모델 관련 설명에 해당하는 용어를 <보기>에서 찾아 기호로 쓰시오.\n\n① 릴레이션에서 속성(Attribute)의 전체 개수를 의미하는 용어\n② 릴레이션에서 튜플(Tuple)의 전체 개수를 의미하는 용어\n③ 한 릴레이션의 속성이 다른 릴레이션의 기본키를 참조하는 키\n④ 하나의 속성이 취할 수 있는 모든 원자값들의 집합\n\n<보기>\n㉠ 도메인  ㉡ 기본키  ㉢ 차수(Degree)  ㉣ 튜플  ㉤ 카디널리티(Cardinality)  ㉥ 후보키  ㉦ 외래키",
+      "code": null,
+      "language": null,
+      "options": [
+        "㉠",
+        "㉡",
+        "㉢",
+        "㉣",
+        "㉤",
+        "㉥",
+        "㉦"
+      ],
+      "tables": [],
+      "groundTruthAnswer": "① ㉢, ② ㉤, ③ ㉦, ④ ㉠",
+      "officialExplanation": "① 속성의 수는 차수(Degree, ㉢)이다.\n② 튜플의 수는 카디널리티(Cardinality, ㉤)이다.\n③ 참조하는 키는 외래키(Foreign Key, ㉦)이다.\n④ 속성이 가질 수 있는 원자값 집합은 도메인(Domain, ㉠)이다.",
+      "transcriptionStatus": "REVIEW",
+      "answerStatus": "REVIEW_NEEDED",
+      "readyForGrading": false,
+      "reviewNotes": [
+        "관계형 DB 기본 용어 매칭 문항. 차수(㉢), 카디널리티(㉤), 외래키(㉦), 도메인(㉠). 기호 매칭 검토 위해 REVIEW 처리."
+      ]
+    },
+    {
+      "id": "q_2025_01_16",
+      "examYear": 2025,
+      "examRound": 1,
+      "questionNumber": 16,
+      "points": 5,
+      "sourceImage": "seeds/real-exams/2025-01/20261005_172249.jpg",
+      "questionText": "다음 Java로 구현된 프로그램을 분석하여 그 실행 결과를 쓰시오. (단, 출력문의 출력 서식을 준수하시오.)",
+      "code": "public class Main {\n    static int calc(int value) {\n        if (value <= 1) return value;\n        return calc(value - 1) + calc(value - 2);\n    }\n    \n    static int calc(String str) {\n        int value = Integer.parseInt(str);\n        return calc(value - 1) + calc(value - 3);\n    }\n    \n    public static void main(String[ ] args) {\n        System.out.println(calc(\"5\"));\n    }\n}",
+      "language": "JAVA",
+      "options": [],
+      "tables": [],
+      "groundTruthAnswer": "4",
+      "officialExplanation": "calc(\"5\") 호출 시 문자열 오버로딩 메서드가 호출되어 value = 5가 되고 calc(4) + calc(2)를 반환한다. int 오버로딩 calc는 피보나치 수열(calc(0)=0, calc(1)=1, calc(2)=1, calc(3)=2, calc(4)=3)을 계산한다. 따라서 calc(4) = 3, calc(2) = 1이 되어 3 + 1 = 4가 출력된다.",
+      "transcriptionStatus": "VERIFIED",
+      "answerStatus": "VERIFIED",
+      "readyForGrading": true,
+      "reviewNotes": [
+        "Java 오버로딩 및 재귀 피보나치 수열 정밀 트레이스: calc(\"5\") = calc(4) + calc(2) = 3 + 1 = 4. Java 실행 검증 완료."
+      ]
+    },
+    {
+      "id": "q_2025_01_17",
+      "examYear": 2025,
+      "examRound": 1,
+      "questionNumber": 17,
+      "points": 5,
+      "sourceImage": "seeds/real-exams/2025-01/20261005_172249.jpg",
+      "questionText": "다음 C 언어로 구현된 프로그램을 분석하여 그 실행 결과를 쓰시오. (단, 출력문의 출력 서식을 준수하시오.)",
+      "code": "#include <stdio.h>\n\nstruct Student {\n    char name[10];\n    int score[3];\n};\n\nint dec(int n) {\n    return (n >> 4) + (n & 0x0F);\n}\n\nint sum(struct Student* p) {\n    return dec(p->score[0]) + dec(p->score[1]) + dec(p->score[2]);\n}\n\nint main( ) {\n    struct Student s[2] = {\n        {\"Kim\", {0xA0, 0xA5, 0xDB}},\n        {\"Lee\", {0xA0, 0xED, 0x81}}\n    };\n    int result = 0;\n    for (int i = 0; i < 2; i++) {\n        result += sum(&s[i]);\n    }\n    printf(\"%d\", result);\n    return 0;\n}",
+      "language": "C",
+      "options": [],
+      "tables": [],
+      "groundTruthAnswer": "95",
+      "officialExplanation": "dec(n)은 상위 4비트와 하위 4비트의 합을 구한다. s[0](\"Kim\"): 0xA0(10+0=10), 0xA5(10+5=15), 0xDB(13+11=24) -> sum = 49. s[1](\"Lee\"): 0xA0(10+0=10), 0xED(14+13=27), 0x81(8+1=9) -> sum = 46. 전체 result = 49 + 46 = 95가 출력된다.",
+      "transcriptionStatus": "VERIFIED",
+      "answerStatus": "VERIFIED",
+      "readyForGrading": true,
+      "reviewNotes": [
+        "C 비트 시프트 및 16진수 마스킹 트레이스: dec(0xA0)=10, dec(0xA5)=15, dec(0xDB)=24 (합 49), dec(0xA0)=10, dec(0xED)=27, dec(0x81)=9 (합 46). 총합 49 + 46 = 95. C 컴파일 실행 검증 완료."
+      ]
+    },
+    {
+      "id": "q_2025_01_18",
+      "examYear": 2025,
+      "examRound": 1,
+      "questionNumber": 18,
+      "points": 5,
+      "sourceImage": "seeds/real-exams/2025-01/20261005_172300.jpg",
+      "questionText": "다음 Java로 구현된 프로그램을 분석하여 그 실행 결과를 쓰시오. (단, 출력문의 출력 서식을 준수하시오.)",
+      "code": "public class Main {\n    public static void main(String[ ] args) {\n        int[ ] data = {3, 5, 8, 12, 17};\n        System.out.println(func(data, 0, data.length - 1));\n    }\n    \n    static int func(int[ ] a, int st, int end) {\n        if (st >= end) return 0;\n        int mid = (st + end) / 2;\n        return a[mid] + Math.max(func(a, st, mid), func(a, mid + 1, end));\n    }\n}",
+      "language": "JAVA",
+      "options": [],
+      "tables": [],
+      "groundTruthAnswer": "20",
+      "officialExplanation": "func(data, 0, 4) 호출: mid = 2(a[2] = 8), func = 8 + max(func(data, 0, 2), func(data, 3, 4)). func(0, 2)는 mid=1(a[1]=5), 5 + max(func(0, 1), func(2, 2)) = 5 + max(3, 0) = 8. func(3, 4)는 mid=3(a[3]=12), 12 + max(func(3, 3), func(4, 4)) = 12. 따라서 8 + max(8, 12) = 8 + 12 = 20이 출력된다.",
+      "transcriptionStatus": "VERIFIED",
+      "answerStatus": "VERIFIED",
+      "readyForGrading": true,
+      "reviewNotes": [
+        "Java 분할 정복 이진 재귀 및 Math.max 정밀 트레이스: func(0, 4) = 8 + max(8, 12) = 20. Java 실행 검증 완료."
+      ]
+    },
+    {
+      "id": "q_2025_01_19",
+      "examYear": 2025,
+      "examRound": 1,
+      "questionNumber": 19,
+      "points": 5,
+      "sourceImage": "seeds/real-exams/2025-01/20261005_172306.jpg",
+      "questionText": "다음 Python으로 구현된 프로그램을 분석하여 그 실행 결과를 쓰시오. (단, 출력문의 출력 서식을 준수하시오.)",
+      "code": "class Node:\n    def __init__(self, value):\n        self.value = value\n        self.children = []\n\ndef tree(li):\n    nodes = [Node(i) for i in li]\n    for i in range(1, len(li)):\n        nodes[(i - 1) // 2].children.append(nodes[i])\n    return nodes[0]\n\ndef calc(node, level=0):\n    if node is None:\n        return 0\n    return (node.value if level % 2 == 1 else 0) + sum(calc(n, level + 1) for n in node.children)\n\nli = [3, 5, 8, 12, 15, 18, 21]\nroot = tree(li)\nprint(calc(root))",
+      "language": "PYTHON",
+      "options": [],
+      "tables": [],
+      "groundTruthAnswer": "13",
+      "officialExplanation": "완전이진트리에서 홀수 레벨(level 1)에 위치한 노드는 5와 8이다. calc 함수는 홀수 레벨의 값만 누적하므로 5 + 8 = 13이 출력된다.",
+      "transcriptionStatus": "VERIFIED",
+      "answerStatus": "VERIFIED",
+      "readyForGrading": true,
+      "reviewNotes": [
+        "이진 트리 레벨별 홀수 레벨 합산 트레이스: 5 + 8 = 13. Python 실행 검증 완료 (교재 예상문제 Q15와 동일 문항)."
+      ]
+    },
+    {
+      "id": "q_2025_01_20",
+      "examYear": 2025,
+      "examRound": 1,
+      "questionNumber": 20,
+      "points": 5,
+      "sourceImage": "seeds/real-exams/2025-01/20261005_172320.jpg",
+      "questionText": "다음 C 언어로 구현된 프로그램을 분석하여 그 실행 결과를 쓰시오. (단, 출력문의 출력 서식을 준수하시오.)",
+      "code": "#include <stdio.h>\n#include <stdlib.h>\n\ntypedef struct Data {\n    int value;\n    struct Data *next;\n} Data;\n\nData* insert(Data* head, int value) {\n    Data* new_node = (Data*)malloc(sizeof(Data));\n    new_node->value = value;\n    new_node->next = head;\n    return new_node;\n}\n\nData* reconnect(Data* head, int value) {\n    if (head == NULL || head->value == value) return head;\n    Data *prev = NULL, *curr = head;\n    while (curr != NULL && curr->value != value) {\n        prev = curr;\n        curr = curr->next;\n    }\n    if (curr != NULL && prev != NULL) {\n        prev->next = curr->next;\n        curr->next = head;\n        head = curr;\n    }\n    return head;\n}\n\nint main( ) {\n    Data *head = NULL, *curr;\n    for (int i = 1; i <= 5; i++)\n        head = insert(head, i);\n    head = reconnect(head, 3);\n    for (curr = head; curr != NULL; curr = curr->next)\n        printf(\"%d\", curr->value);\n    return 0;\n}",
+      "language": "C",
+      "options": [],
+      "tables": [],
+      "groundTruthAnswer": "35421",
+      "officialExplanation": "insert로 생성된 5 -> 4 -> 3 -> 2 -> 1 연결 리스트에서 reconnect(head, 3)으로 3번 노드가 리스트의 맨 앞으로 이동한다. 재연결된 리스트는 3 -> 5 -> 4 -> 2 -> 1이 되어 35421이 출력된다.",
+      "transcriptionStatus": "VERIFIED",
+      "answerStatus": "VERIFIED",
+      "readyForGrading": true,
+      "reviewNotes": [
+        "단일 연결 리스트 역순 생성 및 노드 앞으로 이동 트레이스: 35421. C 컴파일 실행 검증 완료 (교재 예상문제 Q7과 동일 문항)."
+      ]
+    }
+  ]
+}

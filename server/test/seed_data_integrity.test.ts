@@ -18,7 +18,10 @@ async function testSeedDataIntegrity() {
   try {
     // 1. 마이그레이션 및 Clean Ingest 실행 (독립 테스트 DB 환경)
     runMigrations();
-    const firstIngest = ingestCleanDatabase({ dbPath: isolated.dbPath });
+    const firstIngest = ingestCleanDatabase({
+      dbPath: isolated.dbPath,
+      seedsPath: 'seeds/real-exams/2024-01/2024-01.transcribed.json',
+    });
     assert.strictEqual(firstIngest.insertedCount, 18, '최초 인제스트 시 18문항 적재');
 
     // 2. 18개 REAL_EXAM seed 데이터 구조 전수 검증
@@ -66,7 +69,10 @@ async function testSeedDataIntegrity() {
 
     // 3. 인제스트 멱등성(Idempotency) 검증
     console.log('\n--- 2. 단일 회차 인제스트 멱등성(Idempotent Re-execution) 검증 ---');
-    const secondIngest = ingestCleanDatabase({ dbPath: isolated.dbPath });
+    const secondIngest = ingestCleanDatabase({
+      dbPath: isolated.dbPath,
+      seedsPath: 'seeds/real-exams/2024-01/2024-01.transcribed.json',
+    });
     assert.strictEqual(secondIngest.insertedCount, 18, '재실행 시 18건 업데이트');
     const freshQRepo = new QuestionRepository(getDatabase());
     const freshCRepo = new ConceptRepository(getDatabase());

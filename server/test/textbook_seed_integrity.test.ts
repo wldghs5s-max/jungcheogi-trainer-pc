@@ -21,7 +21,10 @@ async function testTextbookSeedIntegrity() {
   try {
     // 1. 초기 DB 마이그레이션 및 기존 2024-01 기출 인제스트
     runMigrations();
-    const realExamIngest = ingestCleanDatabase({ dbPath: isolated.dbPath });
+    const realExamIngest = ingestCleanDatabase({
+      dbPath: isolated.dbPath,
+      seedsPath: 'seeds/real-exams/2024-01/2024-01.transcribed.json',
+    });
     assert.strictEqual(realExamIngest.insertedCount, 18, '기존 2024-01 REAL_EXAM 18문항 적재 확인');
 
     // 2. TEXTBOOK_EXPECTED 테스트용 3문항 fixture 생성
