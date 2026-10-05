@@ -274,6 +274,8 @@ export class ReviewRepository {
     const conditions: string[] = ['r.next_review_at <= ?'];
     const params: any[] = [nowIso];
 
+    conditions.push("(q.study_visibility IS NULL OR q.study_visibility != 'TEMPORARY_DRILL')");
+
     if (options.subject) {
       conditions.push('q.subject = ?');
       params.push(options.subject);
@@ -323,6 +325,7 @@ export class ReviewRepository {
     const nowIso = new Date().toISOString();
 
     const fixtureCondition = excludeTestFixtures ? "AND q.source_type != 'TEST_FIXTURE'" : '';
+    const visibilityCondition = "AND (q.study_visibility IS NULL OR q.study_visibility != 'TEMPORARY_DRILL')";
 
     const statsRow = this.db
       .prepare(
@@ -334,7 +337,7 @@ export class ReviewRepository {
           SUM(r.wrong_count + r.unknown_count) as total_failed
         FROM review_states r
         INNER JOIN questions q ON q.id = r.question_id
-        WHERE 1=1 ${fixtureCondition}`
+        WHERE 1=1 ${visibilityCondition} ${fixtureCondition}`
       )
       .get(nowIso) as {
       total_studied: number;
@@ -345,7 +348,12 @@ export class ReviewRepository {
     };
 
     const attemptsCountRow = this.db
-      .prepare('SELECT COUNT(*) as count FROM attempts')
+      .prepare(`
+        SELECT COUNT(a.id) as count
+        FROM attempts a
+        INNER JOIN questions q ON q.id = a.question_id
+        WHERE 1=1 ${visibilityCondition} ${fixtureCondition}
+      `)
       .get() as { count: number };
 
     const totalStudied = statsRow ? Number(statsRow.total_studied || 0) : 0;

@@ -75,7 +75,7 @@ export function normalizeAnswer(ans: string): string {
  */
 export function isShortAcronym(word: string): boolean {
   if (!word) return false;
-  return /^[A-Z0-9]{1,3}$/.test(word);
+  return /^[A-Z0-9]{1,4}$/.test(word);
 }
 
 /**
@@ -211,8 +211,13 @@ export function isFuzzyMatch(left: string, right: string): boolean {
   if (!left || !right) return false;
   if (left === right) return true;
 
-  // 약어는 오탈자 허용 금지 (예: SDN != SAN, LAN != WAN, PK != FK)
+  // 약어는 오탈자 허용 금지 (예: SDN != SAN, LAN != WAN, PK != FK, SAAS != PAAS, IAAS != PAAS)
   if (isShortAcronym(left) || isShortAcronym(right)) {
+    return false;
+  }
+
+  // 순수 영문 대문자/숫자 약어 계열은 4글자 이하 엄격 배제
+  if (/^[A-Z0-9]{1,4}$/.test(left) || /^[A-Z0-9]{1,4}$/.test(right)) {
     return false;
   }
 
@@ -225,6 +230,10 @@ export function isFuzzyMatch(left: string, right: string): boolean {
 
   const minLen = Math.min(left.length, right.length);
   if (minLen < 4) return false;
+  // 5글자 미만의 영문 약어성 단어는 1글자 차이로 완전히 다른 기술이 되므로 퍼지 금지
+  if (minLen < 5 && /^[A-Z0-9]+$/.test(left) && /^[A-Z0-9]+$/.test(right)) {
+    return false;
+  }
   if (Math.abs(left.length - right.length) > 1) return false;
 
   return levenshtein(left, right) <= 1;
@@ -253,11 +262,15 @@ export function looksLikeNumericOutput(value: string): boolean {
  * 부호(-), 소수점, 값 사이 공백(경계)은 보존한다.
  */
 export function normalizeNumericOutput(value: string): string {
-  return String(value ?? "")
+  let text = String(value ?? "")
     .replace(/\r\n/g, "\n")
     .replace(/\r/g, "\n")
-    .trim()
-    .replace(/[ \t]+/g, " ");
+    .trim();
+  text = text.replace(
+    /[①-⑳⑴-⑽⒈-⒑１-９０]/g,
+    (ch) => CIRCLED_CHAR_MAP[ch] || "",
+  );
+  return text.replace(/[ \t]+/g, " ");
 }
 
 /**
@@ -497,10 +510,24 @@ export function gradeAnswer(
     if (Array.isArray(userAnswer)) {
       userArr = userAnswer;
     } else {
-      userArr = userAnswer
-        .split(/[,/\n]+/)
-        .map((s) => s.trim())
-        .filter(Boolean);
+      const raw = String(userAnswer || "").trim();
+      // 화살표 구분자(->, →, ⇒) 또는 쉼표/슬래시/줄바꿈/공백으로 스마트 분리
+      if (/->|→|⇒/.test(raw)) {
+        userArr = raw.split(/\s*(?:->|→|⇒)\s*/).filter(Boolean);
+      } else if (/[,/\n]/.test(raw)) {
+        userArr = raw.split(/[,/\n]+/).map((s) => s.trim()).filter(Boolean);
+      } else if (/\s+/.test(raw) && groundTruthAnswer.length > 1) {
+        userArr = raw.split(/\s+/).filter(Boolean);
+      } else if (
+        groundTruthAnswer.length > 1 &&
+        raw.length === groundTruthAnswer.length &&
+        groundTruthAnswer.every((item) => normalizeAnswer(item).length === 1)
+      ) {
+        // '①②④③' 또는 '1243' 처럼 구분자 없이 연달아 입력한 경우 문자 단위 분리
+        userArr = Array.from(raw);
+      } else {
+        userArr = [raw];
+      }
     }
 
     // 만약 사용자가 단일 문자열을 냈고 Ground Truth 후보 중 하나와 일치하면 (동의어 목록으로 제공된 경우)
@@ -518,6 +545,21 @@ export function gradeAnswer(
           };
         }
       }
+    }
+
+    // 순서형 전체 결합 비교 (예: user "1->2->4->3" vs GT ["1","2","4","3"])
+    // 단, 순서가 다른 경우(예: "1->4->2->3")는 전체 일치가 성립하지 않음
+    const normUserWhole = normalizeAnswer(Array.isArray(userAnswer) ? userAnswer.join("") : userAnswer);
+    const normGtWhole = normalizeAnswer(groundTruthAnswer.join(""));
+    if (normUserWhole && normGtWhole && normUserWhole === normGtWhole) {
+      return {
+        isCorrect: true,
+        score: 1.0,
+        isUnknown: false,
+        matchType: "EXACT",
+        needsReview: false,
+        feedback: "모든 정답 키워드가 올바른 순서로 일치합니다!",
+      };
     }
 
     // 빈칸 순서형 또는 복수 키워드 목록 채점

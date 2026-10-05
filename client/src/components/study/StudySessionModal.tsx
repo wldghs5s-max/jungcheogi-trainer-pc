@@ -606,6 +606,8 @@ export const StudySessionModal: React.FC<StudySessionModalProps> = ({
     const handleKeyDown = (e: KeyboardEvent) => {
       if (!isOpen || phase !== "PRACTICE") return;
 
+      if (e.isComposing || (e as any).keyCode === 229) return;
+
       if (submitResult) {
         // If feedback is showing, Enter advances to next question
         if (e.key === "Enter") {
@@ -1140,6 +1142,7 @@ export const StudySessionModal: React.FC<StudySessionModalProps> = ({
                             setUserInputs(newInputs);
                           }}
                           onKeyDown={(e) => {
+                            if (e.nativeEvent.isComposing || e.key === "Process" || e.keyCode === 229) return;
                             if (e.key === "Enter" && !e.shiftKey) {
                               e.preventDefault();
                               e.stopPropagation();

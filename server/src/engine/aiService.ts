@@ -798,7 +798,7 @@ export class GeminiAIService implements IAIService {
       // 최대 3회 시도 (초기 시도 + 429/503 시 백오프 재시도)
       for (let attempt = 0; attempt < 3; attempt++) {
         const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 45000); // 45초 타임아웃 제한 (복합 코드/추적표 생성 안정화)
+        const timeoutId = setTimeout(() => controller.abort(), 18000); // 18초 타임아웃 제한 (빠른 폴백 보장)
 
         try {
           const response = await fetch(url, {
@@ -812,15 +812,16 @@ export class GeminiAIService implements IAIService {
           if (!response.ok) {
             const errText = await response.text();
             const isQuotaError = response.status === 429 && /quota/i.test(errText);
-            if (isQuotaError && model !== getFastModel()) {
+            const isDemandOverloaded = response.status === 503;
+            if ((isQuotaError || isDemandOverloaded) && model !== getFastModel()) {
               GeminiAIService.quotaExhaustedUntil.set(model, Date.now() + 60000);
             }
 
-            // 503 UNAVAILABLE 또는 429인 경우 백오프 후 재시도
-            if ((response.status === 503 || response.status === 429) && attempt < 2) {
-              const backoff = response.status === 429 ? 4000 * (attempt + 1) : 600;
+            // 503 UNAVAILABLE 또는 429인 경우 1회만 백오프 후 다음 후보 모델로 빠르게 전환
+            if ((response.status === 503 || response.status === 429) && attempt < 1) {
+              const backoff = response.status === 429 ? 2000 : 500;
               console.warn(
-                `[GeminiAIService] Model ${model} returned ${response.status}. Retrying after ${backoff}ms backoff (attempt ${attempt + 1}/3)...`,
+                `[GeminiAIService] Model ${model} returned ${response.status}. Retrying after ${backoff}ms backoff...`,
               );
               await new Promise((resolve) => setTimeout(resolve, backoff));
               continue;
