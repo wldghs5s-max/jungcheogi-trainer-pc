@@ -811,6 +811,7 @@ export class ConceptRepository {
       FROM concepts c
       INNER JOIN questions q ON q.concept_id = c.id
       INNER JOIN attempts a ON a.question_id = q.id
+      WHERE (q.study_visibility IS NULL OR q.study_visibility = 'LIVE')
       GROUP BY c.id
       HAVING total_attempts > 0
       ORDER BY 

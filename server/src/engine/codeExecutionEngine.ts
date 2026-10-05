@@ -344,6 +344,10 @@ export class LightweightExecutionEngine implements ICodeExecutionEngine {
 }
 
 export const defaultExecutionEngine = new LightweightExecutionEngine();
+let executionEngineOverride: ICodeExecutionEngine | null = null;
+export function setExecutionEngineOverride(engine: ICodeExecutionEngine | null): void {
+  executionEngineOverride = engine;
+}
 
 export type EvaluateCodeStatus =
   | "SUCCESS"
@@ -362,7 +366,8 @@ export async function evaluateCodeOutput(
   }
 
   try {
-    const res = await defaultExecutionEngine.execute({
+    const engine = executionEngineOverride || defaultExecutionEngine;
+    const res = await engine.execute({
       code,
       language: language as CodeLanguage,
       allowHostExecution: options?.allowHostExecution === true,

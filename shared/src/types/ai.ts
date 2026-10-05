@@ -124,10 +124,12 @@ export interface AIVariationDrillResponse {
   question?: Question;
   variation?: GeneratedVariation;
   drillSession?: StudySession;
+  verificationStatus?: "VERIFIED" | "UNVERIFIED";
   executionStatus?: "SUCCESS" | "UNAVAILABLE" | "ERROR";
-  answerSource?: "OFFICIAL" | "AI_UNVERIFIED" | "EXECUTION_VERIFIED";
+  answerSource?: "OFFICIAL" | "AI_UNVERIFIED" | "UNVERIFIED_AI" | "EXECUTION_VERIFIED";
   failureReason?: DrillFailureReason;
   message?: string;
+  stagedQuestionId?: string;
 }
 
 export interface AIStageDrillRequest {

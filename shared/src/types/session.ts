@@ -57,6 +57,8 @@ export interface SessionSubmitResponse {
     wrongCount: number;
     unknownCount: number;
   };
+  isUnverifiedPractice?: boolean;
+  verificationStatus?: 'VERIFIED' | 'UNVERIFIED';
 }
 
 export interface SessionSummaryResponse {

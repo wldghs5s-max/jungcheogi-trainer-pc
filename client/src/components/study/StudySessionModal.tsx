@@ -762,16 +762,16 @@ export const StudySessionModal: React.FC<StudySessionModalProps> = ({
                       display: "inline-flex",
                       alignItems: "center",
                       gap: "4px",
-                      backgroundColor: "rgba(239, 68, 68, 0.15)",
-                      color: "#FCA5A5",
-                      border: "1px solid rgba(239, 68, 68, 0.4)",
+                      backgroundColor: "rgba(245, 158, 11, 0.15)",
+                      color: "#FBBF24",
+                      border: "1px solid rgba(245, 158, 11, 0.4)",
                       borderRadius: "4px",
                       padding: "3px 8px",
                       fontSize: "12px",
                       fontWeight: 700,
                     }}
                   >
-                    실행 미검증 · 공식 정답 아님
+                    ⚡ AI 생성 연습 문제 · 아직 정답 자동 검증 전
                   </span>
                 )}
                 {(currentQuestion.questionCode || currentQuestion.id) && (
@@ -1198,62 +1198,79 @@ export const StudySessionModal: React.FC<StudySessionModalProps> = ({
               {submitResult && (
                 <div style={styles.feedbackSection}>
                   {/* STATUS BANNER */}
-                  <div
-                    style={{
-                      ...styles.feedbackBanner,
-                      backgroundColor: submitResult.attempt.isUnknown
-                        ? "rgba(245, 158, 11, 0.15)"
-                        : submitResult.isCorrect
-                          ? "rgba(16, 185, 129, 0.15)"
-                          : submitResult.score > 0
-                            ? "rgba(59, 130, 246, 0.15)"
-                            : "rgba(239, 68, 68, 0.15)",
-                      borderColor: submitResult.attempt.isUnknown
-                        ? "var(--color-warning)"
-                        : submitResult.isCorrect
-                          ? "var(--color-success)"
-                          : submitResult.score > 0
-                            ? "var(--color-primary)"
-                            : "var(--color-danger)",
-                    }}
-                  >
-                    <div style={styles.bannerIconBox}>
-                      {submitResult.attempt.isUnknown ? (
-                        <HelpCircle size={28} color="var(--color-warning)" />
-                      ) : submitResult.isCorrect ? (
-                        <CheckCircle2 size={28} color="var(--color-success)" />
-                      ) : submitResult.score > 0 ? (
-                        <Award size={28} color="var(--color-primary)" />
-                      ) : (
-                        <XCircle size={28} color="var(--color-danger)" />
-                      )}
-                    </div>
-                    <div style={styles.bannerContent}>
+                  {(() => {
+                    const isUnverified =
+                      submitResult.isUnverifiedPractice ||
+                      (isDrillQuestion && drillExecutionStatus !== "SUCCESS");
+                    return (
                       <div
                         style={{
-                          ...styles.bannerTitle,
-                          color: submitResult.attempt.isUnknown
+                          ...styles.feedbackBanner,
+                          backgroundColor: isUnverified
+                            ? "rgba(245, 158, 11, 0.15)"
+                            : submitResult.attempt.isUnknown
+                              ? "rgba(245, 158, 11, 0.15)"
+                              : submitResult.isCorrect
+                                ? "rgba(16, 185, 129, 0.15)"
+                                : submitResult.score > 0
+                                  ? "rgba(59, 130, 246, 0.15)"
+                                  : "rgba(239, 68, 68, 0.15)",
+                          borderColor: isUnverified
                             ? "var(--color-warning)"
-                            : submitResult.isCorrect
-                              ? "var(--color-success)"
-                              : submitResult.score > 0
-                                ? "var(--color-primary)"
-                                : "var(--color-danger)",
+                            : submitResult.attempt.isUnknown
+                              ? "var(--color-warning)"
+                              : submitResult.isCorrect
+                                ? "var(--color-success)"
+                                : submitResult.score > 0
+                                  ? "var(--color-primary)"
+                                  : "var(--color-danger)",
                         }}
                       >
-                        {submitResult.attempt.isUnknown
-                          ? "모르겠음 (복습 우선순위 배정)"
-                          : submitResult.isCorrect
-                            ? "정답입니다! (+1.0점)"
-                            : submitResult.score > 0
-                              ? `부분 정답 (+${submitResult.score}점)`
-                              : "오답입니다 (0점)"}
+                        <div style={styles.bannerIconBox}>
+                          {isUnverified ? (
+                            <HelpCircle size={28} color="#F59E0B" />
+                          ) : submitResult.attempt.isUnknown ? (
+                            <HelpCircle size={28} color="var(--color-warning)" />
+                          ) : submitResult.isCorrect ? (
+                            <CheckCircle2 size={28} color="var(--color-success)" />
+                          ) : submitResult.score > 0 ? (
+                            <Award size={28} color="var(--color-primary)" />
+                          ) : (
+                            <XCircle size={28} color="var(--color-danger)" />
+                          )}
+                        </div>
+                        <div style={styles.bannerContent}>
+                          <div
+                            style={{
+                              ...styles.bannerTitle,
+                              color: isUnverified
+                                ? "#F59E0B"
+                                : submitResult.attempt.isUnknown
+                                  ? "var(--color-warning)"
+                                  : submitResult.isCorrect
+                                    ? "var(--color-success)"
+                                    : submitResult.score > 0
+                                      ? "var(--color-primary)"
+                                      : "var(--color-danger)",
+                            }}
+                          >
+                            {isUnverified
+                              ? "비검증 AI 연습 문제 (채점 결과 참고용)"
+                              : submitResult.attempt.isUnknown
+                                ? "모르겠음 (복습 우선순위 배정)"
+                                : submitResult.isCorrect
+                                  ? "정답입니다! (+1.0점)"
+                                  : submitResult.score > 0
+                                    ? `부분 정답 (+${submitResult.score}점)`
+                                    : "오답입니다 (0점)"}
+                          </div>
+                          <div style={styles.bannerDesc}>
+                            {submitResult.feedback || submitResult.attempt.feedback}
+                          </div>
+                        </div>
                       </div>
-                      <div style={styles.bannerDesc}>
-                        {submitResult.feedback || submitResult.attempt.feedback}
-                      </div>
-                    </div>
-                  </div>
+                    );
+                  })()}
 
                   {/* USER ANSWER VS GROUND TRUTH COMPARISON */}
                   <div style={styles.compareContainer}>
@@ -1280,7 +1297,9 @@ export const StudySessionModal: React.FC<StudySessionModalProps> = ({
                         }}
                       >
                         {isDrillQuestion
-                          ? "AI 제시 정답 (공식 정답 아님)"
+                          ? drillExecutionStatus !== "SUCCESS"
+                            ? "AI 생성 참고 답안 (미검증)"
+                            : "실행 검증 정답"
                           : "기준 정답 (Ground Truth)"}
                       </span>
                       <div style={styles.groundTruthVal}>

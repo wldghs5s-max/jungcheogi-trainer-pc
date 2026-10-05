@@ -1521,3 +1521,7 @@ export function getAIService(): IAIService {
 
   return cachedAIService;
 }
+
+export function setAIServiceOverride(service: IAIService | null): void {
+  cachedAIService = service;
+}

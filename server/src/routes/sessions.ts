@@ -12,6 +12,7 @@ import {
   CodeLanguage,
   QuestionType,
   hasValidGroundTruth,
+  ReviewState,
 } from '@jungcheogi/shared';
 import { SessionRepository } from '../db/repositories/sessionRepository';
 import { AttemptRepository } from '../db/repositories/attemptRepository';
@@ -173,7 +174,13 @@ export async function sessionRoutes(fastify: FastifyInstance): Promise<void> {
       };
     }
 
-    if (!hasValidGroundTruth(question.groundTruthAnswer)) {
+    const isUnverifiedPractice =
+      question.studyVisibility === 'TEMPORARY_DRILL' &&
+      (question.answerSource === 'AI_UNVERIFIED' ||
+        question.answerSource === 'UNVERIFIED_AI' ||
+        session.title.includes('비검증'));
+
+    if (!isUnverifiedPractice && !hasValidGroundTruth(question.groundTruthAnswer)) {
       return {
         status: 422,
         payload: {
@@ -210,14 +217,30 @@ export async function sessionRoutes(fastify: FastifyInstance): Promise<void> {
       }
     }
 
-    const grading = gradeAnswer(userAnswer, question.groundTruthAnswer, isUnknown, {
-      questionType: question.type,
-      language: question.language,
-    });
+    let isCorrect = false;
+    let score = 0;
+    let feedback: string | undefined = undefined;
+    let missType: MissType | undefined = undefined;
+    let reviewState: ReviewState | undefined = undefined;
 
-    let missType: MissType | undefined;
-    if (!grading.isCorrect) {
-      missType = isUnknown ? 'UNKNOWN' : 'WRONG';
+    if (isUnverifiedPractice) {
+      // 비검증 연습 문제: AI 제시 정답을 Ground Truth로 신뢰하지 않으며, 공식 정답/오답 판정을 확정하지 않음
+      isCorrect = false;
+      score = 0;
+      feedback =
+        '비검증 AI 연습 문제: 아직 정답 자동 검증 전이므로 채점 결과는 공식 반영되지 않으며 참고용입니다. (AI 생성 참고 답안 제공)';
+      missType = undefined;
+    } else {
+      const grading = gradeAnswer(userAnswer, question.groundTruthAnswer, isUnknown, {
+        questionType: question.type,
+        language: question.language,
+      });
+      isCorrect = grading.isCorrect;
+      score = grading.score;
+      feedback = grading.feedback;
+      if (!grading.isCorrect) {
+        missType = isUnknown ? 'UNKNOWN' : 'WRONG';
+      }
     }
 
     const attemptId = `att_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`;
@@ -226,23 +249,30 @@ export async function sessionRoutes(fastify: FastifyInstance): Promise<void> {
       questionId,
       sessionId,
       userAnswer,
-      isCorrect: grading.isCorrect,
-      score: grading.score,
+      isCorrect,
+      score,
       missType,
       timeSpentMs,
       isUnknown: Boolean(isUnknown),
       hintUsed: Boolean(hintUsed),
       solutionRevealed: Boolean(solutionRevealed),
-      feedback: grading.feedback,
+      feedback,
       createdAt: new Date().toISOString(),
     };
 
     const savedAttempt = attemptRepo.create(attempt);
-    const reviewState = reviewRepo.recordAttempt(savedAttempt, question);
 
-    const newCorrectCount = session.correctCount + (grading.isCorrect ? 1 : 0);
-    const newUnknownCount = session.unknownCount + (isUnknown ? 1 : 0);
-    const newWrongCount = session.wrongCount + (!grading.isCorrect && !isUnknown ? 1 : 0);
+    // ★ P0 / 개인학습 안전 가드:
+    // 비검증 연습 문제의 풀이 시도는 공식 SRS 복습 상태(review_states) 및 취약도에 절대 반영하지 않는다!
+    if (!isUnverifiedPractice) {
+      reviewState = reviewRepo.recordAttempt(savedAttempt, question);
+    }
+
+    // 세션 카운트: 비검증 연습 문제는 정답수/오답수를 증감시키지 않음
+    const newCorrectCount = session.correctCount + (!isUnverifiedPractice && isCorrect ? 1 : 0);
+    const newUnknownCount = session.unknownCount + (!isUnverifiedPractice && isUnknown ? 1 : 0);
+    const newWrongCount =
+      session.wrongCount + (!isUnverifiedPractice && !isCorrect && !isUnknown ? 1 : 0);
     const newTotalTimeMs = session.totalTimeSpentMs + timeSpentMs;
 
     let nextIndex = session.currentIndex;
@@ -267,9 +297,9 @@ export async function sessionRoutes(fastify: FastifyInstance): Promise<void> {
 
     const response: SessionSubmitResponse = {
       attempt: savedAttempt,
-      isCorrect: grading.isCorrect,
-      score: grading.score,
-      feedback: grading.feedback,
+      isCorrect,
+      score,
+      feedback,
       groundTruthAnswer: question.groundTruthAnswer,
       officialExplanation: question.officialExplanation,
       aiExplanation: question.aiExplanation,
@@ -277,6 +307,8 @@ export async function sessionRoutes(fastify: FastifyInstance): Promise<void> {
       isSessionCompleted: isCompleted,
       nextQuestionId,
       reviewState,
+      isUnverifiedPractice,
+      verificationStatus: isUnverifiedPractice ? 'UNVERIFIED' : 'VERIFIED',
       sessionProgress: {
         currentIndex: recordOnly ? session.currentIndex : nextIndex,
         totalQuestions: session.totalQuestions,

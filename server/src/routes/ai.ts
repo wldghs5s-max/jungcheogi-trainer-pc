@@ -48,7 +48,10 @@ export async function aiRoutes(fastify: FastifyInstance): Promise<void> {
   const questionRepo = new QuestionRepository();
   const conceptRepo = new ConceptRepository();
   const sessionRepo = new SessionRepository();
-  const aiService = getAIService();
+  // 동적으로 getAIService()를 호출하여 테스트 시 주입(Mock) 또는 런타임 변경을 즉시 반영
+  const aiService: any = new Proxy({}, {
+    get: (_, prop) => (getAIService() as any)[prop],
+  });
   const variationStager = new MockQuestionVariationGenerator();
 
   // 1. 문제별 AI 맞춤 해설 생성
@@ -732,43 +735,32 @@ export async function aiRoutes(fastify: FastifyInstance): Promise<void> {
         });
       }
 
-      if (!hasValidGroundTruth(variation.groundTruthAnswer)) {
-        const reason =
-          executionStatus === "UNAVAILABLE" || executionStatus === "ERROR"
-            ? "EXECUTION_UNVERIFIED"
-            : "MISSING_ANSWER";
+      if (executionStatus === "ERROR") {
         return reply.status(422).send({
-          error: reason,
-          failureReason: reason,
-          success: false,
-          variation,
-          executionStatus,
-          message:
-            reason === "EXECUTION_UNVERIFIED"
-              ? "실행 검증을 하지 못해 채점 가능한 정답을 확정하지 못했습니다. 다시 생성하거나 검수 대기열로 보내세요."
-              : "유효한 정답이 없어 채점 가능한 문제로 제공할 수 없습니다.",
-        });
-      }
-
-      // ★ P0 핵심 안전성 가드 (외부 감사 대응):
-      // 실행 검증(executionStatus === 'SUCCESS')이 완료되지 않은 미검증 AI 생성 문제는
-      // 절대로 학습 세션으로 즉시 열거나 사용자에게 직접 노출하지 않는다.
-      // 검증되지 않은 즉석 문제는 검수 대기열(Staging)에 안전 격리 적재하고 안전 실패 응답(422)을 반환한다.
-      if (executionStatus !== "SUCCESS") {
-        const stagedResult = await variationStager.stageVariation(variation);
-        return reply.status(422).send({
-          error: "EXECUTION_UNVERIFIED",
+          error: "EXECUTION_ERROR",
           failureReason: "EXECUTION_UNVERIFIED",
           success: false,
           variation,
           executionStatus,
-          stagedQuestionId: stagedResult.stagedQuestion.id,
           message:
-            "현재 즉석 변형 문제는 자동 검증이 완료되지 않아 바로 제공할 수 없습니다. 안전을 위해 검수 대기열(Staging)에 등록되었습니다.",
+            "코드 실행 중 오류가 발생하여 문제를 제공할 수 없습니다. 다시 생성해주세요.",
         });
       }
 
-      const answerSource = "EXECUTION_VERIFIED";
+      // Staging 검수 대기열(staged_questions)에 보관 (VERIFIED / UNVERIFIED 모두 보존)
+      const stagedResult = await variationStager.stageVariation(variation);
+
+      // 실행 검증 성공 및 정답 존재 여부에 따라 VERIFIED / UNVERIFIED 분리
+      const isVerified =
+        executionStatus === "SUCCESS" &&
+        hasValidGroundTruth(variation.groundTruthAnswer);
+
+      const verificationStatus: "VERIFIED" | "UNVERIFIED" = isVerified
+        ? "VERIFIED"
+        : "UNVERIFIED";
+      const answerSource: "EXECUTION_VERIFIED" | "AI_UNVERIFIED" = isVerified
+        ? "EXECUTION_VERIFIED"
+        : "AI_UNVERIFIED";
 
       const drillQuestion: Question = {
         id: `q_drill_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
@@ -782,7 +774,7 @@ export async function aiRoutes(fastify: FastifyInstance): Promise<void> {
         code: variation.codeSnippet,
         language: variation.language as any,
         options: variation.options,
-        groundTruthAnswer: variation.groundTruthAnswer,
+        groundTruthAnswer: variation.groundTruthAnswer || "",
         officialExplanation: undefined,
         aiExplanation: variation.aiExplanation,
         aiVariationNotes: variation.aiVariationNotes,
@@ -800,7 +792,7 @@ export async function aiRoutes(fastify: FastifyInstance): Promise<void> {
 
       const drillSession: StudySession = sessionRepo.create({
         id: `sess_drill_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
-        title: "AI 변형 드릴",
+        title: isVerified ? "AI 변형 드릴" : "AI 변형 드릴 (비검증 연습)",
         subjectFilter: parentQuestion.subject,
         questionIds: [createdQuestion.id],
         currentIndex: 0,
@@ -818,10 +810,13 @@ export async function aiRoutes(fastify: FastifyInstance): Promise<void> {
         question: { ...createdQuestion, answerSource },
         variation,
         drillSession,
+        verificationStatus,
         executionStatus,
         answerSource,
-        message:
-          "실행 검증이 완료된 임시 AI 변형 드릴이 생성되었습니다. 검수 승인 전까지 일반 문제집에 들어가지 않습니다.",
+        stagedQuestionId: stagedResult.stagedQuestion.id,
+        message: isVerified
+          ? "실행 검증이 완료된 임시 AI 변형 드릴이 생성되었습니다. 검수 승인 전까지 일반 문제집에 들어가지 않습니다."
+          : "AI 생성 연습 문제: 아직 정답 자동 검증이 완료되지 않은 문제입니다. 공식 채점 및 통계에 반영되지 않는 비검증 연습 문제로 풀이를 진행할 수 있습니다.",
       };
 
       return reply.status(200).send(response);

@@ -206,12 +206,32 @@ async function testSessionsAndGrading() {
     url: '/api/ai/variation-drill',
     payload: { parentQuestionId: 'q_2021_01_03' },
   });
-  assert.strictEqual(drillRes.statusCode, 422);
+  assert.strictEqual(drillRes.statusCode, 200);
   const drillData = JSON.parse(drillRes.body);
-  assert.strictEqual(drillData.success, false);
-  assert.strictEqual(drillData.failureReason, 'EXECUTION_UNVERIFIED');
-  assert.match(drillData.message, /자동 검증이 완료되지 않아|검수 대기열/);
-  console.log('OK   드릴 실행 검증 불가 시 사용자 세션 생성 차단 및 Staging 격리 검증');
+  assert.strictEqual(drillData.success, true);
+  assert.strictEqual(drillData.verificationStatus, 'UNVERIFIED');
+  assert.strictEqual(drillData.question.studyVisibility, 'TEMPORARY_DRILL');
+  assert.strictEqual(drillData.answerSource, 'AI_UNVERIFIED');
+  assert.ok(drillData.stagedQuestionId, '백그라운드 Staging 대기열 적재 ID 존재');
+  assert.match(drillData.drillSession.title, /비검증 연습/);
+
+  // 비검증 연습 문제 제출 테스트: 채점 점수 0, SRS 미반영 확인
+  const drillSubmitRes = await app.inject({
+    method: 'POST',
+    url: `/api/sessions/${drillData.drillSession.id}/submit`,
+    payload: {
+      questionId: drillData.question.id,
+      userAnswer: '5',
+      timeSpentMs: 1500,
+    },
+  });
+  assert.strictEqual(drillSubmitRes.statusCode, 200);
+  const drillSubmitData = JSON.parse(drillSubmitRes.body);
+  assert.strictEqual(drillSubmitData.isCorrect, false);
+  assert.strictEqual(drillSubmitData.score, 0);
+  assert.strictEqual(drillSubmitData.isUnverifiedPractice, true);
+  assert.strictEqual(drillSubmitData.reviewState, undefined);
+  console.log('OK   드릴 실행 검증 불가 시 UNVERIFIED PRACTICE 제공 및 채점/SRS 오염 방지 검증');
 
   await app.close();
   closeDatabase();

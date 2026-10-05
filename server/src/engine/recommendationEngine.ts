@@ -264,6 +264,7 @@ export class RecommendationEngine {
     const nowIso = new Date().toISOString();
 
     const fixtureCondition = excludeTestFixtures ? "AND q.source_type != 'TEST_FIXTURE'" : '';
+    const visibilityCondition = "AND (q.study_visibility IS NULL OR q.study_visibility = 'LIVE')";
 
     // 1. 복습 예정 문항 수
     const dueRow = this.db
@@ -271,7 +272,7 @@ export class RecommendationEngine {
         `SELECT COUNT(DISTINCT r.question_id) as count
          FROM review_states r
          INNER JOIN questions q ON q.id = r.question_id
-         WHERE r.next_review_at <= ? ${fixtureCondition}`
+         WHERE r.next_review_at <= ? ${visibilityCondition} ${fixtureCondition}`
       )
       .get(nowIso) as { count: number };
     const dueCount = dueRow ? dueRow.count : 0;
@@ -287,6 +288,7 @@ export class RecommendationEngine {
          FROM attempts a
          INNER JOIN questions q ON q.id = a.question_id
          WHERE (a.is_correct = 0 OR a.is_unknown = 1 OR a.solution_revealed = 1)
+         ${visibilityCondition}
          ${fixtureCondition}`
       )
       .get() as { count: number };
@@ -296,7 +298,7 @@ export class RecommendationEngine {
     const totalQRow = this.db
       .prepare(
         `SELECT COUNT(*) as count FROM questions q
-         WHERE 1=1 ${fixtureCondition}`
+         WHERE 1=1 ${visibilityCondition} ${fixtureCondition}`
       )
       .get() as { count: number };
     const totalQ = totalQRow ? totalQRow.count : 0;
@@ -305,7 +307,7 @@ export class RecommendationEngine {
       .prepare(
         `SELECT COUNT(DISTINCT r.question_id) as count FROM review_states r
          INNER JOIN questions q ON q.id = r.question_id
-         WHERE 1=1 ${fixtureCondition}`
+         WHERE 1=1 ${visibilityCondition} ${fixtureCondition}`
       )
       .get() as { count: number };
     const studiedQ = studiedQRow ? studiedQRow.count : 0;
