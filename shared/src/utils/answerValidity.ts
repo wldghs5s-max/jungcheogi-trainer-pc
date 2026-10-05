@@ -35,3 +35,33 @@ export function isStudyEligible(question: {
   if (isTemporaryDrillQuestion(question)) return false;
   return hasValidGroundTruth(question.groundTruthAnswer);
 }
+
+/**
+ * AI 변형 문제(AI Variation Drill 또는 Batch Generate)의 부모(Seed) 문제로 사용 가능한지 판별한다.
+ * - readyForGrading === false인 경우 차단
+ * - transcriptionStatus === "REVIEW"인 경우 차단
+ * - answerStatus === "REVIEW_NEEDED"인 경우 차단
+ * - aiVariationNotes에 [SEED_REVIEW_REQUIRED]가 포함된 경우 차단
+ * - groundTruthAnswer에 검토 필요 마커가 있거나 채점 불가능한 경우 차단
+ */
+export function isSeedVariationEligible(question: {
+  readyForGrading?: boolean;
+  transcriptionStatus?: string;
+  answerStatus?: string;
+  aiVariationNotes?: string | null;
+  groundTruthAnswer?: unknown;
+}): boolean {
+  if (!question) return false;
+  if (question.readyForGrading === false) return false;
+  if (question.transcriptionStatus === "REVIEW") return false;
+  if (question.answerStatus === "REVIEW_NEEDED") return false;
+  if (question.aiVariationNotes?.includes("[SEED_REVIEW_REQUIRED]")) return false;
+  if (
+    typeof question.groundTruthAnswer === "string" &&
+    (question.groundTruthAnswer.includes("[정답 검토 필요") ||
+      question.groundTruthAnswer.includes("REVIEW_NEEDED"))
+  ) {
+    return false;
+  }
+  return hasValidGroundTruth(question.groundTruthAnswer);
+}

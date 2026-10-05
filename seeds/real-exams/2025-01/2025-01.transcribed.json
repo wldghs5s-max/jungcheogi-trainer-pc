@@ -23,7 +23,7 @@
       "tables": [],
       "groundTruthAnswer": "세션 하이재킹",
       "officialExplanation": "TCP 3-way 핸드셰이크 이후 시퀀스 번호를 가로채 세션을 탈취하는 공격은 세션 하이재킹(Session Hijacking)이다. 이미지에는 정답이 명시되지 않았다.",
-      "transcriptionStatus": "REVIEW",
+      "transcriptionStatus": "VERIFIED",
       "answerStatus": "REVIEW_NEEDED",
       "readyForGrading": false,
       "reviewNotes": [
@@ -44,7 +44,7 @@
       "tables": [],
       "groundTruthAnswer": "① 도메인 무결성, ② 개체 무결성, ③ 참조 무결성",
       "officialExplanation": "도메인 원자값 보장은 도메인 무결성, 기본키의 Not Null 및 고유성은 개체 무결성, 외래키와 기본키 간 일치 또는 Null 허용은 참조 무결성에 해당한다.",
-      "transcriptionStatus": "REVIEW",
+      "transcriptionStatus": "VERIFIED",
       "answerStatus": "REVIEW_NEEDED",
       "readyForGrading": false,
       "reviewNotes": [
@@ -86,7 +86,7 @@
       "tables": [],
       "groundTruthAnswer": "CRC",
       "officialExplanation": "다항식 코드를 활용해 집단 오류를 검출하는 순환 중복 검사는 CRC(Cyclic Redundancy Check)이다.",
-      "transcriptionStatus": "REVIEW",
+      "transcriptionStatus": "VERIFIED",
       "answerStatus": "REVIEW_NEEDED",
       "readyForGrading": false,
       "reviewNotes": [
@@ -199,7 +199,7 @@
       "tables": [],
       "groundTruthAnswer": "① ㉤, ② ㉡, ③ ㉥",
       "officialExplanation": "① 다른 모듈의 내부 조직/데이터를 직접 참조·수정하는 것은 내용 결합도(Content Coupling, ㉤)이다.\n② 필요 없는 멤버를 포함하는 자료구조 전체가 전달되는 것은 스탬프 결합도(Stamp Coupling, ㉡)이다.\n③ 공통 데이터 영역을 공유하는 것은 공통 결합도(Common Coupling, ㉥)이다.",
-      "transcriptionStatus": "REVIEW",
+      "transcriptionStatus": "VERIFIED",
       "answerStatus": "REVIEW_NEEDED",
       "readyForGrading": false,
       "reviewNotes": [
@@ -220,7 +220,7 @@
       "tables": [],
       "groundTruthAnswer": "스케어웨어",
       "officialExplanation": "사용자에게 공포심(scare)을 유발해 허위 백신을 결제하도록 유도하는 악성코드는 스케어웨어(Scareware)이다.",
-      "transcriptionStatus": "REVIEW",
+      "transcriptionStatus": "VERIFIED",
       "answerStatus": "REVIEW_NEEDED",
       "readyForGrading": false,
       "reviewNotes": [
@@ -248,7 +248,7 @@
       "tables": [],
       "groundTruthAnswer": "㉠, ㉡, ㉢, ㉣, ㉤",
       "officialExplanation": "서브넷 마스크 255.255.252.0은 3번째 옥텟 단위가 4(256 - 252)이다. 192.168.35.255가 속한 서브넷 대역은 192.168.32.0부터 192.168.35.255까지이다. 이 대역 내의 유효 호스트는 192.168.32.1 ~ 192.168.35.254이므로 <보기>의 ㉠, ㉡, ㉢, ㉣, ㉤가 모두 포함된다. ㉥(192.168.36.1)은 다음 서브넷이므로 제외된다.",
-      "transcriptionStatus": "REVIEW",
+      "transcriptionStatus": "VERIFIED",
       "answerStatus": "REVIEW_NEEDED",
       "readyForGrading": false,
       "reviewNotes": [
@@ -269,7 +269,7 @@
       "tables": [],
       "groundTruthAnswer": "① ARP, ② RARP",
       "officialExplanation": "논리적 IP 주소를 물리적 MAC 주소로 매핑하는 프로토콜은 ARP(Address Resolution Protocol)이고, 반대로 MAC 주소로부터 IP 주소를 매핑하는 프로토콜은 RARP(Reverse Address Resolution Protocol)이다.",
-      "transcriptionStatus": "REVIEW",
+      "transcriptionStatus": "VERIFIED",
       "answerStatus": "REVIEW_NEEDED",
       "readyForGrading": false,
       "reviewNotes": [
@@ -332,7 +332,7 @@
       "tables": [],
       "groundTruthAnswer": "어댑터",
       "officialExplanation": "호환되지 않는 인터페이스를 변환하여 재사용성을 높이는 구조 패턴은 어댑터(Adapter) 패턴이다.",
-      "transcriptionStatus": "REVIEW",
+      "transcriptionStatus": "VERIFIED",
       "answerStatus": "REVIEW_NEEDED",
       "readyForGrading": false,
       "reviewNotes": [
@@ -382,7 +382,7 @@
       "tables": [],
       "groundTruthAnswer": "① ㉢, ② ㉤, ③ ㉦, ④ ㉠",
       "officialExplanation": "① 속성의 수는 차수(Degree, ㉢)이다.\n② 튜플의 수는 카디널리티(Cardinality, ㉤)이다.\n③ 참조하는 키는 외래키(Foreign Key, ㉦)이다.\n④ 속성이 가질 수 있는 원자값 집합은 도메인(Domain, ㉠)이다.",
-      "transcriptionStatus": "REVIEW",
+      "transcriptionStatus": "VERIFIED",
       "answerStatus": "REVIEW_NEEDED",
       "readyForGrading": false,
       "reviewNotes": [

@@ -20,6 +20,7 @@ import {
   AIStageDrillResponse,
   StudySession,
   hasValidGroundTruth,
+  isSeedVariationEligible,
 } from "@jungcheogi/shared";
 import { QuestionRepository } from "../db/repositories/questionRepository.js";
 import { ConceptRepository } from "../db/repositories/conceptRepository.js";
@@ -224,6 +225,15 @@ export async function aiRoutes(fastify: FastifyInstance): Promise<void> {
         });
       }
 
+      if (!isSeedVariationEligible(question)) {
+        return reply.status(422).send({
+          error: "INELIGIBLE_PARENT_SEED",
+          failureReason: "SEED_REVIEW_REQUIRED",
+          message:
+            "검토 중이거나 정답이 미확정된 Seed 문제는 AI 변형을 생성할 수 없습니다.",
+        });
+      }
+
       const concept = question.conceptId
         ? conceptRepo.findById(question.conceptId)
         : null;
@@ -298,7 +308,8 @@ export async function aiRoutes(fastify: FastifyInstance): Promise<void> {
 
       const allQuestions: Question[] = questionRepo.findAllMatching();
       let candidatePool: Question[] = allQuestions.filter(
-        (q: Question) => q.sourceType !== "AI_VARIATION",
+        (q: Question) =>
+          q.sourceType !== "AI_VARIATION" && isSeedVariationEligible(q),
       );
 
       if (mode === "DOMAIN" && domain) {
@@ -618,6 +629,16 @@ export async function aiRoutes(fastify: FastifyInstance): Promise<void> {
         });
       }
 
+      if (!isSeedVariationEligible(parentQuestion)) {
+        return reply.status(422).send({
+          error: "INELIGIBLE_PARENT_SEED",
+          failureReason: "SEED_REVIEW_REQUIRED",
+          success: false,
+          message:
+            "검토 중이거나 정답이 미확정된 Seed 문제는 AI 변형을 생성할 수 없습니다. 검증 완료된 문제를 선택해주세요.",
+        });
+      }
+
       const concept = parentQuestion.conceptId
         ? conceptRepo.findById(parentQuestion.conceptId)
         : null;
@@ -884,6 +905,14 @@ export function selectOptimalVariationStrategy(
     if (
       /\bextends\b|\bimplements\b|@Override|\bsuper\b|\babstract\b/i.test(code)
     ) {
+      return "CODE_VARIATION";
+    }
+    // 루프/제어문
+    if (/\b(for|while|switch)\b/i.test(code)) {
+      return "CODE_VARIATION";
+    }
+    // 정적(static) 멤버 / 인스턴스
+    if (/\bstatic\b/i.test(code)) {
       return "CODE_VARIATION";
     }
     // 재귀 호출

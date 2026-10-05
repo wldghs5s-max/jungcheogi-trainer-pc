@@ -127,6 +127,9 @@ export interface Question {
   difficulty: Difficulty;
   keywords: string[];
   structuralFingerprint?: string;
+  transcriptionStatus?: 'VERIFIED' | 'REVIEW';
+  answerStatus?: 'VERIFIED' | 'REVIEW_NEEDED';
+  readyForGrading?: boolean;
   createdAt: string;
   updatedAt?: string;
 }

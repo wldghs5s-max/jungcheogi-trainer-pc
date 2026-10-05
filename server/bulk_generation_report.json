@@ -1,0 +1,537 @@
+{
+  "timestamp": "2026-10-05T12:20:37.014Z",
+  "audit": {
+    "totalSeedsChecked": 63,
+    "eligibleSeedsCount": 51,
+    "ineligibleSeedsCount": 12,
+    "totalAttempts": 144,
+    "totalPassed": 39,
+    "totalRejected": 105,
+    "rejectionReasons": {
+      "CLONE_TOO_SIMILAR": 37,
+      "BATCH_DUPLICATE": 2,
+      "DEPENDENT_PHRASE": 0,
+      "EXPLANATION_MISMATCH": 28,
+      "SELF_CORRECTION": 13,
+      "RUNTIME_FAILURE": 2,
+      "ANSWER_MISMATCH": 16,
+      "SCHEMA_OR_TRIVIAL": 7
+    },
+    "strategyBreakdown": {
+      "PARAMETER_VARIATION": {
+        "attempts": 42,
+        "passed": 6,
+        "rejected": 36
+      },
+      "CODE_VARIATION": {
+        "attempts": 42,
+        "passed": 12,
+        "rejected": 30
+      },
+      "CONCEPT_VARIATION": {
+        "attempts": 9,
+        "passed": 2,
+        "rejected": 7
+      },
+      "DIFFICULTY_VARIATION": {
+        "attempts": 51,
+        "passed": 19,
+        "rejected": 32
+      }
+    },
+    "languageBreakdown": {
+      "C": {
+        "attempts": 48,
+        "passed": 15,
+        "rejected": 33
+      },
+      "JAVA": {
+        "attempts": 48,
+        "passed": 9,
+        "rejected": 39
+      },
+      "PYTHON": {
+        "attempts": 18,
+        "passed": 4,
+        "rejected": 14
+      },
+      "SQL": {
+        "attempts": 9,
+        "passed": 2,
+        "rejected": 7
+      },
+      "THEORY": {
+        "attempts": 21,
+        "passed": 9,
+        "rejected": 12
+      }
+    },
+    "seedResults": [
+      {
+        "seedId": "q_2024_01_01",
+        "questionCode": "Q-2024-01-01",
+        "category": "C 프로그래밍",
+        "language": "C",
+        "attempts": 3,
+        "passed": 1,
+        "rejected": 2
+      },
+      {
+        "seedId": "q_2024_01_02",
+        "questionCode": "Q-2024-01-02",
+        "category": "네트워크 아키텍처",
+        "attempts": 2,
+        "passed": 1,
+        "rejected": 1
+      },
+      {
+        "seedId": "q_2024_01_03",
+        "questionCode": "Q-2024-01-03",
+        "category": "정규화",
+        "attempts": 2,
+        "passed": 1,
+        "rejected": 1
+      },
+      {
+        "seedId": "q_2024_01_04",
+        "questionCode": "Q-2024-01-04",
+        "category": "모듈 설계",
+        "attempts": 2,
+        "passed": 1,
+        "rejected": 1
+      },
+      {
+        "seedId": "q_2024_01_05",
+        "questionCode": "Q-2024-01-05",
+        "category": "디자인 패턴",
+        "language": "JAVA",
+        "attempts": 3,
+        "passed": 1,
+        "rejected": 2
+      },
+      {
+        "seedId": "q_2024_01_06",
+        "questionCode": "Q-2024-01-06",
+        "category": "디자인 패턴",
+        "attempts": 2,
+        "passed": 1,
+        "rejected": 1
+      },
+      {
+        "seedId": "q_2024_01_07",
+        "questionCode": "Q-2024-01-07",
+        "category": "운영체제",
+        "attempts": 2,
+        "passed": 0,
+        "rejected": 2
+      },
+      {
+        "seedId": "q_2024_01_08",
+        "questionCode": "Q-2024-01-08",
+        "category": "Python 프로그래밍",
+        "language": "PYTHON",
+        "attempts": 3,
+        "passed": 0,
+        "rejected": 3
+      },
+      {
+        "seedId": "q_2024_01_09",
+        "questionCode": "Q-2024-01-09",
+        "category": "관계형 데이터베이스",
+        "attempts": 2,
+        "passed": 1,
+        "rejected": 1
+      },
+      {
+        "seedId": "q_2024_01_10",
+        "questionCode": "Q-2024-01-10",
+        "category": "C 프로그래밍",
+        "language": "C",
+        "attempts": 3,
+        "passed": 0,
+        "rejected": 3
+      },
+      {
+        "seedId": "q_2024_01_11",
+        "questionCode": "Q-2024-01-11",
+        "category": "Java 프로그래밍",
+        "attempts": 3,
+        "passed": 2,
+        "rejected": 1
+      },
+      {
+        "seedId": "q_2024_01_12",
+        "questionCode": "Q-2024-01-12",
+        "category": "SQL 응용",
+        "language": "SQL",
+        "attempts": 3,
+        "passed": 0,
+        "rejected": 3
+      },
+      {
+        "seedId": "q_2024_01_13",
+        "questionCode": "Q-2024-01-13",
+        "category": "C 프로그래밍",
+        "language": "C",
+        "attempts": 3,
+        "passed": 1,
+        "rejected": 2
+      },
+      {
+        "seedId": "q_2024_01_14",
+        "questionCode": "Q-2024-01-14",
+        "category": "애플리케이션 테스트",
+        "attempts": 2,
+        "passed": 2,
+        "rejected": 0
+      },
+      {
+        "seedId": "q_2024_01_15",
+        "questionCode": "Q-2024-01-15",
+        "category": "시스템 보안 위협",
+        "attempts": 2,
+        "passed": 0,
+        "rejected": 2
+      },
+      {
+        "seedId": "q_2024_01_16",
+        "questionCode": "Q-2024-01-16",
+        "category": "정보보안 공격 기법",
+        "attempts": 2,
+        "passed": 0,
+        "rejected": 2
+      },
+      {
+        "seedId": "q_2024_01_17",
+        "questionCode": "Q-2024-01-17",
+        "category": "SQL 응용",
+        "language": "SQL",
+        "attempts": 3,
+        "passed": 1,
+        "rejected": 2
+      },
+      {
+        "seedId": "q_2024_01_18",
+        "questionCode": "Q-2024-01-18",
+        "category": "Java 프로그래밍",
+        "language": "JAVA",
+        "attempts": 3,
+        "passed": 0,
+        "rejected": 3
+      },
+      {
+        "seedId": "q_2025_01_03",
+        "questionCode": "Q-2025-01-03",
+        "category": "C 프로그래밍",
+        "language": "C",
+        "attempts": 3,
+        "passed": 0,
+        "rejected": 3
+      },
+      {
+        "seedId": "q_2025_01_05",
+        "questionCode": "Q-2025-01-05",
+        "category": "JAVA 프로그래밍",
+        "language": "JAVA",
+        "attempts": 3,
+        "passed": 2,
+        "rejected": 1
+      },
+      {
+        "seedId": "q_2025_01_06",
+        "questionCode": "Q-2025-01-06",
+        "category": "SQL 프로그래밍",
+        "language": "SQL",
+        "attempts": 3,
+        "passed": 1,
+        "rejected": 2
+      },
+      {
+        "seedId": "q_2025_01_11",
+        "questionCode": "Q-2025-01-11",
+        "category": "JAVA 프로그래밍",
+        "language": "JAVA",
+        "attempts": 3,
+        "passed": 1,
+        "rejected": 2
+      },
+      {
+        "seedId": "q_2025_01_12",
+        "questionCode": "Q-2025-01-12",
+        "category": "C 프로그래밍",
+        "language": "C",
+        "attempts": 3,
+        "passed": 0,
+        "rejected": 3
+      },
+      {
+        "seedId": "q_2025_01_16",
+        "questionCode": "Q-2025-01-16",
+        "category": "JAVA 프로그래밍",
+        "language": "JAVA",
+        "attempts": 3,
+        "passed": 0,
+        "rejected": 3
+      },
+      {
+        "seedId": "q_2025_01_17",
+        "questionCode": "Q-2025-01-17",
+        "category": "C 프로그래밍",
+        "language": "C",
+        "attempts": 3,
+        "passed": 1,
+        "rejected": 2
+      },
+      {
+        "seedId": "q_2025_01_18",
+        "questionCode": "Q-2025-01-18",
+        "category": "JAVA 프로그래밍",
+        "language": "JAVA",
+        "attempts": 3,
+        "passed": 0,
+        "rejected": 3
+      },
+      {
+        "seedId": "q_2025_01_19",
+        "questionCode": "Q-2025-01-19",
+        "category": "PYTHON 프로그래밍",
+        "language": "PYTHON",
+        "attempts": 3,
+        "passed": 0,
+        "rejected": 3
+      },
+      {
+        "seedId": "q_2025_01_20",
+        "questionCode": "Q-2025-01-20",
+        "category": "C 프로그래밍",
+        "language": "C",
+        "attempts": 3,
+        "passed": 1,
+        "rejected": 2
+      },
+      {
+        "seedId": "tb_programming_01_01",
+        "questionCode": "TB-PROG-01-01",
+        "category": "Java 프로그래밍",
+        "language": "JAVA",
+        "attempts": 3,
+        "passed": 0,
+        "rejected": 3
+      },
+      {
+        "seedId": "tb_programming_01_02",
+        "questionCode": "TB-PROG-01-02",
+        "category": "C 프로그래밍",
+        "language": "C",
+        "attempts": 3,
+        "passed": 0,
+        "rejected": 3
+      },
+      {
+        "seedId": "tb_programming_01_03",
+        "questionCode": "TB-PROG-01-03",
+        "category": "Python 프로그래밍",
+        "language": "PYTHON",
+        "attempts": 3,
+        "passed": 2,
+        "rejected": 1
+      },
+      {
+        "seedId": "tb_programming_01_04",
+        "questionCode": "TB-PROG-01-04",
+        "category": "Java 프로그래밍",
+        "language": "JAVA",
+        "attempts": 3,
+        "passed": 0,
+        "rejected": 3
+      },
+      {
+        "seedId": "tb_programming_01_05",
+        "questionCode": "TB-PROG-01-05",
+        "category": "C 프로그래밍",
+        "language": "C",
+        "attempts": 3,
+        "passed": 1,
+        "rejected": 2
+      },
+      {
+        "seedId": "tb_programming_01_06",
+        "questionCode": "TB-PROG-01-06",
+        "category": "C 프로그래밍",
+        "language": "C",
+        "attempts": 3,
+        "passed": 2,
+        "rejected": 1
+      },
+      {
+        "seedId": "tb_programming_01_07",
+        "questionCode": "TB-PROG-01-07",
+        "category": "C 프로그래밍",
+        "language": "C",
+        "attempts": 3,
+        "passed": 2,
+        "rejected": 1
+      },
+      {
+        "seedId": "tb_programming_01_08",
+        "questionCode": "TB-PROG-01-08",
+        "category": "Java 프로그래밍",
+        "language": "JAVA",
+        "attempts": 3,
+        "passed": 0,
+        "rejected": 3
+      },
+      {
+        "seedId": "tb_programming_01_11",
+        "questionCode": "TB-PROG-01-11",
+        "category": "C 프로그래밍",
+        "language": "C",
+        "attempts": 3,
+        "passed": 2,
+        "rejected": 1
+      },
+      {
+        "seedId": "tb_programming_01_12",
+        "questionCode": "TB-PROG-01-12",
+        "category": "C 프로그래밍",
+        "language": "C",
+        "attempts": 3,
+        "passed": 2,
+        "rejected": 1
+      },
+      {
+        "seedId": "tb_programming_01_13",
+        "questionCode": "TB-PROG-01-13",
+        "category": "Java 프로그래밍",
+        "language": "JAVA",
+        "attempts": 3,
+        "passed": 0,
+        "rejected": 3
+      },
+      {
+        "seedId": "tb_programming_01_14",
+        "questionCode": "TB-PROG-01-14",
+        "category": "Java 프로그래밍",
+        "language": "JAVA",
+        "attempts": 3,
+        "passed": 0,
+        "rejected": 3
+      },
+      {
+        "seedId": "tb_programming_01_15",
+        "questionCode": "TB-PROG-01-15",
+        "category": "Python 프로그래밍",
+        "language": "PYTHON",
+        "attempts": 3,
+        "passed": 0,
+        "rejected": 3
+      },
+      {
+        "seedId": "tb_programming_01_16",
+        "questionCode": "TB-PROG-01-16",
+        "category": "Java 프로그래밍",
+        "language": "JAVA",
+        "attempts": 3,
+        "passed": 0,
+        "rejected": 3
+      },
+      {
+        "seedId": "tb_programming_01_17",
+        "questionCode": "TB-PROG-01-17",
+        "category": "Python 프로그래밍",
+        "language": "PYTHON",
+        "attempts": 3,
+        "passed": 1,
+        "rejected": 2
+      },
+      {
+        "seedId": "tb_programming_01_18",
+        "questionCode": "TB-PROG-01-18",
+        "category": "C 프로그래밍",
+        "language": "C",
+        "attempts": 3,
+        "passed": 1,
+        "rejected": 2
+      },
+      {
+        "seedId": "tb_programming_01_19",
+        "questionCode": "TB-PROG-01-19",
+        "category": "C 프로그래밍",
+        "language": "C",
+        "attempts": 3,
+        "passed": 1,
+        "rejected": 2
+      },
+      {
+        "seedId": "tb_programming_01_20",
+        "questionCode": "TB-PROG-01-20",
+        "category": "C 프로그래밍",
+        "language": "C",
+        "attempts": 3,
+        "passed": 0,
+        "rejected": 3
+      },
+      {
+        "seedId": "tb_programming_01_21",
+        "questionCode": "TB-PROG-01-21",
+        "category": "Java 프로그래밍",
+        "language": "JAVA",
+        "attempts": 3,
+        "passed": 2,
+        "rejected": 1
+      },
+      {
+        "seedId": "tb_programming_01_22",
+        "questionCode": "TB-PROG-01-22",
+        "category": "Java 프로그래밍",
+        "language": "JAVA",
+        "attempts": 3,
+        "passed": 1,
+        "rejected": 2
+      },
+      {
+        "seedId": "tb_programming_01_23",
+        "questionCode": "TB-PROG-01-23",
+        "category": "Python 프로그래밍",
+        "language": "PYTHON",
+        "attempts": 3,
+        "passed": 1,
+        "rejected": 2
+      },
+      {
+        "seedId": "tb_programming_01_24",
+        "questionCode": "TB-PROG-01-24",
+        "category": "Java 프로그래밍",
+        "language": "JAVA",
+        "attempts": 3,
+        "passed": 2,
+        "rejected": 1
+      },
+      {
+        "seedId": "tb_programming_01_25",
+        "questionCode": "TB-PROG-01-25",
+        "category": "Java 프로그래밍",
+        "language": "JAVA",
+        "attempts": 3,
+        "passed": 0,
+        "rejected": 3
+      }
+    ]
+  },
+  "finalCount": 102,
+  "finalBySource": [
+    {
+      "source_type": "AI_VARIATION",
+      "count": 39
+    },
+    {
+      "source_type": "REAL_EXAM",
+      "count": 38
+    },
+    {
+      "source_type": "TEXTBOOK_EXPECTED",
+      "count": 25
+    }
+  ],
+  "fkCheck": []
+}

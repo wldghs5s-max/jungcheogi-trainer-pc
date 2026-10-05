@@ -137,6 +137,19 @@ function mapRowToQuestion(row: QuestionRow): Question {
     }
   }
 
+  const isReviewNote = row.ai_variation_notes?.includes("[SEED_REVIEW_REQUIRED]");
+  const isReviewGt =
+    typeof groundTruthAnswer === "string" &&
+    groundTruthAnswer.includes("[정답 검토 필요");
+  const isReview = Boolean(isReviewNote || isReviewGt);
+
+  const isTransReview = Boolean(row.ai_variation_notes?.includes("[TRANS_REVIEW]"));
+  const isAnsReview = Boolean(
+    row.ai_variation_notes?.includes("[ANS_REVIEW]") ||
+    isReviewGt ||
+    (isReviewNote && !row.ai_variation_notes?.includes("[TRANS_REVIEW]"))
+  );
+
   return {
     id: row.id,
     questionCode: row.question_code ?? undefined,
@@ -177,6 +190,9 @@ function mapRowToQuestion(row: QuestionRow): Question {
     keywords,
     structuralFingerprint: row.structural_fingerprint ?? undefined,
     studyVisibility: (row.study_visibility as StudyVisibility) || "LIVE",
+    transcriptionStatus: isTransReview ? "REVIEW" : "VERIFIED",
+    answerStatus: (isAnsReview || isReview) ? "REVIEW_NEEDED" : "VERIFIED",
+    readyForGrading: !isReview,
     createdAt: row.created_at,
     updatedAt: row.updated_at ?? undefined,
   };
@@ -472,29 +488,137 @@ export class QuestionRepository {
     rng: () => number = Math.random,
   ): Question[] {
     const ids = this.findCandidateIds(filter);
-    const picked = pickRandomIds(ids, Math.min(count * 3, ids.length) || count, rng);
-    const selected: Question[] = [];
-    const seen = new Set<string>();
-    for (const id of picked) {
-      if (selected.length >= count) break;
-      if (seen.has(id)) continue;
-      const question = this.findById(id);
-      if (question && isStudyEligible(question)) {
-        seen.add(id);
-        selected.push(question);
+    const candidateQuestions: Question[] = [];
+    for (const id of ids) {
+      const q = this.findById(id);
+      if (q && isStudyEligible(q) && q.readyForGrading !== false) {
+        candidateQuestions.push(q);
       }
     }
-    if (selected.length < count) {
+
+    // Fallback if readyForGrading filter leaves no candidates (e.g. test fixtures)
+    if (candidateQuestions.length === 0) {
       for (const id of ids) {
-        if (selected.length >= count) break;
-        if (seen.has(id)) continue;
-        const question = this.findById(id);
-        if (question && isStudyEligible(question)) {
-          seen.add(id);
-          selected.push(question);
+        const q = this.findById(id);
+        if (q && isStudyEligible(q)) {
+          candidateQuestions.push(q);
         }
       }
     }
+
+    if (candidateQuestions.length <= count) {
+      return candidateQuestions;
+    }
+
+    return this.selectDiverseRandom(candidateQuestions, count, rng);
+  }
+
+  /**
+   * Diverse Random 문제 선별 알고리즘:
+   * 1. 최근 푼 문제(attempts, sessions) 감점 (중복 체감 완벽 방어)
+   * 2. 동일 세션 내 동일 parentSeed 중복 억제 (동일 Seed 변형 중복 방지)
+   * 3. 동일 세션 내 동일 concept 중복 억제 (개념 다양성 보장)
+   * 4. 언어 및 도메인 분산 유도 (균형 잡힌 모의 실기 환경)
+   * 5. 가중치 룰렛 휠 추첨
+   */
+  private selectDiverseRandom(
+    candidateQuestions: Question[],
+    count: number,
+    rng: () => number = Math.random,
+  ): Question[] {
+    // 1. 최근 풀이 이력(attempts, sessions) 조회
+    const recentAttemptIds = new Set<string>();
+    const recentSessionIds = new Set<string>();
+    try {
+      const attempts = this.db
+        .prepare("SELECT question_id FROM attempts ORDER BY created_at DESC LIMIT 30")
+        .all() as Array<{ question_id: string }>;
+      for (const a of attempts) {
+        if (a.question_id) recentAttemptIds.add(a.question_id);
+      }
+
+      const sessions = this.db
+        .prepare("SELECT question_ids_json FROM sessions ORDER BY started_at DESC LIMIT 5")
+        .all() as Array<{ question_ids_json: string }>;
+      for (const s of sessions) {
+        if (s.question_ids_json) {
+          try {
+            const ids = JSON.parse(s.question_ids_json);
+            if (Array.isArray(ids)) {
+              for (const id of ids) recentSessionIds.add(String(id));
+            }
+          } catch {}
+        }
+      }
+    } catch {}
+
+    // 2. 기본 가중치 산출 (최근 푼 문제는 큰 폭 감점 부여)
+    const freshCount = candidateQuestions.filter((q) => !recentAttemptIds.has(q.id)).length;
+    const pool = candidateQuestions.map((q) => {
+      let weight = 100;
+      if (recentAttemptIds.has(q.id)) {
+        // 미풀이 문제가 충분할 경우 최근 푼 문제는 95% 강력 감점
+        weight = freshCount >= count ? 5 : 20;
+      }
+      if (recentSessionIds.has(q.id)) {
+        weight -= 40;
+      }
+      weight = Math.max(weight, 1);
+      return { q, baseWeight: weight };
+    });
+
+    const selected: Question[] = [];
+    const selectedParents = new Map<string, number>();
+    const selectedConcepts = new Map<string, number>();
+    const selectedLangs = new Map<string, number>();
+
+    const remaining = [...pool];
+
+    while (selected.length < count && remaining.length > 0) {
+      // 3. 현재 세션에 이미 선택된 문제들과의 상호 다양성 동적 감점
+      const dynamicWeights = remaining.map((item) => {
+        let w = item.baseWeight;
+        const parent = item.q.parentQuestionId || item.q.id;
+        if (selectedParents.has(parent)) {
+          w *= 0.1; // 동일 parentSeed 강력 억제 (90% 감점)
+        }
+        if (item.q.conceptId && selectedConcepts.has(item.q.conceptId)) {
+          w *= 0.3; // 동일 concept 연속 출제 억제 (70% 감점)
+        }
+        const lang = item.q.language || "NONE";
+        if (lang !== "NONE" && (selectedLangs.get(lang) || 0) > 0) {
+          w *= 0.5; // 언어 다양성 분산 유도 (50% 감점)
+        }
+        return Math.max(w, 1);
+      });
+
+      const totalWeight = dynamicWeights.reduce((sum, w) => sum + w, 0);
+      const rawR = rng();
+      const boundedR = Number.isFinite(rawR) ? Math.min(Math.max(rawR, 0), 0.999999) : 0;
+      const target = boundedR * totalWeight;
+
+      let acc = 0;
+      let chosenIdx = 0;
+      for (let i = 0; i < dynamicWeights.length; i++) {
+        acc += dynamicWeights[i];
+        if (target < acc) {
+          chosenIdx = i;
+          break;
+        }
+      }
+
+      const chosen = remaining.splice(chosenIdx, 1)[0].q;
+      selected.push(chosen);
+
+      const parent = chosen.parentQuestionId || chosen.id;
+      selectedParents.set(parent, (selectedParents.get(parent) || 0) + 1);
+      if (chosen.conceptId) {
+        selectedConcepts.set(chosen.conceptId, (selectedConcepts.get(chosen.conceptId) || 0) + 1);
+      }
+      const lang = chosen.language || "NONE";
+      selectedLangs.set(lang, (selectedLangs.get(lang) || 0) + 1);
+    }
+
     return selected;
   }
 

@@ -4,6 +4,7 @@ import {
   VariationValidationResult,
   VariationValidationIssue,
 } from "@jungcheogi/shared";
+import { calculateCodeSimilarity } from "./evaluationValidator.js";
 
 const VALID_VARIATION_TYPES = new Set([
   "PARAMETER_CHANGE",
@@ -16,6 +17,16 @@ const VALID_VARIATION_TYPES = new Set([
   "SCENARIO_VARIATION",
   "DIFFICULTY_VARIATION",
 ]);
+
+export const DEPENDENT_PHRASES = [
+  "앞의 문제",
+  "앞선 문제",
+  "이전 문제",
+  "상기 문제",
+  "위의 문제에서",
+  "원래 문제에서",
+  "부모 문제",
+];
 
 export class VariationValidator {
   /**
@@ -44,6 +55,33 @@ export class VariationValidator {
         message: "변형 문제 본문이 너무 짧습니다 (최소 5자 이상).",
         severity: "ERROR",
       });
+    } else {
+      for (const phrase of DEPENDENT_PHRASES) {
+        if (variation.prompt.includes(phrase)) {
+          schemaValid = false;
+          issues.push({
+            field: "prompt",
+            message: `변형 문제는 단독 출제 가능해야 하며, 부모 문항에 종속적인 문구('${phrase}')를 포함할 수 없습니다.`,
+            severity: "ERROR",
+          });
+          break;
+        }
+      }
+
+      if (
+        (variation.prompt.includes("위 코드") ||
+          variation.prompt.includes("다음 코드") ||
+          variation.prompt.includes("아래 코드")) &&
+        (!variation.codeSnippet || !variation.codeSnippet.trim())
+      ) {
+        schemaValid = false;
+        issues.push({
+          field: "prompt",
+          message:
+            "지문에서 코드를 참조하고 있으나 코드 스니펫(codeSnippet)이 제공되지 않았습니다.",
+          severity: "ERROR",
+        });
+      }
     }
 
     if (
@@ -179,6 +217,27 @@ export class VariationValidator {
           message: "원본 기출문제가 전혀 변형되지 않고 그대로 복제되었습니다.",
           severity: "WARNING",
         });
+      }
+
+      if (parentQuestion.code && variation.codeSnippet) {
+        const sim = calculateCodeSimilarity(
+          variation.codeSnippet,
+          parentQuestion.code,
+        );
+        if (sim.category === "IDENTICAL") {
+          issues.push({
+            field: "codeSnippet",
+            message:
+              "원본 코드와 100% 동일하여 변형이 이루어지지 않았습니다 (IDENTICAL).",
+            severity: "WARNING",
+          });
+        } else if (sim.category === "MUTATION_CLONE") {
+          issues.push({
+            field: "codeSnippet",
+            message: `단순 변수명/상수 변경에 불과한 피상적 복제입니다 (MUTATION_CLONE, 구조유사도: ${sim.structuralSimilarity}).`,
+            severity: "WARNING",
+          });
+        }
       }
     }
 

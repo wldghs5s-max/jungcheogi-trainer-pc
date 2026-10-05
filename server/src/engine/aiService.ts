@@ -418,15 +418,8 @@ export function cleanAndParseJson<T>(raw: string): T {
     try {
       return JSON.parse(repaired);
     } catch (secondErr) {
-      // 3차: 후행 쉼표(trailing comma) 제거 및 잔여 제어문자 정규화
-      const relaxed = repaired
-        .replace(/,\s*([}\]])/g, "$1")
-        .replace(/[\x00-\x1F\x7F]/g, (ch) => {
-          if (ch === "\n") return "\\n";
-          if (ch === "\r") return "\\r";
-          if (ch === "\t") return "\\t";
-          return "";
-        });
+      // 3차: 후행 쉼표(trailing comma) 제거 및 재시도
+      const relaxed = repaired.replace(/,\s*([}\]])/g, "$1");
       return JSON.parse(relaxed);
     }
   }
@@ -746,7 +739,15 @@ export class MockAIService implements IAIService {
  * =========================================================================
  */
 export class GeminiAIService implements IAIService {
-  public static quotaExhaustedModels = new Set<string>();
+  public static quotaExhaustedUntil = new Map<string, number>();
+  public static get quotaExhaustedModels(): Set<string> {
+    const now = Date.now();
+    const set = new Set<string>();
+    for (const [m, t] of GeminiAIService.quotaExhaustedUntil.entries()) {
+      if (t > now) set.add(m);
+    }
+    return set;
+  }
   private apiKey: string;
   private fallbackMock: MockAIService;
 
@@ -767,8 +768,12 @@ export class GeminiAIService implements IAIService {
     candidateModels: string[],
     expectJson: boolean = true,
   ): Promise<{ data: any; modelUsed: string }> {
+    const now = Date.now();
     let validModels = candidateModels.filter(
-      (m) => !DISCONTINUED_MODEL_REGEX.test(m) && !GeminiAIService.quotaExhaustedModels.has(m),
+      (m) =>
+        !DISCONTINUED_MODEL_REGEX.test(m) &&
+        (!GeminiAIService.quotaExhaustedUntil.has(m) ||
+          GeminiAIService.quotaExhaustedUntil.get(m)! <= now),
     );
     // 모든 후보 모델이 quota 소진으로 제외된 경우 최소 1개는 시도
     if (validModels.length === 0) {
@@ -790,8 +795,8 @@ export class GeminiAIService implements IAIService {
         body.generationConfig.responseMimeType = "application/json";
       }
 
-      // 최대 2회 시도 (초기 시도 + 일시적 오류 시 1회 재시도)
-      for (let attempt = 0; attempt < 2; attempt++) {
+      // 최대 3회 시도 (초기 시도 + 429/503 시 백오프 재시도)
+      for (let attempt = 0; attempt < 3; attempt++) {
         const controller = new AbortController();
         const timeoutId = setTimeout(() => controller.abort(), 45000); // 45초 타임아웃 제한 (복합 코드/추적표 생성 안정화)
 
@@ -807,19 +812,17 @@ export class GeminiAIService implements IAIService {
           if (!response.ok) {
             const errText = await response.text();
             const isQuotaError = response.status === 429 && /quota/i.test(errText);
-            if (isQuotaError) {
-              GeminiAIService.quotaExhaustedModels.add(model);
+            if (isQuotaError && model !== getFastModel()) {
+              GeminiAIService.quotaExhaustedUntil.set(model, Date.now() + 60000);
             }
 
-            // 503 UNAVAILABLE 또는 일시적 429인 경우만 1회 백오프 후 재시도 (할당량 소진은 즉시 다음 모델로)
-            if (
-              (response.status === 503 || (response.status === 429 && !isQuotaError)) &&
-              attempt === 0
-            ) {
+            // 503 UNAVAILABLE 또는 429인 경우 백오프 후 재시도
+            if ((response.status === 503 || response.status === 429) && attempt < 2) {
+              const backoff = response.status === 429 ? 4000 * (attempt + 1) : 600;
               console.warn(
-                `[GeminiAIService] Model ${model} returned ${response.status}. Retrying after 600ms backoff...`,
+                `[GeminiAIService] Model ${model} returned ${response.status}. Retrying after ${backoff}ms backoff (attempt ${attempt + 1}/3)...`,
               );
-              await new Promise((resolve) => setTimeout(resolve, 600));
+              await new Promise((resolve) => setTimeout(resolve, backoff));
               continue;
             }
 
@@ -1249,14 +1252,11 @@ ${surroundingLines}
         instructions,
       });
 
-      const isCQuestion = Boolean(
-        (question.language && question.language.toUpperCase() === "C") ||
-        (question.category && question.category.toLowerCase().includes("c")) ||
-        (question.code && /#include|printf/i.test(question.code))
-      );
+      const langUpper = (question.language || "").toUpperCase();
+      let languageGuidance = "";
 
-      const cGuidance = isCQuestion
-        ? `
+      if (langUpper === "C" || (!langUpper && /#include|printf/i.test(question.code || ""))) {
+        languageGuidance = `
 [C 프로그래밍 언어 실기 출제 핵심 가이드라인]
 - 단순 상수 숫자 바꾸기(예: 10을 20으로 변경) 수준의 피상적 변형은 절대 금지합니다.
 - 정보처리기사 실기 시험의 실질적 변별력인 'C 언어 핵심 메커니즘'을 적극 반영하십시오:
@@ -1265,21 +1265,68 @@ ${surroundingLines}
   3) 1차원/2차원 배열과 포인터 관계 (arr[i] == *(arr + i), arr[i][j])
   4) 재귀 함수(Recursive Function) 호출 스택과 탈출 조건
   5) 구조체(struct)와 멤버 포인터 참조 (-> 연산자)
-  6) 비트 연산자 (&, |, ^, ~, <<, >>)와 시프트 복합 연산
+  6) 비트 연산자 (&, |, ^, ~, <<, >>), 전위/후위 증감 연산자, 삼항 연산자
 - 변형된 코드는 실제 C 컴파일러(GCC/Clang)에서 경고 없이 완벽히 컴파일되고 결정론적(deterministic) 출력을 내야 합니다.
-`
-        : "";
+`;
+      } else if (langUpper === "JAVA" || (!langUpper && /public\s+class|System\.out/i.test(question.code || ""))) {
+        languageGuidance = `
+[Java 프로그래밍 언어 실기 출제 핵심 가이드라인]
+- 단순 변수명/숫자 바꾸기 수준의 피상적 변형은 절대 금지합니다.
+- 정보처리기사 실기 시험의 실질적 변별력인 'Java 핵심 객체지향/실행 메커니즘'을 적극 반영하십시오:
+  1) static(정적 변수/메서드) 생명주기 vs 인스턴스 멤버의 차이와 누적 효과
+  2) 상속(extends)과 다형성(Polymorphism), 메서드 오버라이딩에 따른 동적 바인딩(Dynamic Binding)
+  3) 생성자 체이닝 (super() 및 this() 호출 순서와 인스턴스 초기화 블록)
+  4) 메서드 오버로딩(Overloading)의 매개변수 타입 일치 우선순위
+  5) 객체 참조 변수(Reference) 전달에 따른 부수 효과 vs 기본형(Primitive) 값 복사
+  6) 문자열 비교(== 동일성 vs .equals() 동등성) 및 문자열/배열 조작
+- 컴파일 에러 없는 표준 Java 문법을 준수하고 결정론적(deterministic) 출력을 내야 합니다.
+`;
+      } else if (langUpper === "PYTHON" || (!langUpper && /def\s+|import\s+|print\s*\(/i.test(question.code || ""))) {
+        languageGuidance = `
+[Python 프로그래밍 언어 실기 출제 핵심 가이드라인]
+- 단순 숫자 바꾸기 수준의 피상적 변형은 절대 금지합니다.
+- 정보처리기사 실기 시험의 실질적 변별력인 'Python 고유 문법 및 자료구조 특성'을 적극 반영하십시오:
+  1) 리스트/문자열 슬라이싱 (start:end:step, 음수 인덱스 및 [::-1] 역순 순회)
+  2) 함수의 기본 매개변수(Default Arguments) 동작 및 가변 인자
+  3) 가변 객체(mutable: list, dict) vs 불변 객체(immutable: int, str, tuple)의 함수 인자 전달 동작
+  4) 리스트 내장 메서드 (append, extend, pop, reverse, insert)의 반환값 및 제자리 수정 특성
+  5) range() 범위와 조건 제어 (for-else, while 탈출 조건, Truthy/Falsy 판별)
+- 문법 에러(SyntaxError/IndentationError) 없이 표준 Python 3에서 결정론적 출력을 내야 합니다.
+`;
+      } else if (langUpper === "SQL" || (!langUpper && /select\s+.*from/i.test(question.code || ""))) {
+        languageGuidance = `
+[SQL 데이터베이스 실기 출제 핵심 가이드라인]
+- 정보처리기사 실기 시험의 핵심 평가 요소인 관계형 데이터베이스 질의 구조를 정확히 반영하십시오:
+  1) GROUP BY 절과 HAVING 절의 명확한 구분 (그룹 필터링 vs 단순 레코드 WHERE 필터링)
+  2) 집계 함수 (COUNT, SUM, AVG, MAX, MIN)와 NULL 처리 특성
+  3) 서브쿼리 (IN, NOT IN, EXISTS, 스칼라 서브쿼리)
+  4) 조인 연산자 (INNER JOIN, LEFT/RIGHT OUTER JOIN, 자연 조인)
+  5) 논리 연산자 우선순위 (NOT > AND > OR)
+`;
+      }
 
       const prompt = `
 당신은 대한민국 국가기술자격 '정보처리기사 실기' 출제위원급 AI 전문가입니다.
-기존 기출문제를 바탕으로, 핵심 평가 개념(${concept?.title || question.category})을 완벽히 유지하면서 신규 변형 문제를 생성하세요.
+기존 기출문제를 바탕으로, 실제 시험에서 수험생의 프로그래밍 사고력과 개념 이해도를 정밀하게 측정하는 신규 변형 문제를 생성하세요.
 
-[변형 생성 원칙 - Ground Truth 및 출제 무결성 준수]
-1. 원본 문제의 핵심 학습 목표와 평가 포인트를 훼손하지 마십시오.
-2. 변형 유형(${canonicalType})의 목적에 충실하게 코드를 변형하되, 컴파일/문법 오류가 없는 완벽한 코드를 작성하십시오.
-3. 정답(groundTruthAnswer)은 코드 실행 시 100% 명확하게 도출되는 단일 값 또는 확정된 키워드여야 합니다.
-4. AI가 생성한 이 문제는 Staging 검수 대기열(staged_questions)에 격리 적재되며, 사람의 검수(APPROVED)를 거친 후 실서비스에 진입합니다.
-${cGuidance}
+[변형 생성 원칙 및 품질 필수 규칙]
+1. 원문 중심 분석 (Problem-First Competency):
+   원본 문제의 코드와 지문을 최우선으로 분석하여, 출제자가 의도한 핵심 평가 능력(Core Competency)을 정확히 파악하십시오.
+   (주의: 지정된 메타데이터 concept 분류명과 실제 코드에 차이가 있더라도, 반드시 '실제 코드와 지문이 측정하고 있는 본질적 프로그래밍 원리'를 계승해야 합니다.)
+2. 변형 전략(${canonicalType}) 준수:
+   - PARAMETER_VARIATION (수치/경계 변형): 단순한 숫자 1개 변경은 금지합니다. 루프의 초기값, 증감치, 경계 조건(Boundary)을 전략적으로 조정하여 루프 순회 횟수나 분기 경로가 달라지게 설계하여 새로운 손추적(Trace)을 요구하십시오.
+   - CODE_VARIATION (구조적 변형): 제어문 구조를 재편성(예: for ↔ while, 단일 조건문 ↔ 중첩/복합 조건문, 인덱스 연산 ↔ 포인터 연산)하여 동일한 원리를 다른 프로그램 구조로 구현하십시오.
+   - CONCEPT_VARIATION (개념 확장 변형): 동일한 핵심 개념을 다른 상황(예: 포인터 역참조를 함수 매개변수로, 기본 매개변수를 다중 함수 호출로)에 적용하십시오.
+   - DIFFICULTY_VARIATION / SCENARIO_VARIATION (실전 함정 변형): 정보처리기사 실기의 대표적인 함정 요소(연산자 우선순위, 전위/후위 증감, static 누적, 동적 바인딩)를 결합하여 한 단계 깊은 사고를 요구하는 실전형 문제로 설계하십시오.
+3. 완전한 자기완결성 (Self-Contained):
+   지문에서 '앞의 문제에서', '위 코드와 같이' 등 부모 문제를 전제하는 종속적 표현을 절대 사용하지 마십시오. 단독 출제 가능한 완전한 문제여야 합니다.
+4. 피상적 복제 금지 (No Shallow Mutation):
+   변수명만 바꾸거나 숫자 하나만 바꾸는 얕은 변형(MUTATION_CLONE, IDENTICAL)은 허용되지 않습니다.
+5. 시험지 손추적 적정 규모 (Hand-Traceable Scope):
+   수험생이 시험장 여백에서 직접 손으로 5~10회 내외로 추적(Trace Table)할 수 있는 합리적 규모를 유지하십시오. (수천 회의 불필요한 반복 루프 금지)
+6. 단일 확정 정답 및 단계별 해설:
+   모호한 다의적 정답이나 미정의 동작(UB) 없이 오직 단 하나의 명확한 정답이 도출되어야 하며, aiExplanation에는 단계별 도출 과정을 정확히 서술하십시오.
+${languageGuidance}
 [원본 문제 정보]
 - ID: ${question.id}
 - 과목: ${question.subject}
@@ -1288,15 +1335,15 @@ ${cGuidance}
 ${question.code ? `[원본 코드]\n\`\`\`\n${question.code}\n\`\`\`` : ""}
 - 원본 정답: ${JSON.stringify(question.groundTruthAnswer)}
 ${question.officialExplanation ? `- 원본 공식 해설: ${question.officialExplanation}` : ""}
-${concept ? `- 핵심 개념: ${concept.title} (${concept.definition})` : ""}
+${concept ? `- 참고 개념 메타데이터: ${concept.title} (${concept.definition})` : ""}
 
 [변형 요구사항]
-- 변형 유형: ${canonicalType}
+- 요청 변형 유형: ${canonicalType}
 ${instructions ? `- 특별 요청사항: ${instructions}` : ""}
 
 [요구 JSON 스키마]
 {
-  "prompt": "새롭게 변형된 명확한 문제 지문",
+  "prompt": "새롭게 변형된 명확한 문제 지문 (단독 출제 가능한 독립 지문)",
   "codeSnippet": "변형된 코드 전체 (코드가 없는 이론 문제인 경우 null)",
   "groundTruthAnswer": "변형된 문제의 엄격하고 유일한 정답 (단일 문자열 또는 문자열 배열)",
   "options": null,
@@ -1307,7 +1354,9 @@ ${instructions ? `- 특별 요청사항: ${instructions}` : ""}
 }
 `;
 
-      const candidateModels = [promotion.model, getFastModel()];
+      const candidateModels = promotion.shouldPromote
+        ? [promotion.model, ...GENERATOR_MODELS.filter((m) => m !== promotion.model)]
+        : [...GENERATOR_MODELS];
       const { data: result, modelUsed } = await this.callGeminiWithModels(
         prompt,
         candidateModels,

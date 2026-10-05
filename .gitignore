@@ -21,7 +21,9 @@ server/data/*.db
 server/data/*.db-journal
 server/data/*.db-wal
 server/data/*.db-shm
+server/data/*.backup*
 *.db
+*.backup*
 *.sqlite
 *.sqlite3
 
@@ -33,3 +35,6 @@ Thumbs.db
 
 # Vite cache
 .vite/
+
+# Scratch & temporary test scripts
+scratch/

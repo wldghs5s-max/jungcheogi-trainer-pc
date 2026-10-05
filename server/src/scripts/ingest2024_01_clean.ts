@@ -464,6 +464,26 @@ export function buildCleanQuestions(seedsPath: string): Question[] {
     const sourceName = q.sourceName || data.sourceName || book || undefined;
     const subCategory = q.subCategory || (chapter ? (book ? `${book} - ${chapter}` : chapter) : undefined);
 
+    const isTransReview = !is2024_01 && q.transcriptionStatus === "REVIEW";
+    const isAnswerReview =
+      !is2024_01 &&
+      (q.answerStatus === "REVIEW_NEEDED" ||
+        q.readyForGrading === false ||
+        (typeof groundTruthAnswer === "string" && groundTruthAnswer.includes("[정답 검토 필요")));
+    const isReview = isTransReview || isAnswerReview;
+
+    const transcriptionStatus: "VERIFIED" | "REVIEW" = isTransReview ? "REVIEW" : "VERIFIED";
+    const answerStatus: "VERIFIED" | "REVIEW_NEEDED" = isAnswerReview ? "REVIEW_NEEDED" : "VERIFIED";
+    const readyForGrading: boolean = is2024_01 ? true : (q.readyForGrading !== undefined ? q.readyForGrading : !isReview);
+
+    const reviewTags: string[] = [];
+    if (isTransReview) reviewTags.push("[TRANS_REVIEW]");
+    if (isAnswerReview) reviewTags.push("[ANS_REVIEW]");
+
+    const aiVariationNotes = isReview
+      ? `[SEED_REVIEW_REQUIRED] ${reviewTags.join(" ")} ${Array.isArray(q.reviewNotes) ? q.reviewNotes.join("; ") : (q.reviewNotes || "검토 필요 문항")}`.trim()
+      : (q.aiVariationNotes || undefined);
+
     const question: Question = {
       id,
       questionCode,
@@ -490,6 +510,10 @@ export function buildCleanQuestions(seedsPath: string): Question[] {
       difficulty: is2024_01 ? meta!.difficulty : (q.difficulty || "MEDIUM"),
       keywords: is2024_01 ? meta!.keywords : (q.keywords || q.relatedKeywords || []),
       studyVisibility: "LIVE",
+      transcriptionStatus,
+      answerStatus,
+      readyForGrading,
+      aiVariationNotes,
       createdAt: is2024_01 ? "2024-05-01T00:00:00.000Z" : (q.createdAt || `${year}-05-01T00:00:00.000Z`),
       updatedAt: new Date().toISOString(),
     };
