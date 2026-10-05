@@ -306,7 +306,67 @@ function formatQuestionText(q: any): string {
   return text;
 }
 
-export function buildClean2024_01Questions(seedsPath: string): Question[] {
+function parseYearRound(filePath: string, data: any): { year: number; round: number } {
+  const baseMatch = path.basename(filePath).match(/(\d{4})[_-](\d{1,2})/);
+  if (baseMatch) {
+    return { year: parseInt(baseMatch[1], 10), round: parseInt(baseMatch[2], 10) };
+  }
+  const dirMatch = path.dirname(filePath).match(/(\d{4})[_-](\d{1,2})/);
+  if (dirMatch) {
+    return { year: parseInt(dirMatch[1], 10), round: parseInt(dirMatch[2], 10) };
+  }
+  if (data?.examYear && data?.examRound) {
+    return { year: Number(data.examYear), round: Number(data.examRound) };
+  }
+  if (Array.isArray(data?.questions) && data.questions[0]?.examYear && data.questions[0]?.examRound) {
+    return { year: Number(data.questions[0].examYear), round: Number(data.questions[0].examRound) };
+  }
+  return { year: 2024, round: 1 };
+}
+
+function findTranscribedFiles(target?: string): string[] {
+  if (target) {
+    const resolved = resolveSeedsPath(target);
+    if (fs.existsSync(resolved)) {
+      if (fs.statSync(resolved).isDirectory()) {
+        const files = fs.readdirSync(resolved).filter((f) => f.endsWith(".transcribed.json"));
+        return files.map((f) => path.join(resolved, f));
+      }
+      return [resolved];
+    }
+    // Check if target is like "2024-02"
+    const subCandidate = resolveSeedsPath(path.join("seeds/real-exams", target, `${target}.transcribed.json`));
+    if (fs.existsSync(subCandidate)) {
+      return [subCandidate];
+    }
+    const dirCandidate = resolveSeedsPath(path.join("seeds/real-exams", target));
+    if (fs.existsSync(dirCandidate) && fs.statSync(dirCandidate).isDirectory()) {
+      const files = fs.readdirSync(dirCandidate).filter((f) => f.endsWith(".transcribed.json"));
+      return files.map((f) => path.join(dirCandidate, f));
+    }
+  }
+
+  // Scan all seeds/real-exams subdirectories
+  const baseDir = resolveSeedsPath("seeds/real-exams");
+  if (!fs.existsSync(baseDir)) return [];
+
+  const found: string[] = [];
+  const entries = fs.readdirSync(baseDir, { withFileTypes: true });
+  for (const entry of entries) {
+    if (entry.isDirectory()) {
+      const subDir = path.join(baseDir, entry.name);
+      const subFiles = fs.readdirSync(subDir).filter((f) => f.endsWith(".transcribed.json"));
+      for (const sf of subFiles) {
+        found.push(path.join(subDir, sf));
+      }
+    } else if (entry.isFile() && entry.name.endsWith(".transcribed.json")) {
+      found.push(path.join(baseDir, entry.name));
+    }
+  }
+  return found.sort();
+}
+
+export function buildCleanQuestions(seedsPath: string): Question[] {
   if (!fs.existsSync(seedsPath)) {
     throw new Error(`Seeds file not found: ${seedsPath}`);
   }
@@ -321,29 +381,28 @@ export function buildClean2024_01Questions(seedsPath: string): Question[] {
     );
   }
 
+  const { year, round } = parseYearRound(seedsPath, data);
+  const is2024_01 = year === 2024 && round === 1;
   const questions: Question[] = [];
 
   for (const q of rawQuestions) {
     const num = q.questionNumber;
-    const meta = METADATA_MAP[num];
-    if (!meta) {
-      throw new Error(`Missing metadata mapping for question number ${num}`);
-    }
+    const meta = is2024_01 ? METADATA_MAP[num] : undefined;
 
+    const padRound = String(round).padStart(2, "0");
     const padNum = String(num).padStart(2, "0");
-    const id = `q_2024_01_${padNum}`;
-    const questionCode = `Q-2024-01-${padNum}`;
+    const id = q.id && q.id.startsWith("q_") ? q.id : `q_${year}_${padRound}_${padNum}`;
+    const questionCode = q.questionCode || `Q-${year}-${padRound}-${padNum}`;
 
-    let groundTruthAnswer: string | string[] = q.groundTruthAnswer;
-    if (num === 7) {
-      // LRU, LFU page replacement faults (2 values)
-      groundTruthAnswer = ["6", "6"];
-    } else if (num === 9) {
-      // Three join blanks
-      groundTruthAnswer = ["세타 조인", "동등 조인", "자연 조인"];
-    } else if (num === 12) {
-      // SQL result attribute and values (B / a / b)
-      groundTruthAnswer = ["B", "a", "b"];
+    let groundTruthAnswer: string | string[] = q.groundTruthAnswer || q.answer || "";
+    if (is2024_01) {
+      if (num === 7) {
+        groundTruthAnswer = ["6", "6"];
+      } else if (num === 9) {
+        groundTruthAnswer = ["세타 조인", "동등 조인", "자연 조인"];
+      } else if (num === 12) {
+        groundTruthAnswer = ["B", "a", "b"];
+      }
     }
 
     const questionText = formatQuestionText(q);
@@ -352,25 +411,25 @@ export function buildClean2024_01Questions(seedsPath: string): Question[] {
       id,
       questionCode,
       sourceType: "REAL_EXAM",
-      examYear: 2024,
-      examRound: 1,
+      examYear: is2024_01 ? 2024 : (q.examYear || year),
+      examRound: is2024_01 ? 1 : (q.examRound || round),
       questionNumber: num,
       parentQuestionId: undefined,
-      conceptId: CONCEPT_MAP[num],
-      subject: meta.subject,
-      category: meta.category,
-      type: meta.type,
+      conceptId: is2024_01 ? CONCEPT_MAP[num] : q.conceptId,
+      subject: is2024_01 ? meta!.subject : (q.subject || "프로그래밍언어활용"),
+      category: is2024_01 ? meta!.category : (q.category || (q.language ? `${q.language} 프로그래밍` : "기출이론")),
+      type: is2024_01 ? meta!.type : (q.type || q.questionType || (q.code ? "CODE_TRACE" : (q.language === "SQL" ? "SQL" : "SHORT_ANSWER"))),
       question: questionText,
-      code: q.code || undefined,
-      language: meta.language,
+      code: q.code || q.codeSnippet || undefined,
+      language: is2024_01 ? meta!.language : q.language,
       options: q.options && q.options.length > 0 ? q.options : undefined,
       groundTruthAnswer,
-      officialExplanation: q.officialExplanation || undefined,
-      hints: meta.hints,
-      difficulty: meta.difficulty,
-      keywords: meta.keywords,
+      officialExplanation: q.officialExplanation || q.explanation || undefined,
+      hints: is2024_01 ? meta!.hints : (q.hints || []),
+      difficulty: is2024_01 ? meta!.difficulty : (q.difficulty || "MEDIUM"),
+      keywords: is2024_01 ? meta!.keywords : (q.keywords || q.relatedKeywords || []),
       studyVisibility: "LIVE",
-      createdAt: "2024-05-01T00:00:00.000Z",
+      createdAt: is2024_01 ? "2024-05-01T00:00:00.000Z" : (q.createdAt || `${year}-05-01T00:00:00.000Z`),
       updatedAt: new Date().toISOString(),
     };
 
@@ -380,6 +439,8 @@ export function buildClean2024_01Questions(seedsPath: string): Question[] {
   return questions;
 }
 
+export const buildClean2024_01Questions = buildCleanQuestions;
+
 export function ingestCleanDatabase(options: CleanIngestOptions = {}): {
   insertedCount: number;
   totalCount: number;
@@ -387,12 +448,8 @@ export function ingestCleanDatabase(options: CleanIngestOptions = {}): {
 } {
   const defaultDbPath = env.DATABASE_PATH;
   const dbPath = options.dbPath || defaultDbPath;
-  const seedsPath =
-    options.seedsPath ||
-    resolveSeedsPath("seeds/real-exams/2024-01/2024-01.transcribed.json");
 
   console.log(`[Ingest] Target database: ${dbPath}`);
-  console.log(`[Ingest] Seeds path: ${seedsPath}`);
 
   // Set path override
   setDatabasePathOverride(dbPath);
@@ -413,27 +470,32 @@ export function ingestCleanDatabase(options: CleanIngestOptions = {}): {
     `[Ingest] Concepts seeded: ${conceptResult.inserted} inserted, total ${conceptResult.total}`,
   );
 
-  // 3. Build 18 clean questions
-  console.log("[Ingest] Parsing 2024-01 transcribed questions...");
-  const questions = buildClean2024_01Questions(seedsPath);
+  // 3. Find files to process
+  const filesToProcess = findTranscribedFiles(options.seedsPath);
+  console.log(`[Ingest] Found ${filesToProcess.length} transcribed file(s) to process`);
 
   // 4. Insert into database
   const questionRepo = new QuestionRepository(customDb);
   let insertedCount = 0;
 
-  const tx = customDb.transaction(() => {
-    for (const q of questions) {
-      const existing = questionRepo.findById(q.id);
-      if (existing) {
-        questionRepo.update(q.id, q);
-      } else {
-        questionRepo.create(q);
-      }
-      insertedCount++;
-    }
-  });
+  for (const seedsPath of filesToProcess) {
+    console.log(`[Ingest] Parsing transcribed questions: ${seedsPath}`);
+    const questions = buildCleanQuestions(seedsPath);
 
-  tx();
+    const tx = customDb.transaction(() => {
+      for (const q of questions) {
+        const existing = questionRepo.findById(q.id);
+        if (existing) {
+          questionRepo.update(q.id, q);
+        } else {
+          questionRepo.create(q);
+        }
+        insertedCount++;
+      }
+    });
+
+    tx();
+  }
 
   const totalCount = questionRepo.count();
   console.log(
@@ -454,7 +516,8 @@ export function ingestCleanDatabase(options: CleanIngestOptions = {}): {
 
 if (process.argv[1]?.includes("ingest2024_01_clean")) {
   try {
-    const res = ingestCleanDatabase();
+    const targetArg = process.argv.slice(2).find((arg) => !arg.startsWith("-"));
+    const res = ingestCleanDatabase({ seedsPath: targetArg });
     console.log(`Finished successfully: ${JSON.stringify(res, null, 2)}`);
   } catch (err) {
     console.error("Ingest error:", err);
