@@ -1,5 +1,18 @@
 # 정처기 실기 PC 집중학습 플랫폼 (jungcheogi-trainer-pc)
 
+> ### 📌 최신 프로젝트 릴리즈 정보 (gitingest 최신화 확인용)
+> - **버전 (Version)**: `v0.1.0` (Phase 2 Diverse AI Pool & Diverse Random Engine)
+> - **마지막 갱신 일시 (Last Updated)**: `2026-10-05 22:25:00 KST`
+> - **직전 커밋 해시 (Previous Commit)**: `e86d176` (feat: implement diverse random selection, batch diversity generator, and 2025-01 review status)
+> - **데이터베이스 문제 풀 현황**: **총 110문항**
+>   - 기출 공식 시드 (`REAL_EXAM`): 38문항 (2024-01: 18건 VERIFIED / 2025-01: 코드 10건 VERIFIED, 이론 10건 REVIEW_NEEDED 격리)
+>   - 교재 예상문제 시드 (`TEXTBOOK_EXPECTED`): 25문항 (VERIFIED)
+>   - AI 생성 변형 문제 (`AI_VARIATION`): 47문항 (엄격 6단계 검증 통과)
+> - **핵심 아키텍처 및 업데이트**:
+>   1. **Diverse Random 선별 엔진**: 최근 30회/5세션 풀이 이력 가중치 감점(-95%) 및 부모 Seed 동적 분산(-90%) 적용으로 중복·편중 출제 원천 차단
+>   2. **다양성 AI 문제 생성기**: SQL/Python/Java/C/소공 고난도 추론 유형(`Reasoning Taxonomy`) 및 6단계 엄격 검증 파이프라인 탑재
+>   3. **2025-01 기출 시드 인제스트**: 코드/SQL 10문항 `VERIFIED`, 이론/순서도 10문항 `REVIEW_NEEDED` 출제 격리 적용
+
 <!-- TUNNEL_URL_START -->
 > ### 📱 실시간 모바일 / 외부 접속 링크
 > **[👉 정처기 학습 플랫폼 바로가기 (클릭)](https://findarticles-ons-status-attorney.trycloudflare.com)**  
