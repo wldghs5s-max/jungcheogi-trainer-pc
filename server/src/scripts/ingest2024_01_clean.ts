@@ -9,11 +9,21 @@ import {
   closeDatabase,
   getDatabase,
 } from "../db/database.js";
+import { env } from "../config/env.js";
 import { Question, QuestionType, CodeLanguage } from "@jungcheogi/shared";
 
 export interface CleanIngestOptions {
   dbPath?: string;
   seedsPath?: string;
+}
+
+function resolveSeedsPath(subPath: string): string {
+  const projectRoot = path.resolve(__dirname, "../../..");
+  const candidate = path.resolve(projectRoot, subPath);
+  if (fs.existsSync(candidate)) return candidate;
+  const cwdCandidate = path.resolve(process.cwd(), subPath);
+  if (fs.existsSync(cwdCandidate)) return cwdCandidate;
+  return candidate;
 }
 
 const CONCEPT_MAP: Record<number, string> = {
@@ -305,9 +315,9 @@ export function buildClean2024_01Questions(seedsPath: string): Question[] {
   const data = JSON.parse(raw);
   const rawQuestions = data.questions;
 
-  if (!Array.isArray(rawQuestions) || rawQuestions.length !== 18) {
+  if (!Array.isArray(rawQuestions) || rawQuestions.length === 0) {
     throw new Error(
-      `Expected 18 questions in seeds, found: ${rawQuestions?.length}`,
+      `Expected non-empty questions array in seeds, found: ${rawQuestions?.length}`,
     );
   }
 
@@ -375,17 +385,11 @@ export function ingestCleanDatabase(options: CleanIngestOptions = {}): {
   totalCount: number;
   dbPath: string;
 } {
-  const defaultDbPath = path.resolve(
-    process.cwd(),
-    "server/data/jungcheogi_new.db",
-  );
+  const defaultDbPath = env.DATABASE_PATH;
   const dbPath = options.dbPath || defaultDbPath;
   const seedsPath =
     options.seedsPath ||
-    path.resolve(
-      process.cwd(),
-      "seeds/real-exams/2024-01/2024-01.transcribed.json",
-    );
+    resolveSeedsPath("seeds/real-exams/2024-01/2024-01.transcribed.json");
 
   console.log(`[Ingest] Target database: ${dbPath}`);
   console.log(`[Ingest] Seeds path: ${seedsPath}`);
@@ -436,8 +440,10 @@ export function ingestCleanDatabase(options: CleanIngestOptions = {}): {
     `[Ingest] Ingestion complete. Inserted/updated: ${insertedCount}, Total questions in DB: ${totalCount}`,
   );
 
-  // Reset override
-  setDatabasePathOverride(null);
+  // Reset override only if custom dbPath was not specified
+  if (!options.dbPath) {
+    setDatabasePathOverride(null);
+  }
 
   return {
     insertedCount,
