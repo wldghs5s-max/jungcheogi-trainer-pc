@@ -27,7 +27,6 @@ export type StudyVisibility = 'LIVE' | 'TEMPORARY_DRILL';
 export type AnswerSource =
   | 'OFFICIAL'
   | 'AI_UNVERIFIED'
-  | 'UNVERIFIED_AI'
   | 'EXECUTION_VERIFIED';
 
 /**

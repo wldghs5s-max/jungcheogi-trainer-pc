@@ -59,6 +59,7 @@ export interface SessionSubmitResponse {
   };
   isUnverifiedPractice?: boolean;
   verificationStatus?: 'VERIFIED' | 'UNVERIFIED';
+  scoringStatus?: import('./attempt.js').ScoringStatus;
 }
 
 export interface SessionSummaryResponse {

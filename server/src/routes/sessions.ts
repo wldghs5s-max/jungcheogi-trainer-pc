@@ -177,7 +177,6 @@ export async function sessionRoutes(fastify: FastifyInstance): Promise<void> {
     const isUnverifiedPractice =
       question.studyVisibility === 'TEMPORARY_DRILL' &&
       (question.answerSource === 'AI_UNVERIFIED' ||
-        question.answerSource === 'UNVERIFIED_AI' ||
         session.title.includes('비검증'));
 
     if (!isUnverifiedPractice && !hasValidGroundTruth(question.groundTruthAnswer)) {
@@ -243,6 +242,7 @@ export async function sessionRoutes(fastify: FastifyInstance): Promise<void> {
       }
     }
 
+    const scoringStatus = isUnverifiedPractice ? 'UNSCORED' : 'GRADED';
     const attemptId = `att_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`;
     const attempt: QuizAttempt = {
       id: attemptId,
@@ -251,6 +251,7 @@ export async function sessionRoutes(fastify: FastifyInstance): Promise<void> {
       userAnswer,
       isCorrect,
       score,
+      scoringStatus,
       missType,
       timeSpentMs,
       isUnknown: Boolean(isUnknown),
@@ -296,9 +297,13 @@ export async function sessionRoutes(fastify: FastifyInstance): Promise<void> {
     }
 
     const response: SessionSubmitResponse = {
-      attempt: savedAttempt,
+      attempt: {
+        ...savedAttempt,
+        scoringStatus,
+      },
       isCorrect,
       score,
+      scoringStatus,
       feedback,
       groundTruthAnswer: question.groundTruthAnswer,
       officialExplanation: question.officialExplanation,

@@ -92,7 +92,11 @@ export const StudySessionSummary: React.FC<StudySessionSummaryProps> = ({
                         {q?.category || "카테고리"}
                       </span>
                       <div style={styles.reviewStatusBadge}>
-                        {item.isUnknown ? (
+                        {item.scoringStatus === "UNSCORED" ? (
+                          <span style={{ color: "#F59E0B" }}>
+                            ⚡ 비검증 연습 (미채점)
+                          </span>
+                        ) : item.isUnknown ? (
                           <span style={{ color: "var(--color-warning)" }}>
                             ? 모르겠음
                           </span>

@@ -92,9 +92,9 @@ async function runHardeningTests() {
   const drillSessionId = data1.drillSession.id;
 
   // ------------------------------------------------------------------------
-  // Test 2: UNAVAILABLE variation drill은 정식 questions table(LIVE)에 들어가지 않는다.
+  // Test 2: UNAVAILABLE variation drill은 questions 테이블에 저장되지만 study_visibility = TEMPORARY_DRILL로 격리되어 정식 LIVE 풀에 들어가지 않는다 (Architecture B).
   // ------------------------------------------------------------------------
-  console.log('\n--- Test 2: 정식 questions DB 격리 (study_visibility = TEMPORARY_DRILL) 검증 ---');
+  console.log('\n--- Test 2: questions 테이블 격리 (study_visibility = TEMPORARY_DRILL, LIVE 풀 배제) 검증 ---');
   const rawQRow = db.prepare('SELECT study_visibility FROM questions WHERE id = ?').get(drillQId) as {
     study_visibility: string;
   };
@@ -107,7 +107,7 @@ async function runHardeningTests() {
 
   const liveQuestions = questionRepo.findAllMatching({ studyVisibility: 'LIVE' as any });
   assert.strictEqual(liveQuestions.some((q) => q.id === drillQId), false, 'LIVE 문제 목록에 미노출');
-  console.log('OK   Test 2 PASS: UNAVAILABLE 드릴 문항이 정식 questions LIVE 풀에 들어가지 않음');
+  console.log('OK   Test 2 PASS: UNAVAILABLE 드릴 문항이 TEMPORARY_DRILL로 격리되어 LIVE 풀에 미노출 (Architecture B)');
 
   // ------------------------------------------------------------------------
   // Test 3: UNAVAILABLE variation drill은 UNVERIFIED PRACTICE session으로만 생성된다.
@@ -120,9 +120,9 @@ async function runHardeningTests() {
   console.log('OK   Test 3 PASS: UNVERIFIED PRACTICE 세션 및 비검증 메타데이터로 정상 생성');
 
   // ------------------------------------------------------------------------
-  // Test 4 & 5: AI answer는 채점용 Ground Truth로 사용되지 않으며 정답/오답이 확정되지 않는다.
+  // Test 4 & 5: AI answer는 채점용 Ground Truth로 사용되지 않으며 정답/오답이 확정되지 않는다 (UNSCORED).
   // ------------------------------------------------------------------------
-  console.log('\n--- Test 4 & 5: AI 답안 미신뢰 및 정답/오답 미확정 (비검증 채점) 검증 ---');
+  console.log('\n--- Test 4 & 5: AI 답안 미신뢰 및 정답/오답 미확정 (비검증 채점 UNSCORED) 검증 ---');
   const submitRes = await app.inject({
     method: 'POST',
     url: `/api/sessions/${drillSessionId}/submit`,
@@ -135,6 +135,8 @@ async function runHardeningTests() {
 
   assert.strictEqual(submitRes.statusCode, 200);
   const submitData = JSON.parse(submitRes.body);
+  assert.strictEqual(submitData.scoringStatus, 'UNSCORED', '채점 상태가 UNSCORED로 명시됨');
+  assert.strictEqual(submitData.attempt.scoringStatus, 'UNSCORED', 'attempt 객체 채점 상태도 UNSCORED');
   assert.strictEqual(submitData.isCorrect, false, '비검증 연습 문제이므로 공식 정답으로 판정하지 않음');
   assert.strictEqual(submitData.score, 0, '점수 0점 고정');
   assert.strictEqual(submitData.isUnverifiedPractice, true, 'isUnverifiedPractice 플래그 확인');

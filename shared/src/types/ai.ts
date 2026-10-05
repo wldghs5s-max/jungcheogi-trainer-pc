@@ -126,7 +126,7 @@ export interface AIVariationDrillResponse {
   drillSession?: StudySession;
   verificationStatus?: "VERIFIED" | "UNVERIFIED";
   executionStatus?: "SUCCESS" | "UNAVAILABLE" | "ERROR";
-  answerSource?: "OFFICIAL" | "AI_UNVERIFIED" | "UNVERIFIED_AI" | "EXECUTION_VERIFIED";
+  answerSource?: "OFFICIAL" | "AI_UNVERIFIED" | "EXECUTION_VERIFIED";
   failureReason?: DrillFailureReason;
   message?: string;
   stagedQuestionId?: string;
