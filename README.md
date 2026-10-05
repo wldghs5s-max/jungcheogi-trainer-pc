@@ -2,11 +2,9 @@
 
 <!-- TUNNEL_URL_START -->
 > ### 📱 실시간 모바일 / 외부 접속 링크
-> **[👉 정처기 학습 플랫폼 바로가기 (클릭)](https://findarticles-ons-status-attorney.trycloudflare.com)**  
-> - **버전**: `v1.2.0 (Math & Algorithms High-Difficulty Pool Expansion)`
-> - **실시간 URL**: `https://findarticles-ons-status-attorney.trycloudflare.com`  
-> - **마지막 갱신**: `2026-10-05 23:20:00 KST`
-> - **검증 문제 Pool**: 총 162문항 (REAL_EXAM 38, TEXTBOOK_EXPECTED 25, AI_VARIATION 99 / 실전 학습 가용 152문항)
+> **[👉 정처기 학습 플랫폼 바로가기 (클릭)](https://informed-pending-float-character.trycloudflare.com)**  
+> - **실시간 URL**: `https://informed-pending-float-character.trycloudflare.com`  
+> - **마지막 갱신**: 2026-10-06 07:41:53 KST
 <!-- TUNNEL_URL_END -->
 
 
