@@ -20,6 +20,7 @@
     "test:execution": "tsx test/execution.test.ts",
     "test:hardening": "tsx test/ai_hardening.test.ts",
     "test:seed-integrity": "tsx test/seed_data_integrity.test.ts",
+    "test:textbook-integrity": "tsx test/textbook_seed_integrity.test.ts",
     "ingest:seeds": "tsx src/scripts/ingest2024_01_clean.ts"
   },
   "dependencies": {

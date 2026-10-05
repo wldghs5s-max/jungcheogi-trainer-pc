@@ -10,7 +10,7 @@ import {
   getDatabase,
 } from "../db/database.js";
 import { env } from "../config/env.js";
-import { Question, QuestionType, CodeLanguage } from "@jungcheogi/shared";
+import { Question, QuestionType, CodeLanguage, QuestionSourceType } from "@jungcheogi/shared";
 
 export interface CleanIngestOptions {
   dbPath?: string;
@@ -324,46 +324,63 @@ function parseYearRound(filePath: string, data: any): { year: number; round: num
   return { year: 2024, round: 1 };
 }
 
+function scanFilesRecursively(dir: string, ext: string): string[] {
+  if (!fs.existsSync(dir)) return [];
+  const results: string[] = [];
+  const entries = fs.readdirSync(dir, { withFileTypes: true });
+  for (const entry of entries) {
+    const fullPath = path.join(dir, entry.name);
+    if (entry.isDirectory()) {
+      results.push(...scanFilesRecursively(fullPath, ext));
+    } else if (entry.isFile() && entry.name.endsWith(ext)) {
+      results.push(fullPath);
+    }
+  }
+  return results;
+}
+
 function findTranscribedFiles(target?: string): string[] {
   if (target) {
     const resolved = resolveSeedsPath(target);
     if (fs.existsSync(resolved)) {
       if (fs.statSync(resolved).isDirectory()) {
-        const files = fs.readdirSync(resolved).filter((f) => f.endsWith(".transcribed.json"));
-        return files.map((f) => path.join(resolved, f));
+        return scanFilesRecursively(resolved, ".json");
       }
       return [resolved];
     }
-    // Check if target is like "2024-02"
+    // Check if target is like "2024-02" in real-exams
     const subCandidate = resolveSeedsPath(path.join("seeds/real-exams", target, `${target}.transcribed.json`));
     if (fs.existsSync(subCandidate)) {
       return [subCandidate];
     }
     const dirCandidate = resolveSeedsPath(path.join("seeds/real-exams", target));
     if (fs.existsSync(dirCandidate) && fs.statSync(dirCandidate).isDirectory()) {
-      const files = fs.readdirSync(dirCandidate).filter((f) => f.endsWith(".transcribed.json"));
-      return files.map((f) => path.join(dirCandidate, f));
+      return scanFilesRecursively(dirCandidate, ".transcribed.json");
+    }
+    // Check if target is in seeds/textbooks or seeds/textbook
+    for (const tbBase of ["seeds/textbooks", "seeds/textbook"]) {
+      const tbCandidate = resolveSeedsPath(path.join(tbBase, target));
+      if (fs.existsSync(tbCandidate)) {
+        if (fs.statSync(tbCandidate).isDirectory()) {
+          return scanFilesRecursively(tbCandidate, ".json");
+        }
+        return [tbCandidate];
+      }
     }
   }
 
-  // Scan all seeds/real-exams subdirectories
-  const baseDir = resolveSeedsPath("seeds/real-exams");
-  if (!fs.existsSync(baseDir)) return [];
+  // Scan all seeds/real-exams, seeds/textbooks, and seeds/textbook
+  const searchRoots = [
+    { dir: resolveSeedsPath("seeds/real-exams"), ext: ".transcribed.json" },
+    { dir: resolveSeedsPath("seeds/textbooks"), ext: ".json" },
+    { dir: resolveSeedsPath("seeds/textbook"), ext: ".json" },
+  ];
 
   const found: string[] = [];
-  const entries = fs.readdirSync(baseDir, { withFileTypes: true });
-  for (const entry of entries) {
-    if (entry.isDirectory()) {
-      const subDir = path.join(baseDir, entry.name);
-      const subFiles = fs.readdirSync(subDir).filter((f) => f.endsWith(".transcribed.json"));
-      for (const sf of subFiles) {
-        found.push(path.join(subDir, sf));
-      }
-    } else if (entry.isFile() && entry.name.endsWith(".transcribed.json")) {
-      found.push(path.join(baseDir, entry.name));
-    }
+  for (const { dir, ext } of searchRoots) {
+    found.push(...scanFilesRecursively(dir, ext));
   }
-  return found.sort();
+  return Array.from(new Set(found)).sort();
 }
 
 export function buildCleanQuestions(seedsPath: string): Question[] {
@@ -382,17 +399,52 @@ export function buildCleanQuestions(seedsPath: string): Question[] {
   }
 
   const { year, round } = parseYearRound(seedsPath, data);
-  const is2024_01 = year === 2024 && round === 1;
+  const isTextbook =
+    data.sourceType === "TEXTBOOK_EXPECTED" ||
+    seedsPath.toLowerCase().includes("textbook") ||
+    Boolean(data.questions?.[0]?.sourceType === "TEXTBOOK_EXPECTED") ||
+    Boolean(data.book || data.chapter);
+
+  const is2024_01 = !isTextbook && year === 2024 && round === 1;
   const questions: Question[] = [];
 
-  for (const q of rawQuestions) {
-    const num = q.questionNumber;
+  for (let idx = 0; idx < rawQuestions.length; idx++) {
+    const q = rawQuestions[idx];
+    const num = q.questionNumber !== undefined ? q.questionNumber : idx + 1;
     const meta = is2024_01 ? METADATA_MAP[num] : undefined;
 
-    const padRound = String(round).padStart(2, "0");
     const padNum = String(num).padStart(2, "0");
-    const id = q.id && q.id.startsWith("q_") ? q.id : `q_${year}_${padRound}_${padNum}`;
-    const questionCode = q.questionCode || `Q-${year}-${padRound}-${padNum}`;
+
+    const itemIsTextbook =
+      isTextbook || q.sourceType === "TEXTBOOK_EXPECTED" || Boolean(q.book || q.chapter);
+
+    const sourceType: QuestionSourceType = is2024_01
+      ? "REAL_EXAM"
+      : itemIsTextbook
+      ? "TEXTBOOK_EXPECTED"
+      : (q.sourceType || data.sourceType || "REAL_EXAM");
+
+    let id: string;
+    let questionCode: string;
+
+    if (sourceType === "TEXTBOOK_EXPECTED") {
+      const rawBook = q.book || data.book || data.sourceName || "programming";
+      const bookSlug = String(rawBook)
+        .toLowerCase()
+        .replace(/[^a-z0-9]/g, "_")
+        .replace(/^_+|_+$/g, "") || "programming";
+      const rawChapter = q.chapter !== undefined ? q.chapter : (data.chapter !== undefined ? data.chapter : 1);
+      const chapterDigits = String(rawChapter).replace(/[^0-9]/g, "");
+      const padChapter = chapterDigits ? chapterDigits.padStart(2, "0") : "01";
+
+      id = q.id || `tb_${bookSlug}_${padChapter}_${padNum}`;
+      const bookCode = (bookSlug.length >= 4 ? bookSlug.substring(0, 4) : bookSlug).toUpperCase();
+      questionCode = q.questionCode || `TB-${bookCode}-${padChapter}-${padNum}`;
+    } else {
+      const padRound = String(round).padStart(2, "0");
+      id = q.id && q.id.startsWith("q_") ? q.id : `q_${year}_${padRound}_${padNum}`;
+      questionCode = q.questionCode || `Q-${year}-${padRound}-${padNum}`;
+    }
 
     let groundTruthAnswer: string | string[] = q.groundTruthAnswer || q.answer || "";
     if (is2024_01) {
@@ -407,17 +459,26 @@ export function buildCleanQuestions(seedsPath: string): Question[] {
 
     const questionText = formatQuestionText(q);
 
+    const book = q.book || data.book || undefined;
+    const chapter = q.chapter !== undefined ? String(q.chapter) : (data.chapter !== undefined ? String(data.chapter) : undefined);
+    const sourceName = q.sourceName || data.sourceName || book || undefined;
+    const subCategory = q.subCategory || (chapter ? (book ? `${book} - ${chapter}` : chapter) : undefined);
+
     const question: Question = {
       id,
       questionCode,
-      sourceType: "REAL_EXAM",
-      examYear: is2024_01 ? 2024 : (q.examYear || year),
-      examRound: is2024_01 ? 1 : (q.examRound || round),
+      sourceType,
+      examYear: sourceType === "TEXTBOOK_EXPECTED" ? q.examYear : (is2024_01 ? 2024 : (q.examYear || year)),
+      examRound: sourceType === "TEXTBOOK_EXPECTED" ? q.examRound : (is2024_01 ? 1 : (q.examRound || round)),
       questionNumber: num,
+      book,
+      chapter,
+      sourceName,
       parentQuestionId: undefined,
       conceptId: is2024_01 ? CONCEPT_MAP[num] : q.conceptId,
       subject: is2024_01 ? meta!.subject : (q.subject || "프로그래밍언어활용"),
       category: is2024_01 ? meta!.category : (q.category || (q.language ? `${q.language} 프로그래밍` : "기출이론")),
+      subCategory,
       type: is2024_01 ? meta!.type : (q.type || q.questionType || (q.code ? "CODE_TRACE" : (q.language === "SQL" ? "SQL" : "SHORT_ANSWER"))),
       question: questionText,
       code: q.code || q.codeSnippet || undefined,

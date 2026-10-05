@@ -1108,6 +1108,7 @@ export const App: React.FC = () => {
                   기초 연습 문제 (FIXTURE)
                 </option>
                 <option value="REAL_EXAM">실제 기출 (REAL_EXAM)</option>
+                <option value="TEXTBOOK_EXPECTED">기본서 예상문제 (TEXTBOOK_EXPECTED)</option>
                 <option value="AI_GENERATED">AI 신규 생성 (AI_GENERATED)</option>
                 <option value="AI_VARIATION">기출 변형 (AI_VARIATION)</option>
                 <option value="TEXTBOOK">공인 교재 (TEXTBOOK)</option>

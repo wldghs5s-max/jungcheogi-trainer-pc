@@ -508,6 +508,7 @@ export const ImportModal: React.FC<ImportModalProps> = ({
                     style={styles.selectInput}
                   >
                     <option value="REAL_EXAM">공식 기출 (REAL_EXAM)</option>
+                    <option value="TEXTBOOK_EXPECTED">기본서 예상문제 (TEXTBOOK_EXPECTED)</option>
                     <option value="TEXTBOOK">수험서 / 교재 (TEXTBOOK)</option>
                     <option value="LECTURE_NOTE">
                       강의 / 요약노트 (LECTURE_NOTE)

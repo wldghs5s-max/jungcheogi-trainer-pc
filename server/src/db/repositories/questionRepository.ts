@@ -149,6 +149,18 @@ function mapRowToQuestion(row: QuestionRow): Question {
     subject: row.subject as Subject,
     category: row.category,
     subCategory: row.sub_category ?? undefined,
+    book:
+      (row.source_type === "TEXTBOOK_EXPECTED" || row.source_type === "TEXTBOOK") && row.sub_category?.includes(" - ")
+        ? row.sub_category.split(" - ")[0]
+        : undefined,
+    chapter:
+      (row.source_type === "TEXTBOOK_EXPECTED" || row.source_type === "TEXTBOOK")
+        ? (row.sub_category?.includes(" - ") ? row.sub_category.split(" - ")[1] : (row.sub_category ?? undefined))
+        : undefined,
+    sourceName:
+      (row.source_type === "TEXTBOOK_EXPECTED" || row.source_type === "TEXTBOOK") && row.sub_category?.includes(" - ")
+        ? row.sub_category.split(" - ")[0]
+        : undefined,
     type: row.type as QuestionType,
     question: row.question_text,
     code: row.code_snippet ?? undefined,
@@ -192,6 +204,8 @@ export class QuestionRepository {
     const prefix =
       sourceType === "AI_VARIATION" || sourceType === "AI_GENERATED"
         ? "AI"
+        : sourceType === "TEXTBOOK_EXPECTED" || sourceType === "TEXTBOOK"
+        ? "TB"
         : "IMP";
     try {
       const rows = this.db
@@ -266,7 +280,7 @@ export class QuestionRepository {
       concept_id: q.conceptId ?? null,
       subject: q.subject,
       category: q.category,
-      sub_category: q.subCategory ?? null,
+      sub_category: q.subCategory ?? (q.book && q.chapter ? `${q.book} - ${q.chapter}` : (q.chapter ?? null)),
       type: q.type,
       question_text: q.question,
       code_snippet: q.code ?? null,
@@ -544,7 +558,7 @@ export class QuestionRepository {
       concept_id: merged.conceptId ?? null,
       subject: merged.subject,
       category: merged.category,
-      sub_category: merged.subCategory ?? null,
+      sub_category: merged.subCategory ?? (merged.book && merged.chapter ? `${merged.book} - ${merged.chapter}` : (merged.chapter ?? null)),
       type: merged.type,
       question_text: merged.question,
       code_snippet: merged.code ?? null,
@@ -620,7 +634,7 @@ export class QuestionRepository {
           concept_id: q.conceptId ?? null,
           subject: q.subject,
           category: q.category,
-          sub_category: q.subCategory ?? null,
+          sub_category: q.subCategory ?? (q.book && q.chapter ? `${q.book} - ${q.chapter}` : (q.chapter ?? null)),
           type: q.type,
           question_text: q.question,
           code_snippet: q.code ?? null,

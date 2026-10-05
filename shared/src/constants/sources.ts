@@ -4,6 +4,7 @@ export const QUESTION_SOURCE_LABELS: Record<QuestionSourceType, string> = {
   REAL_EXAM: '실제 기출 (검증됨)',
   TEST_FIXTURE: '테스트용 Fixture (미검증)',
   TEXTBOOK: '공인 교재',
+  TEXTBOOK_EXPECTED: '기본서 예상문제 (검증됨)',
   USER_IMPORTED: '사용자 등록',
   AI_GENERATED: 'AI 생성',
   AI_VARIATION: '기출 변형',

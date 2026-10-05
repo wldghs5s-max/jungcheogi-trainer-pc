@@ -34,6 +34,7 @@ export type AnswerSource =
  * - REAL_EXAM: 실제 공단 기출문제 (출처가 엄격히 검증된 문항)
  * - TEST_FIXTURE: 시스템 도메인 및 API 동작 검증을 위한 테스트용 Fixture (미검증 기출 후보 포함)
  * - TEXTBOOK: 공인 수험서/교재 수록 문제
+ * - TEXTBOOK_EXPECTED: 기본서/수험서 예상문제은행 문항 (엄격한 검증 및 AI 변형 seed 활용)
  * - USER_IMPORTED: 사용자가 직접 파일(OCR/PDF/텍스트)로 가져와 검수한 문제
  * - AI_GENERATED: AI가 주제 시드로부터 신규 생성한 문제
  * - AI_VARIATION: 실제 기출(parentQuestionId)을 기반으로 파라미터/구조를 변형한 문제
@@ -42,6 +43,7 @@ export type QuestionSourceType =
   | 'REAL_EXAM'
   | 'TEST_FIXTURE'
   | 'TEXTBOOK'
+  | 'TEXTBOOK_EXPECTED'
   | 'USER_IMPORTED'
   | 'AI_GENERATED'
   | 'AI_VARIATION';
@@ -81,6 +83,11 @@ export interface Question {
   examYear?: number;
   examRound?: number;
   questionNumber?: number;
+
+  // 기본서/수험서 예상문제 메타데이터
+  book?: string;
+  chapter?: string;
+  sourceName?: string;
 
   // 기출 -> AI 변형 문제 관계 (Parent-Child)
   parentQuestionId?: string;
