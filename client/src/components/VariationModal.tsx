@@ -177,7 +177,7 @@ export const VariationModal: React.FC<VariationModalProps> = ({
 
               <div style={styles.varModalFooter}>
                 <button onClick={onOpenImport} style={styles.openImportBtn}>
-                  검수 관리자 대시보드(ImportModal) 열기 &rarr;
+                  검수 스테이징 관리 열기 &rarr;
                 </button>
                 <button onClick={onClose} style={styles.primaryBtn}>
                   확인

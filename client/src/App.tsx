@@ -11,7 +11,6 @@ import {
   FileCheck,
   Play,
   Flame,
-  UploadCloud,
   Brain,
   Target,
   RotateCcw,
@@ -92,11 +91,6 @@ export const App: React.FC = () => {
 
   // Phase 4 Import & Review Modal State
   const [isImportModalOpen, setIsImportModalOpen] = useState<boolean>(false);
-  const [importModalInitialQuestion, setImportModalInitialQuestion] =
-    useState<Question | null>(null);
-  const [importModalInitialTab, setImportModalInitialTab] = useState<
-    "NEW_IMPORT" | "REVIEW_STAGING"
-  >("NEW_IMPORT");
   const [importModalInitialBatchId, setImportModalInitialBatchId] = useState<
     string | null
   >(null);
@@ -105,13 +99,7 @@ export const App: React.FC = () => {
   const [isGenerateModalOpen, setIsGenerateModalOpen] =
     useState<boolean>(false);
 
-  const openImportModal = (
-    tab: "NEW_IMPORT" | "REVIEW_STAGING" = "NEW_IMPORT",
-    question: Question | null = null,
-    batchId: string | null = null,
-  ) => {
-    setImportModalInitialTab(tab);
-    setImportModalInitialQuestion(question);
+  const openImportModal = (batchId: string | null = null) => {
     setImportModalInitialBatchId(batchId);
     setIsImportModalOpen(true);
   };
@@ -339,7 +327,7 @@ export const App: React.FC = () => {
           loadHealth();
           loadQuestions();
         }}
-        onOpenReviewQueue={() => openImportModal("REVIEW_STAGING")}
+        onOpenReviewQueue={() => openImportModal()}
       />
 
       <main style={styles.mainContent}>
@@ -527,13 +515,6 @@ export const App: React.FC = () => {
               >
                 <Sparkles size={18} color="#C084FC" />
                 <span>AI 문제 생성</span>
-              </button>
-              <button
-                onClick={() => openImportModal("NEW_IMPORT")}
-                style={styles.importBannerBtn}
-              >
-                <UploadCloud size={18} color="#60A5FA" />
-                <span>문제 데이터 가져오기</span>
               </button>
             </div>
           </div>
@@ -1275,21 +1256,6 @@ export const App: React.FC = () => {
                         <span style={{ fontSize: "11px", opacity: 0.8 }}>📋</span>
                       </span>
 
-                      <button
-                        onClick={() =>
-                          openImportModal("NEW_IMPORT", questionDetail.question)
-                        }
-                        style={{
-                          ...styles.solveDetailBtn,
-                          backgroundColor: "rgba(148, 163, 184, 0.12)",
-                          borderColor: "rgba(148, 163, 184, 0.3)",
-                          color: "#CBD5E1",
-                        }}
-                        title="이 문제의 원문을 마크다운 규격으로 Import 입력창에 채웁니다"
-                      >
-                        <UploadCloud size={13} />
-                        <span>선택한 문제 원문 불러오기</span>
-                      </button>
                       <span
                         style={{
                           ...styles.sourceBadge,
@@ -1593,16 +1559,13 @@ export const App: React.FC = () => {
         initialSessionData={initialSessionData}
       />
 
-      {/* Phase 4 문제 데이터 검수 및 Import 모달 */}
+      {/* Phase 4 검수 스테이징 관리 모달 */}
       <ImportModal
         isOpen={isImportModalOpen}
         onClose={() => {
           setIsImportModalOpen(false);
-          setImportModalInitialQuestion(null);
           setImportModalInitialBatchId(null);
         }}
-        initialQuestion={importModalInitialQuestion}
-        initialTab={importModalInitialTab}
         initialBatchId={importModalInitialBatchId}
         onQuestionsUpdated={() => {
           loadQuestions();
@@ -1616,7 +1579,7 @@ export const App: React.FC = () => {
         onClose={() => setIsGenerateModalOpen(false)}
         onOpenReviewStaging={(batchId) => {
           setIsGenerateModalOpen(false);
-          openImportModal("REVIEW_STAGING", null, batchId || null);
+          openImportModal(batchId || null);
         }}
       />
 

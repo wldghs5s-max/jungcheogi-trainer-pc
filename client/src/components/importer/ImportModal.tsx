@@ -1,11 +1,9 @@
 import React, { useState, useEffect, useCallback } from "react";
 import {
   X,
-  UploadCloud,
   CheckCircle2,
   XCircle,
   AlertTriangle,
-  FileText,
   Code2,
   Trash2,
   Edit3,
@@ -17,17 +15,14 @@ import {
   Info,
 } from "lucide-react";
 import {
-  ImportFormat,
   ImportBatch,
   StagedQuestion,
   Question,
-  QuestionSourceType,
   Subject,
   SUBJECT_LIST,
   UpdateStagedQuestionRequest,
 } from "@jungcheogi/shared";
 import {
-  parseAndStageImport,
   fetchImportBatches,
   fetchImportBatchDetail,
   updateStagedQuestionApi,
@@ -46,134 +41,12 @@ interface ImportModalProps {
   initialBatchId?: string | null;
 }
 
-const SAMPLE_MARKDOWN = `# 2024년 1회 기출문제 검수 대상
-
-### [문제 1] 단답형
-- 과목: 소프트웨어설계
-- 카테고리: 디자인 패턴
-- 출처: REAL_EXAM
-- 기출: 2024년 1회 1번
-- 난이도: MEDIUM
-
-객체 생성에 관련된 디자인 패턴 중 하나로, 복잡한 인스턴스를 조립하여 만드는 구조이며, 생성과 표현을 분리하여 동일한 생성 절차에서 서로 다른 표현 결과를 만들 수 있는 패턴은 무엇인가?
-
-**정답**: 빌더
-**해설**: GoF 디자인 패턴 중 생성 패턴에 해당하는 빌더(Builder) 패턴 설명입니다.
-**키워드**: 빌더, Builder, 생성패턴
-
----
-
-### [문제 2] C 언어 포인터
-- 과목: 프로그래밍언어활용
-- 카테고리: C 프로그래밍
-- 출처: REAL_EXAM
-- 기출: 2024년 1회 2번
-- 난이도: HARD
-
-다음 C언어로 작성된 프로그램의 실행 결과를 작성하시오.
-
-\`\`\`c
-#include <stdio.h>
-int main() {
-    int arr[3] = {100, 200, 300};
-    int *ptr = arr;
-    printf("%d\\n", *(ptr + 2));
-    return 0;
-}
-\`\`\`
-
-**정답**: 300
-**해설**: ptr은 arr[0]을 가리키며, *(ptr + 2)는 arr[2]의 값 300을 참조합니다.
-**키워드**: C언어, 포인터, 배열
-`;
-
-const SAMPLE_JSON = JSON.stringify(
-  [
-    {
-      subject: "데이터베이스구축",
-      category: "SQL 응용",
-      subCategory: "조회 쿼리",
-      type: "SQL",
-      sourceType: "TEXTBOOK",
-      question:
-        "테이블에서 특정 컬럼의 중복 값을 제거하고 고유한 값만 조회하는 SQL 키워드를 작성하시오.",
-      groundTruthAnswer: "DISTINCT",
-      officialExplanation:
-        "DISTINCT 키워드는 SELECT 절에서 중복된 결과 튜플을 제거합니다.",
-      difficulty: "EASY",
-      keywords: ["SQL", "DISTINCT", "중복제거"],
-    },
-    {
-      subject: "프로그래밍언어활용",
-      category: "Java 프로그래밍",
-      type: "CODE_TRACE",
-      sourceType: "REAL_EXAM",
-      examYear: 2024,
-      examRound: 2,
-      questionNumber: 7,
-      question:
-        "다음 Java 코드가 실행되었을 때 콘솔에 출력되는 결과를 작성하시오.",
-      codeSnippet: `public class Test {\n  public static void main(String[] args) {\n    int sum = 0;\n    for (int i = 1; i <= 5; i++) {\n      if (i % 2 == 0) sum += i;\n    }\n    System.out.println(sum);\n  }\n}`,
-      language: "JAVA",
-      groundTruthAnswer: "6",
-      officialExplanation: "1부터 5 사이의 짝수 2, 4의 합은 6입니다.",
-      difficulty: "EASY",
-      keywords: ["Java", "반복문", "조건문"],
-    },
-  ],
-  null,
-  2,
-);
-
-function formatQuestionToMarkdown(q: Question): string {
-  const parts: string[] = [];
-  const codeOrId = q.questionCode || q.id;
-  parts.push(`# 문제 원문 가져오기: ${codeOrId}\n`);
-  parts.push(`### [문제 1] ${q.category}`);
-  parts.push(`- 과목: ${q.subject}`);
-  parts.push(`- 카테고리: ${q.category}`);
-  if (q.subCategory) parts.push(`- 세부카테고리: ${q.subCategory}`);
-  parts.push(`- 출처: ${q.sourceType}`);
-  if (q.examYear) parts.push(`- 기출: ${q.examYear}년 ${q.examRound ?? 1}회 ${q.questionNumber ?? 1}번`);
-  parts.push(`- 난이도: ${q.difficulty}`);
-  parts.push("");
-  parts.push(q.question);
-  parts.push("");
-  if (q.code) {
-    const lang = (q.language || "c").toLowerCase();
-    parts.push(`\`\`\`${lang}\n${q.code}\n\`\`\`\n`);
-  }
-  const ans = Array.isArray(q.groundTruthAnswer) ? q.groundTruthAnswer.join(", ") : q.groundTruthAnswer;
-  parts.push(`**정답**: ${ans}`);
-  if (q.officialExplanation) {
-    parts.push(`**해설**: ${q.officialExplanation}`);
-  }
-  if (q.keywords && q.keywords.length > 0) {
-    parts.push(`**키워드**: ${q.keywords.join(", ")}`);
-  }
-  return parts.join("\n");
-}
-
 export const ImportModal: React.FC<ImportModalProps> = ({
   isOpen,
   onClose,
   onQuestionsUpdated,
-  initialQuestion,
-  initialTab,
   initialBatchId,
 }) => {
-  const [activeTab, setActiveTab] = useState<"NEW_IMPORT" | "REVIEW_STAGING">(
-    initialTab || "NEW_IMPORT",
-  );
-
-  // New Import Form State
-  const [format, setFormat] = useState<ImportFormat>("MARKDOWN");
-  const [sourceType, setSourceType] = useState<QuestionSourceType>("REAL_EXAM");
-  const [sourceName, setSourceName] = useState<string>("2024_01_exam_draft.md");
-  const [content, setContent] = useState<string>(SAMPLE_MARKDOWN);
-  const [isParsing, setIsParsing] = useState<boolean>(false);
-  const [parseError, setParseError] = useState<string | null>(null);
-
   // Review Staging State
   const [batches, setBatches] = useState<ImportBatch[]>([]);
   const [selectedBatchId, setSelectedBatchId] = useState<string | null>(null);
@@ -233,19 +106,9 @@ export const ImportModal: React.FC<ImportModalProps> = ({
 
   useEffect(() => {
     if (isOpen) {
-      if (initialTab) {
-        setActiveTab(initialTab);
-      }
-      if (initialQuestion) {
-        setContent(formatQuestionToMarkdown(initialQuestion));
-        setSourceName(`export_${initialQuestion.questionCode || initialQuestion.id}.md`);
-        setFormat("MARKDOWN");
-        setSourceType(initialQuestion.sourceType);
-        setActiveTab("NEW_IMPORT");
-      }
       loadBatches(initialBatchId || undefined);
     }
-  }, [isOpen, initialTab, initialQuestion, initialBatchId, loadBatches]);
+  }, [isOpen, initialBatchId, loadBatches]);
 
   useEffect(() => {
     if (selectedBatchId) {
@@ -254,32 +117,6 @@ export const ImportModal: React.FC<ImportModalProps> = ({
   }, [selectedBatchId, loadBatchDetail]);
 
   if (!isOpen) return null;
-
-  // Handle parsing & staging
-  const handleParseAndStage = async () => {
-    if (!content.trim()) {
-      setParseError("내용을 입력해주세요.");
-      return;
-    }
-    setIsParsing(true);
-    setParseError(null);
-
-    const res = await parseAndStageImport({
-      format,
-      sourceType,
-      sourceName: sourceName.trim() || `import_${Date.now()}`,
-      content,
-    });
-
-    setIsParsing(false);
-    if (res.error) {
-      setParseError(res.error);
-    } else if (res.data) {
-      // Switch to Review tab and select new batch
-      await loadBatches(res.data.batch.id);
-      setActiveTab("REVIEW_STAGING");
-    }
-  };
 
   // Handle setting status for a staged question
   const handleSetStatus = async (
@@ -404,16 +241,16 @@ export const ImportModal: React.FC<ImportModalProps> = ({
         <div style={styles.header}>
           <div style={styles.headerLeft}>
             <div style={styles.headerIconBox}>
-              <UploadCloud size={22} color="#3B82F6" />
+              <Layers size={22} color="#3B82F6" />
             </div>
             <div>
               <div style={styles.titleRow}>
                 <h2 style={styles.title}>
-                  문제 데이터 등록 및 검수
+                  검수 스테이징 관리
                 </h2>
               </div>
               <p style={styles.subtitle}>
-                새로운 기출문제를 가져와 검수한 후 학습 문제로 등록합니다.
+                생성되거나 스테이징된 문항을 검수하고 Live DB 반영을 관리합니다.
               </p>
             </div>
           </div>
@@ -426,186 +263,14 @@ export const ImportModal: React.FC<ImportModalProps> = ({
         <div style={styles.policyNotice}>
           <ShieldCheck size={18} color="#10B981" />
           <span>
-            <strong>Ground Truth 무결성 원칙:</strong> 파싱된 데이터는 검수 없이
+            <strong>Ground Truth 무결성 원칙:</strong> 스테이징된 데이터는 검수 없이
             자동 적재되지 않으며, 검수자(Reviewer)가 승인한 문항만 Live DB에
             영구 반영됩니다.
           </span>
         </div>
 
-        {/* Tab Selector */}
-        <div style={styles.tabBar}>
-          <button
-            onClick={() => setActiveTab("NEW_IMPORT")}
-            style={{
-              ...styles.tabBtn,
-              ...(activeTab === "NEW_IMPORT" ? styles.tabBtnActive : {}),
-            }}
-          >
-            <UploadCloud size={16} />
-            <span>새 데이터 Import</span>
-          </button>
-          <button
-            onClick={() => setActiveTab("REVIEW_STAGING")}
-            style={{
-              ...styles.tabBtn,
-              ...(activeTab === "REVIEW_STAGING" ? styles.tabBtnActive : {}),
-            }}
-          >
-            <Layers size={16} />
-            <span>검수 스테이징 관리 ({batches.length}개 배치)</span>
-          </button>
-        </div>
-
-        {/* Tab 1: New Import Form */}
-        {activeTab === "NEW_IMPORT" && (
-          <div style={styles.tabBody}>
-            <div style={styles.importFormGrid}>
-              {/* Form Controls */}
-              <div style={styles.formRow}>
-                <div style={styles.formField}>
-                  <label style={styles.label}>포맷 선택</label>
-                  <div style={styles.pillRow}>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setFormat("MARKDOWN");
-                        setSourceName("2024_01_exam_draft.md");
-                        setContent(SAMPLE_MARKDOWN);
-                      }}
-                      style={{
-                        ...styles.pillBtn,
-                        ...(format === "MARKDOWN" ? styles.pillBtnActive : {}),
-                      }}
-                    >
-                      <FileText size={14} />
-                      <span>Markdown (.md)</span>
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setFormat("JSON");
-                        setSourceName("sample_questions.json");
-                        setContent(SAMPLE_JSON);
-                      }}
-                      style={{
-                        ...styles.pillBtn,
-                        ...(format === "JSON" ? styles.pillBtnActive : {}),
-                      }}
-                    >
-                      <Code2 size={14} />
-                      <span>JSON (.json)</span>
-                    </button>
-                  </div>
-                </div>
-
-                <div style={styles.formField}>
-                  <label style={styles.label}>출처 유형 (Source Type)</label>
-                  <select
-                    value={sourceType}
-                    onChange={(e) =>
-                      setSourceType(e.target.value as QuestionSourceType)
-                    }
-                    style={styles.selectInput}
-                  >
-                    <option value="REAL_EXAM">공식 기출 (REAL_EXAM)</option>
-                    <option value="TEXTBOOK_EXPECTED">기본서 예상문제 (TEXTBOOK_EXPECTED)</option>
-                    <option value="TEXTBOOK">수험서 / 교재 (TEXTBOOK)</option>
-                    <option value="LECTURE_NOTE">
-                      강의 / 요약노트 (LECTURE_NOTE)
-                    </option>
-                    <option value="AI_VARIATION">
-                      AI 변형 문항 (AI_VARIATION)
-                    </option>
-                  </select>
-                </div>
-
-                <div style={styles.formField}>
-                  <label style={styles.label}>파일명 / 소스 식별자</label>
-                  <input
-                    type="text"
-                    value={sourceName}
-                    onChange={(e) => setSourceName(e.target.value)}
-                    placeholder="예: 2024_01_실기_단답.md"
-                    style={styles.textInput}
-                  />
-                </div>
-              </div>
-
-              {/* Sample loader buttons */}
-              <div style={styles.sampleRow}>
-                <span style={styles.sampleLabel}>템플릿 로드:</span>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setFormat("MARKDOWN");
-                    setContent(SAMPLE_MARKDOWN);
-                  }}
-                  style={styles.sampleBtn}
-                >
-                  마크다운 샘플
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setFormat("JSON");
-                    setContent(SAMPLE_JSON);
-                  }}
-                  style={styles.sampleBtn}
-                >
-                  JSON 샘플
-                </button>
-              </div>
-
-              {/* Textarea */}
-              <div style={styles.editorBox}>
-                <label style={styles.label}>
-                  데이터 원문 입력 (
-                  {format === "MARKDOWN" ? "마크다운 규격" : "JSON 배열"})
-                </label>
-                <textarea
-                  value={content}
-                  onChange={(e) => setContent(e.target.value)}
-                  style={styles.textarea}
-                  rows={14}
-                  spellCheck={false}
-                />
-              </div>
-
-              {parseError && (
-                <div style={styles.errorAlert}>
-                  <AlertTriangle size={16} />
-                  <span>{parseError}</span>
-                </div>
-              )}
-
-              {/* Action button */}
-              <div style={styles.actionRow}>
-                <button
-                  type="button"
-                  onClick={handleParseAndStage}
-                  disabled={isParsing}
-                  style={styles.primaryBtn}
-                >
-                  {isParsing ? (
-                    <>
-                      <RefreshCw size={16} className="animate-spin" />
-                      <span>파싱 및 검증 진행 중...</span>
-                    </>
-                  ) : (
-                    <>
-                      <UploadCloud size={16} />
-                      <span>파싱 및 검수 스테이징 등록</span>
-                    </>
-                  )}
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Tab 2: Review Staging */}
-        {activeTab === "REVIEW_STAGING" && (
-          <div style={styles.tabBody}>
+        {/* Review Staging Body */}
+        <div style={styles.tabBody}>
             {/* Batch Selector & Actions Bar */}
             <div style={styles.batchSelectorBar}>
               <div style={styles.batchSelectWrapper}>
@@ -1139,7 +804,6 @@ export const ImportModal: React.FC<ImportModalProps> = ({
               </div>
             )}
           </div>
-        )}
 
         {/* Edit Modal (Inline Drawer/Modal for fine-tuning question data) */}
         {editingQuestion && (
