@@ -2,9 +2,9 @@
 
 <!-- TUNNEL_URL_START -->
 > ### 📱 실시간 모바일 / 외부 접속 링크
-> **[👉 정처기 학습 플랫폼 바로가기 (클릭)](https://carlo-queue-conscious-integrating.trycloudflare.com)**  
-> - **실시간 URL**: `https://carlo-queue-conscious-integrating.trycloudflare.com`  
-> - **마지막 갱신**: 2026-10-06 20:12:35 KST
+> **[👉 정처기 학습 플랫폼 바로가기 (클릭)](https://privileges-netscape-consist-reduced.trycloudflare.com)**  
+> - **실시간 URL**: `https://privileges-netscape-consist-reduced.trycloudflare.com`  
+> - **마지막 갱신**: 2026-10-06 20:14:03 KST
 <!-- TUNNEL_URL_END -->
 
 
