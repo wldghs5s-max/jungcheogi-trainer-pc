@@ -1,5 +1,4 @@
 @echo off
 cd /d "%~dp0"
-echo Starting Jungcheogi Trainer in System Tray mode...
-start "" wscript.exe "%~dp0scripts\run_tray.vbs"
+start "" powershell.exe -NoProfile -WindowStyle Hidden -ExecutionPolicy Bypass -File "%~dp0scripts\tray_launcher.ps1"
 exit

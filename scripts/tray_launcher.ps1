@@ -2,7 +2,7 @@
 Add-Type -AssemblyName System.Windows.Forms
 Add-Type -AssemblyName System.Drawing
 
-$projectRoot = Resolve-Path (Join-Path $PSScriptRoot "..")
+$projectRoot = (Resolve-Path "$PSScriptRoot\..").Path
 Set-Location $projectRoot
 
 # 1. 원격 최신 변경사항 pull
@@ -17,7 +17,7 @@ $startInfo.Arguments = "/c npm run dev:all"
 $startInfo.WorkingDirectory = $projectRoot
 $startInfo.WindowStyle = [System.Diagnostics.ProcessWindowStyle]::Hidden
 $startInfo.CreateNoWindow = $true
-$startInfo.UseShellExecute = $true
+$startInfo.UseShellExecute = $false
 
 $serverProcess = [System.Diagnostics.Process]::Start($startInfo)
 
