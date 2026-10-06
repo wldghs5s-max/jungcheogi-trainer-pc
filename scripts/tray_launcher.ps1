@@ -1,4 +1,4 @@
-# 정처기 PC 학습 플랫폼 - 윈도우 시스템 트레이 런처
+﻿# 정처기 PC 학습 플랫폼 - 윈도우 시스템 트레이 런처
 Add-Type -AssemblyName System.Windows.Forms
 Add-Type -AssemblyName System.Drawing
 
@@ -91,6 +91,16 @@ $notifyIcon.BalloonTipTitle = "정처기 PC 플랫폼 실행됨"
 $notifyIcon.BalloonTipText = "백그라운드에서 실행 중입니다.`n더블클릭: 브라우저 열기`n우클릭: 모바일 주소 확인 및 종료"
 $notifyIcon.BalloonTipIcon = [System.Windows.Forms.ToolTipIcon]::Info
 $notifyIcon.ShowBalloonTip(4000)
+
+# 시작 3초 후 브라우저 자동 오픈
+$openTimer = New-Object System.Windows.Forms.Timer
+$openTimer.Interval = 3000
+$openTimer.add_Tick({
+    $openTimer.Stop()
+    $openTimer.Dispose()
+    Start-Process "http://localhost:5173"
+})
+$openTimer.Start()
 
 # 메시지 루프 유지
 [System.Windows.Forms.Application]::Run()
