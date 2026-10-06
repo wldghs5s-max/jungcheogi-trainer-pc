@@ -2,9 +2,9 @@
 
 <!-- TUNNEL_URL_START -->
 > ### 📱 실시간 모바일 / 외부 접속 링크
-> **[👉 정처기 학습 플랫폼 바로가기 (클릭)](https://composer-wheels-pct-expression.trycloudflare.com)**  
-> - **실시간 URL**: `https://composer-wheels-pct-expression.trycloudflare.com`  
-> - **마지막 갱신**: 2026-10-06 20:05:46 KST
+> **[👉 정처기 학습 플랫폼 바로가기 (클릭)](https://burn-meets-fishing-payday.trycloudflare.com)**  
+> - **실시간 URL**: `https://burn-meets-fishing-payday.trycloudflare.com`  
+> - **마지막 갱신**: 2026-10-06 20:10:59 KST
 <!-- TUNNEL_URL_END -->
 
 
