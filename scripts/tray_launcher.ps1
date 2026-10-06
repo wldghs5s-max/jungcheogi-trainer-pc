@@ -5,12 +5,7 @@ Add-Type -AssemblyName System.Drawing
 $projectRoot = (Resolve-Path "$PSScriptRoot\..").Path
 Set-Location $projectRoot
 
-# 1. 원격 최신 변경사항 pull
-try {
-    git pull origin master | Out-Null
-} catch {}
-
-# 2. 백그라운드로 dev:all 실행 (서버 + 클라이언트 + 터널)
+# 1. 백그라운드로 dev:all 실행 (서버 + 클라이언트 + 터널)
 $startInfo = New-Object System.Diagnostics.ProcessStartInfo
 $startInfo.FileName = "cmd.exe"
 $startInfo.Arguments = "/c npm run dev:all"
