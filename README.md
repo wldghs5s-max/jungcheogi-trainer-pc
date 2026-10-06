@@ -2,9 +2,9 @@
 
 <!-- TUNNEL_URL_START -->
 > ### 📱 실시간 모바일 / 외부 접속 링크
-> **[👉 정처기 학습 플랫폼 바로가기 (클릭)](https://gratuit-constitutional-fish-zoning.trycloudflare.com)**  
-> - **실시간 URL**: `https://gratuit-constitutional-fish-zoning.trycloudflare.com`  
-> - **마지막 갱신**: 2026-10-06 19:58:37 KST
+> **[👉 정처기 학습 플랫폼 바로가기 (클릭)](https://bobby-victoria-twist-everybody.trycloudflare.com)**  
+> - **실시간 URL**: `https://bobby-victoria-twist-everybody.trycloudflare.com`  
+> - **마지막 갱신**: 2026-10-06 20:01:03 KST
 <!-- TUNNEL_URL_END -->
 
 
