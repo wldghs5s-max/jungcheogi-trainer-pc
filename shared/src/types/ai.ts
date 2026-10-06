@@ -217,3 +217,31 @@ export interface AICodeExplanationsResponse {
   errorMessage?: string;
 }
 
+export interface CodeDeepQuestionMessage {
+  role: "user" | "assistant";
+  content: string;
+  selectedText?: string | null;
+  selectedRange?: { startLine?: number; endLine?: number } | null;
+  createdAt?: string;
+}
+
+export interface CodeDeepQuestionRequest {
+  questionId?: string;
+  questionText?: string;
+  code: string;
+  language?: string;
+  selectedText?: string | null;
+  selectedRange?: { startLine?: number; endLine?: number } | null;
+  userQuestion: string;
+  conversationHistory?: CodeDeepQuestionMessage[];
+}
+
+export interface CodeDeepQuestionResponse {
+  success: boolean;
+  answer: string;
+  source: "GEMINI" | "MOCK";
+  modelUsed?: string;
+  durationMs?: number;
+  errorMessage?: string;
+}
+

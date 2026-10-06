@@ -21,3 +21,4 @@ CREATE TABLE IF NOT EXISTS syntax_terms (
 
 CREATE UNIQUE INDEX IF NOT EXISTS idx_syntax_terms_canonical_key ON syntax_terms(canonical_key);
 CREATE INDEX IF NOT EXISTS idx_syntax_terms_language ON syntax_terms(language);
+

@@ -23,6 +23,8 @@ import {
   StudySession,
   hasValidGroundTruth,
   isSeedVariationEligible,
+  CodeDeepQuestionRequest,
+  CodeDeepQuestionResponse,
 } from "@jungcheogi/shared";
 import { QuestionRepository } from "../db/repositories/questionRepository.js";
 import { ConceptRepository } from "../db/repositories/conceptRepository.js";
@@ -370,6 +372,62 @@ export async function aiRoutes(fastify: FastifyInstance): Promise<void> {
       });
 
       return reply.status(200).send(result);
+    },
+  );
+
+  // 3-3. 코드 심층 질문 (Code Deep Question - 독립 카드 대화형 질의응답)
+  fastify.post(
+    "/api/ai/code-deep-question",
+    async (
+      request: FastifyRequest<{ Body: CodeDeepQuestionRequest }>,
+      reply: FastifyReply,
+    ) => {
+      const {
+        questionId,
+        questionText,
+        code,
+        language,
+        selectedText,
+        selectedRange,
+        userQuestion,
+        conversationHistory,
+      } = request.body || {};
+
+      if (!userQuestion || !userQuestion.trim()) {
+        return reply.status(400).send({
+          error: "Bad Request",
+          message: "userQuestion(질문 내용)은 필수입니다.",
+        });
+      }
+
+      if (!code || !code.trim()) {
+        return reply.status(400).send({
+          error: "Bad Request",
+          message: "code(소스 코드)는 필수입니다.",
+        });
+      }
+
+      try {
+        const response: CodeDeepQuestionResponse =
+          await aiService.askCodeDeepQuestion({
+            questionId,
+            questionText,
+            code,
+            language,
+            selectedText: selectedText || null,
+            selectedRange: selectedRange || null,
+            userQuestion: userQuestion.trim(),
+            conversationHistory: conversationHistory || [],
+          });
+
+        return reply.status(200).send(response);
+      } catch (err: any) {
+        return reply.status(500).send({
+          error: "Internal Server Error",
+          message:
+            err?.message || "코드 심층 질문 처리 중 오류가 발생했습니다.",
+        });
+      }
     },
   );
 

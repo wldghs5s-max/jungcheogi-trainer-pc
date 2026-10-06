@@ -20,6 +20,7 @@ import {
   RefreshCw,
   RotateCcw,
   AlertTriangle,
+  MessageSquare,
 } from "lucide-react";
 import {
   Question,
@@ -43,6 +44,7 @@ import { styles } from "./studySessionStyles";
 import { StudySessionConfig } from "./StudySessionConfig";
 import { StudySessionSummary } from "./StudySessionSummary";
 import { SyntaxTermModal } from "./SyntaxTermModal";
+import { CodeDeepQuestionCard } from "./CodeDeepQuestionCard";
 import {
   fetchAIExplanation,
   fetchAIProgressiveHints,
@@ -138,6 +140,9 @@ export const StudySessionModal: React.FC<StudySessionModalProps> = ({
     "SUCCESS" | "UNAVAILABLE" | "ERROR" | null
   >(null);
 
+  // 코드 심층 질문 워크스페이스 상태
+  const [isDeepQuestionOpen, setIsDeepQuestionOpen] = useState<boolean>(false);
+
   // Timer State
   const [elapsedSeconds, setElapsedSeconds] = useState<number>(0);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
@@ -181,6 +186,7 @@ export const StudySessionModal: React.FC<StudySessionModalProps> = ({
       setOriginalQuestionBeforeDrill(null);
       setDrillSession(null);
       setDrillExecutionStatus(null);
+      setIsDeepQuestionOpen(false);
     } else {
       if (timerRef.current) clearInterval(timerRef.current);
     }
@@ -198,6 +204,7 @@ export const StudySessionModal: React.FC<StudySessionModalProps> = ({
     setAiHints(null);
     setCodeLineCache({});
     setSelectedLineNumber(null);
+    setIsDeepQuestionOpen(false);
     setCodeExplanationStatus("IDLE");
     setCodeExplanationError(null);
     setAiExplanationData(null);
@@ -949,8 +956,9 @@ export const StudySessionModal: React.FC<StudySessionModalProps> = ({
               {/* CODE BLOCK IF PRESENT */}
               {/* CODE BLOCK IF PRESENT (Phase 8: Line-by-Line Interactive Anatomy) */}
               {currentQuestion.code && (
-                <div style={styles.codeContainer}>
-                  <div style={styles.codeHeader}>
+                <>
+                  <div style={styles.codeContainer}>
+                    <div style={styles.codeHeader}>
                     <div
                       style={{
                         display: "flex",
@@ -993,19 +1001,39 @@ export const StudySessionModal: React.FC<StudySessionModalProps> = ({
                         • 줄 번호를 클릭하면 AI 메모리/실행 분석을 확인할 수 있습니다
                       </span>
                     </div>
-                    <button onClick={handleCopyCode} style={styles.copyCodeBtn}>
-                      {codeCopied ? (
-                        <>
-                          <Check size={14} color="#10B981" />
-                          <span style={{ color: "#10B981" }}>복사됨</span>
-                        </>
-                      ) : (
-                        <>
-                          <Copy size={14} />
-                          <span>코드 복사</span>
-                        </>
-                      )}
-                    </button>
+                    <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
+                      <button
+                        type="button"
+                        onClick={() => setIsDeepQuestionOpen((prev) => !prev)}
+                        style={{
+                          ...styles.copyCodeBtn,
+                          backgroundColor: isDeepQuestionOpen
+                            ? "rgba(56, 189, 248, 0.2)"
+                            : "rgba(56, 189, 248, 0.1)",
+                          borderColor: isDeepQuestionOpen
+                            ? "#38BDF8"
+                            : "rgba(56, 189, 248, 0.3)",
+                          color: "#38BDF8",
+                        }}
+                        title="이 코드에 대해 궁금한 점을 Gemini에게 직접 질문합니다"
+                      >
+                        <MessageSquare size={13} color="#38BDF8" />
+                        <span>{isDeepQuestionOpen ? "심층 질문 닫기" : "코드 심층 질문"}</span>
+                      </button>
+                      <button onClick={handleCopyCode} style={styles.copyCodeBtn}>
+                        {codeCopied ? (
+                          <>
+                            <Check size={14} color="#10B981" />
+                            <span style={{ color: "#10B981" }}>복사됨</span>
+                          </>
+                        ) : (
+                          <>
+                            <Copy size={14} />
+                            <span>코드 복사</span>
+                          </>
+                        )}
+                      </button>
+                    </div>
                   </div>
 
                   {/* Interactive Code Lines */}
@@ -1324,7 +1352,16 @@ export const StudySessionModal: React.FC<StudySessionModalProps> = ({
                     })}
                   </div>
                 </div>
-              )}
+
+                {/* 코드 심층 질문 워크스페이스 카드 (독립 분리 카드) */}
+                {isDeepQuestionOpen && (
+                  <CodeDeepQuestionCard
+                    question={currentQuestion}
+                    onClose={() => setIsDeepQuestionOpen(false)}
+                  />
+                )}
+              </>
+            )}
 
               {/* PROGRESSIVE HINTS BOX (Phase 8 Active Recall) */}
               <div style={styles.hintContainer}>

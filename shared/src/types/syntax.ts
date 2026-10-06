@@ -24,3 +24,4 @@ export interface SyntaxTermSummary {
   termType: string;
   shortDescription: string;
 }
+

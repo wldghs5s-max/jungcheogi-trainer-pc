@@ -10,6 +10,8 @@ import {
   AIGeminiVariationRequest,
   AIGeminiVariationResponse,
   AIVariationDrillResponse,
+  CodeDeepQuestionRequest,
+  CodeDeepQuestionResponse,
 } from '@jungcheogi/shared';
 import { apiFetch } from './http';
 
@@ -186,6 +188,31 @@ export async function stageAIVariationDrill(
     }
 
     const data = await res.json();
+    return { data };
+  } catch (err: any) {
+    return { data: null, error: err?.message || '네트워크 오류가 발생했습니다.' };
+  }
+}
+
+/**
+ * 코드 심층 질문 (독립 카드에서 선택 텍스트 기반 대화형 AI 질의응답)
+ */
+export async function askCodeDeepQuestion(
+  req: CodeDeepQuestionRequest
+): Promise<{ data: CodeDeepQuestionResponse | null; error?: string }> {
+  try {
+    const res = await apiFetch('/api/ai/code-deep-question', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(req),
+    });
+
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      return { data: null, error: err.message || `심층 질문 처리 실패 (${res.status})` };
+    }
+
+    const data: CodeDeepQuestionResponse = await res.json();
     return { data };
   } catch (err: any) {
     return { data: null, error: err?.message || '네트워크 오류가 발생했습니다.' };

@@ -401,3 +401,4 @@ export const SyntaxTermModal: React.FC<SyntaxTermModalProps> = ({
     </div>
   );
 };
+

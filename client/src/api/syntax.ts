@@ -33,3 +33,4 @@ export async function fetchSyntaxTerms(language?: string): Promise<SyntaxTerm[]>
   }
   return terms;
 }
+

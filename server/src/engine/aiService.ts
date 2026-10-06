@@ -14,6 +14,9 @@ import {
   GroundTruthConflictReport,
   GeneratedIndependentQuestion,
   IndependentGenerationContext,
+  CodeDeepQuestionMessage,
+  CodeDeepQuestionRequest,
+  CodeDeepQuestionResponse,
 } from "@jungcheogi/shared";
 import { env } from "../config/env.js";
 import { MockQuestionVariationGenerator } from "./variationGenerator.js";
@@ -315,6 +318,9 @@ export interface IAIService {
   generateIndependentQuestion(
     context: IndependentGenerationContext,
   ): Promise<GeneratedIndependentQuestion>;
+  askCodeDeepQuestion(
+    context: CodeDeepQuestionRequest,
+  ): Promise<CodeDeepQuestionResponse>;
 }
 
 /**
@@ -814,6 +820,50 @@ export class MockAIService implements IAIService {
       context,
       MOCK_INDEPENDENT_C_QUESTIONS,
     );
+  }
+
+  public async askCodeDeepQuestion(
+    context: CodeDeepQuestionRequest,
+  ): Promise<CodeDeepQuestionResponse> {
+    const startTime = Date.now();
+    const hasSelection = Boolean(
+      context.selectedText && context.selectedText.trim(),
+    );
+    const lang = context.language || "C / 프로그래밍 언어";
+
+    let answer = "";
+    if (hasSelection) {
+      answer = `### 💡 선택 영역 심층 해설 (${lang})
+
+수험생께서 집중 질문하신 선택 코드:
+\`\`\`${lang.toLowerCase()}
+${context.selectedText}
+\`\`\`
+
+**질문 내용:** "${context.userQuestion}"
+
+**핵심 원리 및 시험 분석:**
+1. **역할 및 동작:** 해당 구문은 전체 프로그램의 흐름에서 변수 상태를 갱신하거나 분기/연산을 수행하는 핵심 지점입니다.
+2. **정보처리기사 출제 포인트:** 연산자 우선순위나 증감식 연산 순서(전위/후위), 단락 평가(Short-circuit), 포인터 주소 연산 등으로 인한 값 변화를 정확하게 추적하는 것이 관건입니다.
+3. **추천 학습법:** 변수의 초기값부터 해당 라인이 실행될 때까지의 메모리 상태 테이블(Trace table)을 직접 손으로 작성해보시면 명확히 이해하실 수 있습니다.`;
+    } else {
+      answer = `### 💡 전체 코드 심층 해설 (${lang})
+
+**질문 내용:** "${context.userQuestion}"
+
+**핵심 원리 및 시험 분석:**
+1. **프로그램 전체 구조:** 본 소스 코드는 주어진 입력 또는 초기 조건으로부터 단계별 제어 흐름(조건문/반복문/함수 호출)을 거쳐 최종 결과를 산출합니다.
+2. **정보처리기사 출제 포인트:** 실기 시험에서는 코드의 최종 실행 결과(출력값)를 묻거나 빈칸을 채우는 문제가 빈출됩니다. 루프 탈출 조건과 최종 변수 상태를 주의 깊게 확인하세요.
+3. **질문 요점 답변:** 문의하신 "${context.userQuestion}" 관점에서 볼 때, 코드의 진입점(main 함수)부터 변수들의 수명 주기와 상태 변경을 순차적으로 추적하는 것이 좋습니다.`;
+    }
+
+    return {
+      success: true,
+      answer,
+      source: "MOCK",
+      modelUsed: "mock-engine",
+      durationMs: Date.now() - startTime,
+    };
   }
 }
 
@@ -1800,6 +1850,90 @@ ${
         );
       }
       return this.fallbackMock.generateIndependentQuestion(context);
+    }
+  }
+
+  public async askCodeDeepQuestion(
+    context: CodeDeepQuestionRequest,
+  ): Promise<CodeDeepQuestionResponse> {
+    const startTime = Date.now();
+    const hasSelection = Boolean(
+      context.selectedText && context.selectedText.trim(),
+    );
+    const lang = context.language || "C / Java / Python";
+
+    const prompt = `당신은 정보처리기사 실기 시험 전문 최고 수준의 AI 프로그래밍 튜터입니다.
+수험생이 현재 문제의 소스 코드를 학습하던 중 심층적인 이해를 위해 질문을 남겼습니다.
+다음 정보를 바탕으로 수험생의 질문에 친절하고 정확하며 교육적으로 명쾌하게 답변해주세요.
+
+[문제 정보]
+- 문제 ID: ${context.questionId || "N/A"}
+- 문제 내용: ${context.questionText || "정보처리기사 프로그래밍 기출/실전 문제"}
+- 프로그래밍 언어: ${lang}
+
+[전체 소스 코드]
+\`\`\`${lang.toLowerCase()}
+${context.code}
+\`\`\`
+
+${
+  hasSelection
+    ? `[수험생이 집중 질문한 선택 코드 블록 (포커스)]
+${context.selectedRange?.startLine ? `(라인 ${context.selectedRange.startLine} ~ ${context.selectedRange.endLine || context.selectedRange.startLine})` : ""}
+\`\`\`
+${context.selectedText}
+\`\`\`
+`
+    : `[참고: 수험생이 특정 영역을 드래그하지 않고 전체 코드 맥락에서 질문했습니다.]`
+}
+
+${
+  context.conversationHistory && context.conversationHistory.length > 0
+    ? `[이전 대화 내역]
+${context.conversationHistory
+  .map(
+    (m) =>
+      `${m.role === "user" ? "수험생" : "AI 튜터"}: ${m.content}`,
+  )
+  .join("\n\n")}
+`
+    : ""
+}
+
+[수험생의 질문]
+${context.userQuestion}
+
+[답변 작성 가이드]
+1. 수험생이 선택한 코드 영역(있는 경우)을 중심으로, 전체 코드 실행 흐름 및 변수 메모리 상태 변화와 연결지어 설명하세요.
+2. 정보처리기사 실기 시험의 출제 포인트(포인터, 단락 평가, 연산자 우선순위, 증감식, 재귀, 상속/다형성, 슬라이싱 등)와 직결되는 핵심 원리를 명쾌하게 짚어주세요.
+3. 정답을 단순 스포일러하기보다는 수험생이 스스로 코드의 실행 원리를 납득할 수 있도록 단계별로 설명하세요.
+4. 가독성 높은 한국어 마크다운 형식으로 작성하세요. (수식이나 코드 조각은 백틱 활용)`;
+
+    try {
+      const candidateModels = GENERATOR_MODELS; // gemini-3.8-flash 우선, 실패 시 3.5 fallback
+      const { data, modelUsed } = await this.callGeminiWithModels(
+        prompt,
+        candidateModels,
+        false,
+      );
+
+      return {
+        success: true,
+        answer: typeof data === "string" ? data : String(data),
+        source: "GEMINI",
+        modelUsed,
+        durationMs: Date.now() - startTime,
+      };
+    } catch (err: any) {
+      console.warn(
+        `[GeminiAIService] askCodeDeepQuestion failed, falling back to MockAIService:`,
+        err?.message,
+      );
+      const fallback = await this.fallbackMock.askCodeDeepQuestion(context);
+      return {
+        ...fallback,
+        errorMessage: err?.message,
+      };
     }
   }
 }
