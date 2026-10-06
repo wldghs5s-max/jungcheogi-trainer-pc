@@ -7,6 +7,7 @@ import { sessionRoutes } from "./routes/sessions.js";
 import { importRoutes } from "./routes/imports.js";
 import { learningRoutes } from "./routes/learning.js";
 import { aiRoutes } from "./routes/ai.js";
+import { syntaxRoutes } from "./routes/syntax.js";
 
 export function isAllowedAddress(ip?: string): boolean {
   if (!ip) return false;
@@ -102,6 +103,7 @@ export function buildApp(): FastifyInstance {
   app.register(importRoutes);
   app.register(learningRoutes);
   app.register(aiRoutes);
+  app.register(syntaxRoutes);
 
   return app;
 }

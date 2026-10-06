@@ -8,6 +8,7 @@ import {
   AIProgressiveHintsResponse,
   AICodeLineResponse,
   AICodeExplanationsResponse,
+  SyntaxTermRef,
   normalizeVariationType,
   GroundTruthConflictStatus,
   GroundTruthConflictReport,
@@ -685,15 +686,55 @@ export class MockAIService implements IAIService {
       }
     });
 
+    const syntaxTerms: SyntaxTermRef[] = [];
+    if (trimmed.includes("&&")) syntaxTerms.push({ canonicalKey: "c.logical_and", display: "&&" });
+    if (trimmed.includes("||")) syntaxTerms.push({ canonicalKey: "c.logical_or", display: "||" });
+    if (trimmed.includes("!=") || (trimmed.includes("!") && !trimmed.includes("!="))) syntaxTerms.push({ canonicalKey: "c.logical_not", display: "!" });
+    if (trimmed.includes("%")) syntaxTerms.push({ canonicalKey: "c.modulo", display: "%" });
+    if (trimmed.includes("++")) syntaxTerms.push({ canonicalKey: "c.increment", display: "++" });
+    if (trimmed.includes("--")) syntaxTerms.push({ canonicalKey: "c.increment", display: "--" });
+    if (trimmed.includes("+=") || trimmed.includes("-=") || trimmed.includes("*=")) syntaxTerms.push({ canonicalKey: "c.compound_assign", display: "+=" });
+    if (trimmed.includes("?") && trimmed.includes(":")) syntaxTerms.push({ canonicalKey: "c.ternary", display: "?:" });
+    if (trimmed.includes("->")) syntaxTerms.push({ canonicalKey: "c.arrow_operator", display: "->" });
+    if (trimmed.includes("struct ")) syntaxTerms.push({ canonicalKey: "c.struct", display: "struct" });
+    if (/\*|->/.test(trimmed)) syntaxTerms.push({ canonicalKey: "c.pointer", display: "*" });
+    if (trimmed.includes("&") && !trimmed.includes("&&")) syntaxTerms.push({ canonicalKey: "c.address_of", display: "&" });
+    if (trimmed.includes("[") && trimmed.includes("]")) {
+      if (trimmed.includes(":") || trimmed.includes("::-1")) {
+        syntaxTerms.push({ canonicalKey: "py.slicing", display: "[:]" });
+      } else if (trimmed.includes("[-1]")) {
+        syntaxTerms.push({ canonicalKey: "py.indexing", display: "[-1]" });
+      } else {
+        syntaxTerms.push({ canonicalKey: "c.array", display: "[]" });
+      }
+    }
+    if (trimmed.includes("for(") || trimmed.includes("for ")) {
+      if (trimmed.includes(" in ")) {
+        syntaxTerms.push({ canonicalKey: "py.for_in", display: "for in" });
+      } else {
+        syntaxTerms.push({ canonicalKey: "c.for", display: "for" });
+      }
+    }
+    if (trimmed.includes("while(") || trimmed.includes("while ")) syntaxTerms.push({ canonicalKey: "c.while", display: "while" });
+    if (trimmed.includes("if(") || trimmed.includes("if ")) syntaxTerms.push({ canonicalKey: "c.if", display: "if" });
+    if (trimmed.includes("extends ")) syntaxTerms.push({ canonicalKey: "java.inheritance", display: "extends" });
+    if (trimmed.includes("static ")) syntaxTerms.push({ canonicalKey: "java.static", display: "static" });
+    if (trimmed.includes("super") || trimmed.includes("this")) syntaxTerms.push({ canonicalKey: "java.this_super", display: "this/super" });
+
     return {
       lineNumber,
       code: targetCode,
+      lineRole: summary,
+      runtimeBehavior: `런타임 실행 시 ${summary}`,
+      flowContext: flow,
+      caution,
+      problemHint: undefined,
+      syntaxTerms,
       summary,
       flow,
-      caution,
       deepExplanation,
       // 하위 호환 필드
-      syntaxElements,
+      syntaxElements: syntaxTerms.length > 0 ? syntaxTerms.map((t) => t.display) : syntaxElements,
       userDefinedElements,
       runtimeMeaning: summary,
       surroundingContext: flow || `전체 ${lines.length}줄 중 ${lineNumber}번째 라인`,
@@ -1300,19 +1341,27 @@ ${surroundingLines}
 당신은 대한민국 국가기술자격 '정보처리기사 실기' 프로그래밍 문제 전문 AI 튜터입니다.
 수험생이 아래 기출 코드를 학습할 수 있도록, **모든 코드 라인(Line 1부터 Line ${lines.length}까지)**에 대한 심층 해설 패키지를 단 1회의 JSON으로 생성하십시오.
 
-[해설 작성 절대 원칙]
-1. 분량 및 간결성 (핵심):
-   - 교과서적인 장황한 설명이나 하드웨어 일반론(CPU 레지스터, 물리 메모리 주소 등)을 절대 늘어놓지 마십시오.
-   - 정보처리기사 실기 수험생이 각 줄을 클릭했을 때 "이 줄이 무슨 의미인지, 앞뒤 흐름에서 왜 필요한지" 3초 만에 파악할 수 있도록 1~3문장 정도로 간결하게 작성하십시오.
-2. 필드별 작성 지침:
-   - lineNumber: 해당 라인 번호 (1부터 시작하는 정수, 필수)
-   - summary: 이 줄이 무엇을 하는지 1~3문장 핵심 설명 (필수)
-   - runtimeMeaning: 변수 변화, 조건문 분기, 메모리 할당, 루프 탈출 조건 등 실행 시점의 구체적인 의미 (필수)
-   - flow: 이전 줄의 결과와 현재 줄이 어떻게 연결되는지 1~2문장 (해당 없으면 null)
-   - caution: 해당 줄에서 실제로 헷갈릴 가능성이 높은 연산자 우선순위나 함정 1~2문장 (해당 없으면 null)
-   - deepExplanation: 포인터 연산이나 메모리 주소 원리 등 심층 분석 1~2문장 (해당 없으면 null)
-   - syntaxElements: 해당 줄의 핵심 키워드/연산자/표준함수 문자열 배열 (예: ["자료형 선언", "포인터 역참조 (*)"])
-3. 문제의 공식 정답/해설/채점 결과를 절대 수정하거나 변경하지 마십시오.
+[역할 분리 및 교육적 해설 원칙 (최우선)]
+1. AI 줄 해설의 역할:
+   - "이 줄이 프로그램 전체 흐름에서 무슨 역할을 하는가" (lineRole)
+   - "실행 시점의 변수 값 변화, 조건식 평가 결과, 연산, 메모리/포인터 상태 변화 등 구체적 동작" (runtimeBehavior)
+   - "앞뒤 코드와의 관계: 이전 줄에서 무엇을 넘겨받고 다음 줄에 무엇을 전달하는지" (flowContext)
+2. 문법 지식 DB와의 역할 분리:
+   - 문법의 일반 사전식 정의("if문이란 조건에 따라 실행하는 구문입니다", "&&는 두 조건이 모두 참일 때 참인 연산자입니다")는 시스템의 문법 DB에서 별도로 제공되므로, AI 줄 설명에서 장황하게 반복하지 마십시오.
+   - 대신 해당 줄에 사용된 문법 토큰은 아래 [지원 문법 키 목록]의 canonicalKey와 매핑하여 syntaxTerms 배열로 식별해 주십시오.
+3. 코드 설명 시 엄격한 금지 사항:
+   - 코드가 실제로 무엇을 하는지 설명하지 않고 결과/정답만 말하기 금지
+   - "이 줄이 중요합니다" 같은 추상적인 수식어 금지
+   - 시험 함정만 말하고 코드의 실제 동작을 생략하는 행위 금지
+   - 문제 풀이 힌트(problemHint)가 본문 동작 설명을 대체하지 말 것 (힌트는 맨 마지막에 선택적으로만 1문장 제공)
+   - 줄별 설명 간의 논리적 모순 금지 (변수 추적 일관성 유지)
+4. 분량 및 간결성:
+   - 각 필드는 1~2문장의 명확하고 정확한 한국어로 작성하십시오.
+
+[지원 문법 키 목록 (syntaxTerms에 매핑할 canonicalKey 후보)]
+- C: c.logical_and (&&), c.logical_or (||), c.logical_not (!), c.modulo (%), c.increment (++ / --), c.compound_assign (+=, -=), c.ternary (?:), c.pointer (*), c.address_of (&), c.arrow_operator (->), c.struct (struct), c.array ([]), c.for (for), c.while (while), c.if (if)
+- Java: java.inheritance (extends), java.overriding (@Override), java.static (static), java.this_super (this, super), java.for (for), java.if (if), java.logical_and (&&)
+- Python: py.slicing ([:]), py.indexing ([-1]), py.for_in (for in), py.aliasing (참조 복사), py.if (if)
 
 [문제 정보]
 - 과목: ${question.subject}
@@ -1329,12 +1378,14 @@ ${lines.map((l, i) => `${i + 1}: ${l}`).join("\n")}
   "lines": [
     {
       "lineNumber": 1,
-      "summary": "...",
-      "runtimeMeaning": "...",
-      "flow": "...",
-      "caution": "...",
-      "deepExplanation": null,
-      "syntaxElements": ["..."]
+      "lineRole": "이 줄이 프로그램 전체 흐름에서 수행하는 핵심 역할 (1~2문장)",
+      "runtimeBehavior": "실행 시점의 변수 값 변화, 조건식 평가 결과, 메모리/포인터 상태 변화 등 구체적 동작 (1~2문장)",
+      "flowContext": "이전 줄에서 무엇을 넘겨받고 다음 줄에 무엇을 전달하는지 (1~2문장, 첫 줄이면 진입점 설명)",
+      "caution": "해당 줄에서 주의할 연산자 우선순위나 함정 (해당 없으면 null)",
+      "problemHint": "문제 정답 도출을 위한 보조 힌트 (필요한 경우에만 1문장, 없으면 null)",
+      "syntaxTerms": [
+        { "canonicalKey": "c.logical_and", "display": "&&" }
+      ]
     }
   ]
 }
@@ -1365,25 +1416,66 @@ ${lines.map((l, i) => `${i + 1}: ${l}`).join("\n")}
         const targetLine = lines[i] || "";
         const item = generatedLinesMap.get(lineNum);
 
-        const summary =
+        const lineRole =
+          item?.lineRole ||
           item?.summary ||
-          item?.runtimeMeaning ||
           `${lineNum}번째 라인 실행 구문입니다.`;
-        const flow = item?.flow || undefined;
-        const caution = item?.caution || item?.examTip || undefined;
-        const deepExplanation = item?.deepExplanation || undefined;
+        const runtimeBehavior =
+          item?.runtimeBehavior ||
+          item?.runtimeMeaning ||
+          lineRole;
+        const flowContext =
+          item?.flowContext ||
+          item?.flow ||
+          undefined;
+        const caution =
+          item?.caution ||
+          item?.examTip ||
+          undefined;
+        const problemHint =
+          item?.problemHint ||
+          undefined;
+        const deepExplanation =
+          item?.deepExplanation ||
+          undefined;
+
+        let syntaxTerms: SyntaxTermRef[] = [];
+        if (Array.isArray(item?.syntaxTerms)) {
+          syntaxTerms = item.syntaxTerms.filter(
+            (t: any) =>
+              t &&
+              typeof t.canonicalKey === "string" &&
+              typeof t.display === "string"
+          );
+        }
+
+        const legacySyntaxElements =
+          syntaxTerms.length > 0
+            ? syntaxTerms.map((t) => t.display)
+            : Array.isArray(item?.syntaxElements)
+            ? item.syntaxElements
+            : [];
 
         parsedLines.push({
           lineNumber: lineNum,
           code: targetLine,
-          summary,
-          flow,
+          lineRole,
+          runtimeBehavior,
+          flowContext,
           caution,
+          problemHint,
+          syntaxTerms,
+          // 하위 호환 필드
+          summary: lineRole,
+          flow: flowContext,
           deepExplanation,
-          syntaxElements: Array.isArray(item?.syntaxElements) ? item.syntaxElements : [],
-          userDefinedElements: Array.isArray(item?.userDefinedElements) ? item.userDefinedElements : [],
-          runtimeMeaning: item?.runtimeMeaning || summary,
-          surroundingContext: flow || `전체 ${lines.length}줄 중 ${lineNum}번째 라인`,
+          syntaxElements: legacySyntaxElements,
+          userDefinedElements: Array.isArray(item?.userDefinedElements)
+            ? item.userDefinedElements
+            : [],
+          runtimeMeaning: runtimeBehavior,
+          surroundingContext:
+            flowContext || `전체 ${lines.length}줄 중 ${lineNum}번째 라인`,
           examTip: caution || "기출 빈출 라인이므로 주의 깊게 확인하세요.",
           source: "GEMINI",
           modelUsed,

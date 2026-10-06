@@ -19,6 +19,7 @@ import {
   Zap,
   RefreshCw,
   RotateCcw,
+  AlertTriangle,
 } from "lucide-react";
 import {
   Question,
@@ -41,6 +42,7 @@ import {
 import { styles } from "./studySessionStyles";
 import { StudySessionConfig } from "./StudySessionConfig";
 import { StudySessionSummary } from "./StudySessionSummary";
+import { SyntaxTermModal } from "./SyntaxTermModal";
 import {
   fetchAIExplanation,
   fetchAIProgressiveHints,
@@ -106,6 +108,9 @@ export const StudySessionModal: React.FC<StudySessionModalProps> = ({
   >(null);
   const codeExplanationVersionRef = useRef<number>(0);
   const [selectedLineNumber, setSelectedLineNumber] = useState<number | null>(
+    null,
+  );
+  const [selectedSyntaxKey, setSelectedSyntaxKey] = useState<string | null>(
     null,
   );
 
@@ -957,9 +962,35 @@ export const StudySessionModal: React.FC<StudySessionModalProps> = ({
                       <span style={styles.codeLangBadge}>
                         {currentQuestion.language || "CODE"}
                       </span>
+
+                      {/* AI 해설 준비 상태 배지 (가짜 progress 없이 실제 상태만 정직하게 표시) */}
+                      {codeExplanationStatus === "PENDING" && (
+                        <span style={styles.statusPendingBadge}>
+                          <RefreshCw size={12} className="spin" color="#38BDF8" />
+                          <span>AI 줄별 해설 준비 중...</span>
+                        </span>
+                      )}
+                      {codeExplanationStatus === "REGENERATING" && (
+                        <span style={styles.statusRegenBadge}>
+                          <RotateCcw size={12} className="spin" color="#F59E0B" />
+                          <span>↻ AI 줄별 해설 다시 생성 중...</span>
+                        </span>
+                      )}
+                      {codeExplanationStatus === "READY" && (
+                        <span style={styles.statusReadyBadge}>
+                          <CheckCircle2 size={12} color="#10B981" />
+                          <span>✓ AI 줄별 해설 준비 완료</span>
+                        </span>
+                      )}
+                      {codeExplanationStatus === "FAILED" && (
+                        <span style={styles.statusFailedBadge}>
+                          <AlertTriangle size={12} color="#EF4444" />
+                          <span>AI 줄별 해설 준비 실패</span>
+                        </span>
+                      )}
+
                       <span style={styles.codeHintText}>
-                        • 줄 번호를 클릭하면 AI 메모리/실행 분석을 확인할 수
-                        있습니다
+                        • 줄 번호를 클릭하면 AI 메모리/실행 분석을 확인할 수 있습니다
                       </span>
                     </div>
                     <button onClick={handleCopyCode} style={styles.copyCodeBtn}>
@@ -1087,44 +1118,86 @@ export const StudySessionModal: React.FC<StudySessionModalProps> = ({
                                 </div>
                               ) : lineData ? (
                                 <div style={styles.inlineAnatomyBody}>
-                                  <div style={styles.anatomyMeaning}>
-                                    <strong style={{ color: "#F8FAFC" }}>
-                                      ⚡ 런타임/메모리 동작:
-                                    </strong>{" "}
-                                    <span>{lineData.runtimeMeaning || lineData.summary}</span>
-                                  </div>
-                                  {lineData.syntaxElements &&
-                                    lineData.syntaxElements.length > 0 && (
-                                      <div style={styles.anatomySyntaxRow}>
-                                        <span style={styles.anatomyLabel}>
-                                          문법 요소:
+                                  {/* 문법 요소 (독립 학습 모달 연결) */}
+                                  {lineData.syntaxTerms && lineData.syntaxTerms.length > 0 ? (
+                                    <div style={styles.anatomySyntaxRow}>
+                                      <span style={styles.anatomyLabel}>
+                                        문법 요소 (클릭 시 지식 모달):
+                                      </span>
+                                      {lineData.syntaxTerms.map((st, sIdx) => (
+                                        <button
+                                          key={sIdx}
+                                          type="button"
+                                          onClick={(e) => {
+                                            e.stopPropagation();
+                                            setSelectedSyntaxKey(st.canonicalKey);
+                                          }}
+                                          style={styles.syntaxTermPillBtn}
+                                          title={`[${st.display}] 문법 지식 상세 모달 열기 (AI 0회 호출)`}
+                                        >
+                                          <span>{st.display}</span>
+                                          <span style={styles.syntaxTermKeyHint}>
+                                            ({st.canonicalKey.split(".")[1] || st.canonicalKey})
+                                          </span>
+                                        </button>
+                                      ))}
+                                    </div>
+                                  ) : lineData.syntaxElements && lineData.syntaxElements.length > 0 ? (
+                                    <div style={styles.anatomySyntaxRow}>
+                                      <span style={styles.anatomyLabel}>
+                                        문법 요소:
+                                      </span>
+                                      {lineData.syntaxElements.map((el, eIdx) => (
+                                        <span key={eIdx} style={styles.anatomyTag}>
+                                          {el}
                                         </span>
-                                        {lineData.syntaxElements.map(
-                                          (el, eIdx) => (
-                                            <span
-                                              key={eIdx}
-                                              style={styles.anatomyTag}
-                                            >
-                                              {el}
-                                            </span>
-                                          ),
-                                        )}
-                                      </div>
-                                    )}
-                                  {lineData.surroundingContext && (
+                                      ))}
+                                    </div>
+                                  ) : null}
+
+                                  {/* ① 📋 이 줄이 하는 일 */}
+                                  <div style={styles.anatomyRole}>
+                                    <strong style={{ color: "#38BDF8", display: "block", marginBottom: "4px" }}>
+                                      ① 📋 이 줄이 하는 일 (핵심 역할):
+                                    </strong>
+                                    <span>{lineData.lineRole || lineData.summary}</span>
+                                  </div>
+
+                                  {/* ② ⚡ 실행 시 실제 동작 */}
+                                  <div style={styles.anatomyBehavior}>
+                                    <strong style={{ color: "#34D399", display: "block", marginBottom: "4px" }}>
+                                      ② ⚡ 실행 시 실제 동작 (값·조건·메모리):
+                                    </strong>
+                                    <span>{lineData.runtimeBehavior || lineData.runtimeMeaning || lineData.summary}</span>
+                                  </div>
+
+                                  {/* ③ 🔗 앞뒤 코드 연계 흐름 */}
+                                  {(lineData.flowContext || lineData.flow || lineData.surroundingContext) && (
                                     <div style={styles.anatomyContext}>
                                       <strong style={{ color: "#94A3B8" }}>
-                                        연계 흐름:
+                                        ③ 🔗 앞뒤 코드 연계 흐름:
                                       </strong>{" "}
-                                      <span>{lineData.surroundingContext}</span>
+                                      <span>{lineData.flowContext || lineData.flow || lineData.surroundingContext}</span>
                                     </div>
                                   )}
-                                  {lineData.examTip && (
+
+                                  {/* ④ ⚠️ 시험 주의점 & 함정 */}
+                                  {(lineData.caution || lineData.examTip) && (
                                     <div style={styles.anatomyExamTip}>
                                       <strong style={{ color: "#F59E0B" }}>
-                                        🎯 출제 함정 & 팁:
+                                        ④ ⚠️ 시험 주의점 & 함정:
                                       </strong>{" "}
-                                      <span>{lineData.examTip}</span>
+                                      <span>{lineData.caution || lineData.examTip}</span>
+                                    </div>
+                                  )}
+
+                                  {/* ⑤ 💡 문제 풀이 보조 힌트 */}
+                                  {lineData.problemHint && (
+                                    <div style={styles.anatomyHint}>
+                                      <strong style={{ color: "#60A5FA" }}>
+                                        ⑤ 💡 문제 풀이 보조 힌트:
+                                      </strong>{" "}
+                                      <span>{lineData.problemHint}</span>
                                     </div>
                                   )}
 
@@ -1962,6 +2035,13 @@ export const StudySessionModal: React.FC<StudySessionModalProps> = ({
           )}
         </div>
       </div>
+
+      {/* SYNTAX KNOWLEDGE LEARNING MODAL (AI API 0회 호출) */}
+      <SyntaxTermModal
+        canonicalKey={selectedSyntaxKey}
+        onClose={() => setSelectedSyntaxKey(null)}
+        onSelectRelatedTerm={(key) => setSelectedSyntaxKey(key)}
+      />
     </div>
   );
 };

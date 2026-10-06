@@ -56,12 +56,25 @@ export interface AICodeLineRequest {
   deepAnalysis?: boolean;
 }
 
+export interface SyntaxTermRef {
+  canonicalKey: string;
+  display: string;
+}
+
 export interface AICodeLineResponse {
   lineNumber: number;
   code: string;
+  // 구조화된 교육 해설 필드
+  lineRole?: string;             // ② 이 줄이 하는 일 (핵심 역할 및 목적)
+  runtimeBehavior?: string;      // ③ 실행 시 실제 동작 (값, 조건 판별, 연산, 메모리/포인터 상태)
+  flowContext?: string;          // ④ 앞뒤 코드와의 관계 (이전 줄에서 무엇을 받고 이후 줄에 무엇을 전달하는지)
+  caution?: string;              // ⑤ 주의점 (시험에서 헷갈리기 쉬운 부분)
+  problemHint?: string;          // ⑥ 문제 풀이 힌트 (보조 정보)
+  syntaxTerms?: SyntaxTermRef[]; // ① 문법 요소 식별자 목록 (클릭 시 Syntax DB 모달 연결)
+
+  // 하위 호환 필드
   summary?: string;
   flow?: string;
-  caution?: string;
   deepExplanation?: string;
   syntaxElements?: string[];
   userDefinedElements?: string[];
