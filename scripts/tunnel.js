@@ -118,3 +118,21 @@ proc.stderr.on('data', handleOutput);
 proc.on('close', (code) => {
   console.log(`\nCloudflare 터널이 종료되었습니다. (코드: ${code})`);
 });
+
+const cleanup = () => {
+  try {
+    if (proc && !proc.killed) {
+      proc.kill();
+    }
+  } catch (_) {}
+};
+
+process.on('SIGINT', () => {
+  cleanup();
+  process.exit(0);
+});
+process.on('SIGTERM', () => {
+  cleanup();
+  process.exit(0);
+});
+process.on('exit', cleanup);

@@ -1,0 +1,96 @@
+# 정처기 PC 학습 플랫폼 - 윈도우 시스템 트레이 런처
+Add-Type -AssemblyName System.Windows.Forms
+Add-Type -AssemblyName System.Drawing
+
+$projectRoot = Resolve-Path (Join-Path $PSScriptRoot "..")
+Set-Location $projectRoot
+
+# 1. 원격 최신 변경사항 pull
+try {
+    git pull origin master | Out-Null
+} catch {}
+
+# 2. 백그라운드로 dev:all 실행 (서버 + 클라이언트 + 터널)
+$startInfo = New-Object System.Diagnostics.ProcessStartInfo
+$startInfo.FileName = "cmd.exe"
+$startInfo.Arguments = "/c npm run dev:all"
+$startInfo.WorkingDirectory = $projectRoot
+$startInfo.WindowStyle = [System.Diagnostics.ProcessWindowStyle]::Hidden
+$startInfo.CreateNoWindow = $true
+$startInfo.UseShellExecute = $true
+
+$serverProcess = [System.Diagnostics.Process]::Start($startInfo)
+
+# 3. 트레이 아이콘 설정
+$notifyIcon = New-Object System.Windows.Forms.NotifyIcon
+$notifyIcon.Icon = [System.Drawing.SystemIcons]::Application
+$notifyIcon.Text = "정처기 PC 학습 플랫폼 (실행 중)"
+$notifyIcon.Visible = $true
+
+# 우클릭 컨텍스트 메뉴 구성
+$contextMenu = New-Object System.Windows.Forms.ContextMenuStrip
+
+$menuTitle = New-Object System.Windows.Forms.ToolStripMenuItem
+$menuTitle.Text = "정처기 PC 플랫폼 v1.2.0"
+$menuTitle.Enabled = $false
+$contextMenu.Items.Add($menuTitle) | Out-Null
+
+$contextMenu.Items.Add((New-Object System.Windows.Forms.ToolStripSeparator)) | Out-Null
+
+# [웹 브라우저 열기]
+$menuOpenWeb = New-Object System.Windows.Forms.ToolStripMenuItem
+$menuOpenWeb.Text = "🌐 로컬 학습 열기 (http://localhost:5173)"
+$menuOpenWeb.add_Click({
+    Start-Process "http://localhost:5173"
+})
+$contextMenu.Items.Add($menuOpenWeb) | Out-Null
+
+# [모바일/외부 URL 확인 (GitHub)]
+$menuGithub = New-Object System.Windows.Forms.ToolStripMenuItem
+$menuGithub.Text = "📱 모바일 접속 주소 확인 (GitHub)"
+$menuGithub.add_Click({
+    Start-Process "https://github.com/wldghs5s-max/jungcheogi-trainer-pc"
+})
+$contextMenu.Items.Add($menuGithub) | Out-Null
+
+$contextMenu.Items.Add((New-Object System.Windows.Forms.ToolStripSeparator)) | Out-Null
+
+# [전체 종료]
+$menuExit = New-Object System.Windows.Forms.ToolStripMenuItem
+$menuExit.Text = "❌ 전체 종료 (서버/터널 중지)"
+$menuExit.add_Click({
+    $notifyIcon.Visible = $false
+    
+    # 하위 node, cloudflared, vite 프로세스 일괄 정리
+    Get-Process -Name "cloudflared" -ErrorAction SilentlyContinue | Stop-Process -Force -ErrorAction SilentlyContinue
+    if ($serverProcess -and !$serverProcess.HasExited) {
+        taskkill /PID $serverProcess.Id /T /F 2>$null
+    }
+    # 5173, 8765 포트 사용하는 프로세스 확인 종료
+    $ports = @(5173, 8765)
+    foreach ($p in $ports) {
+        $pids = Get-NetTCPConnection -LocalPort $p -State Listen -ErrorAction SilentlyContinue | Select-Object -ExpandProperty OwningProcess
+        foreach ($procId in $pids) {
+            Stop-Process -Id $procId -Force -ErrorAction SilentlyContinue
+        }
+    }
+    
+    [System.Windows.Forms.Application]::Exit()
+})
+$contextMenu.Items.Add($menuExit) | Out-Null
+
+$notifyIcon.ContextMenuStrip = $contextMenu
+
+# 더블클릭 시 브라우저 바로 열기
+$notifyIcon.add_DoubleClick({
+    Start-Process "http://localhost:5173"
+})
+
+# 풍선 도움말 알림
+$notifyIcon.BalloonTipTitle = "정처기 PC 플랫폼 실행됨"
+$notifyIcon.BalloonTipText = "백그라운드에서 실행 중입니다.`n더블클릭: 브라우저 열기`n우클릭: 모바일 주소 확인 및 종료"
+$notifyIcon.BalloonTipIcon = [System.Windows.Forms.ToolTipIcon]::Info
+$notifyIcon.ShowBalloonTip(4000)
+
+# 메시지 루프 유지
+[System.Windows.Forms.Application]::Run()

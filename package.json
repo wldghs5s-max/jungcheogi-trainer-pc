@@ -10,6 +10,7 @@
   ],
   "scripts": {
     "dev": "concurrently -k -p \"[{name}]\" -n \"SERVER,CLIENT\" -c \"cyan.bold,green.bold\" \"npm run dev -w server\" \"npm run dev -w client\"",
+    "dev:all": "concurrently -k -p \"[{name}]\" -n \"SERVER,CLIENT,TUNNEL\" -c \"cyan.bold,green.bold,magenta.bold\" \"npm run dev -w server\" \"npm run dev -w client\" \"node scripts/tunnel.js\"",
     "dev:server": "npm run dev -w server",
     "dev:client": "npm run dev -w client",
     "build": "npm run build -w shared && npm run build -w server && npm run build -w client",
