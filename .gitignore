@@ -22,6 +22,8 @@ server/data/*.db-journal
 server/data/*.db-wal
 server/data/*.db-shm
 server/data/*.backup*
+server/data/bug-reports/
+data/bug-reports/
 *.db
 *.backup*
 *.sqlite

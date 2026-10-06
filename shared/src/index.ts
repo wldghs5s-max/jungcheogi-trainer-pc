@@ -9,6 +9,7 @@ export * from "./types/health.js";
 export * from "./types/recommendation.js";
 export * from "./types/ai.js";
 export * from "./types/syntax.js";
+export * from "./types/bugReport.js";
 export * from "./constants/subjects.js";
 export * from "./constants/sources.js";
 export * from "./utils/grading.js";

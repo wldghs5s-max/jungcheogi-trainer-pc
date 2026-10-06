@@ -1,6 +1,6 @@
 import React from "react";
-import { Trophy, RotateCcw, Zap } from "lucide-react";
-import { SessionSummaryResponse } from "@jungcheogi/shared";
+import { Trophy, RotateCcw, Zap, Bug } from "lucide-react";
+import { SessionSummaryResponse, Question } from "@jungcheogi/shared";
 import { styles } from "./studySessionStyles";
 
 interface StudySessionSummaryProps {
@@ -9,6 +9,7 @@ interface StudySessionSummaryProps {
   onRestart: () => void;
   onClose: () => void;
   onStartDrill?: (questionId: string) => void;
+  onReportBug?: (question: Question) => void;
 }
 
 export const StudySessionSummary: React.FC<StudySessionSummaryProps> = ({
@@ -17,6 +18,7 @@ export const StudySessionSummary: React.FC<StudySessionSummaryProps> = ({
   onRestart,
   onClose,
   onStartDrill,
+  onReportBug,
 }) => {
   return (
     <div style={styles.summaryContainer}>
@@ -143,6 +145,29 @@ export const StudySessionSummary: React.FC<StudySessionSummaryProps> = ({
                               color={item.isCorrect ? "#10B981" : "#F59E0B"}
                             />
                             <span>AI 변형 풀기</span>
+                          </button>
+                        )}
+                        {q && onReportBug && (
+                          <button
+                            type="button"
+                            onClick={() => onReportBug(q)}
+                            style={{
+                              display: "inline-flex",
+                              alignItems: "center",
+                              gap: "4px",
+                              padding: "3px 8px",
+                              fontSize: "11px",
+                              fontWeight: 600,
+                              color: "#EF4444",
+                              backgroundColor: "rgba(239, 68, 68, 0.1)",
+                              border: "1px solid rgba(239, 68, 68, 0.3)",
+                              borderRadius: "4px",
+                              cursor: "pointer",
+                            }}
+                            title="이 문제에 오류가 있는 경우 신고합니다."
+                          >
+                            <Bug size={12} color="#EF4444" />
+                            <span>신고</span>
                           </button>
                         )}
                       </div>

@@ -21,6 +21,7 @@ import {
   RotateCcw,
   AlertTriangle,
   MessageSquare,
+  Bug,
 } from "lucide-react";
 import {
   Question,
@@ -45,6 +46,7 @@ import { StudySessionConfig } from "./StudySessionConfig";
 import { StudySessionSummary } from "./StudySessionSummary";
 import { SyntaxTermModal } from "./SyntaxTermModal";
 import { CodeDeepQuestionCard } from "./CodeDeepQuestionCard";
+import { BugReportModal } from "./BugReportModal";
 import {
   fetchAIExplanation,
   fetchAIProgressiveHints,
@@ -142,6 +144,11 @@ export const StudySessionModal: React.FC<StudySessionModalProps> = ({
 
   // 코드 심층 질문 워크스페이스 상태
   const [isDeepQuestionOpen, setIsDeepQuestionOpen] = useState<boolean>(false);
+
+  // 버그 리포트 Inbox 모달 상태
+  const [isBugReportOpen, setIsBugReportOpen] = useState<boolean>(false);
+  const [bugReportTargetQuestion, setBugReportTargetQuestion] =
+    useState<Question | null>(null);
 
   // Timer State
   const [elapsedSeconds, setElapsedSeconds] = useState<number>(0);
@@ -754,6 +761,26 @@ export const StudySessionModal: React.FC<StudySessionModalProps> = ({
           </div>
 
           <div style={styles.topBarRight}>
+            {phase === "PRACTICE" && currentQuestion && (
+              <button
+                type="button"
+                onClick={() => {
+                  setBugReportTargetQuestion(currentQuestion);
+                  setIsBugReportOpen(true);
+                }}
+                style={{
+                  ...styles.timerBadge,
+                  backgroundColor: "rgba(239, 68, 68, 0.12)",
+                  borderColor: "rgba(239, 68, 68, 0.35)",
+                  color: "#EF4444",
+                  cursor: "pointer",
+                }}
+                title="현재 문제 오류 신고 / 버그 리포트 작성"
+              >
+                <Bug size={14} color="#EF4444" />
+                <span style={{ fontSize: "12px", fontWeight: 600 }}>신고</span>
+              </button>
+            )}
             {phase === "PRACTICE" && (
               <div style={styles.timerBadge}>
                 <Clock size={15} color="#94A3B8" />
@@ -941,6 +968,32 @@ export const StudySessionModal: React.FC<StudySessionModalProps> = ({
                           : QUESTION_SOURCE_LABELS[currentQuestion.sourceType] ||
                             currentQuestion.sourceType}
                 </span>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    setBugReportTargetQuestion(currentQuestion);
+                    setIsBugReportOpen(true);
+                  }}
+                  style={{
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: "4px",
+                    padding: "3px 8px",
+                    fontSize: "12px",
+                    fontWeight: 600,
+                    color: "#EF4444",
+                    backgroundColor: "rgba(239, 68, 68, 0.1)",
+                    border: "1px solid rgba(239, 68, 68, 0.3)",
+                    borderRadius: "4px",
+                    cursor: "pointer",
+                    marginLeft: "auto",
+                  }}
+                  title="현재 문제에 오류나 개선점이 있으면 간편히 신고합니다"
+                >
+                  <Bug size={13} color="#EF4444" />
+                  <span>문제 신고</span>
+                </button>
               </div>
 
               {/* QUESTION STATEMENT */}
@@ -2068,6 +2121,10 @@ export const StudySessionModal: React.FC<StudySessionModalProps> = ({
               onRestart={() => setPhase("CONFIG")}
               onClose={onClose}
               onStartDrill={(qId) => handleStartAIVariationDrill(qId)}
+              onReportBug={(targetQ) => {
+                setBugReportTargetQuestion(targetQ);
+                setIsBugReportOpen(true);
+              }}
             />
           )}
         </div>
@@ -2078,6 +2135,17 @@ export const StudySessionModal: React.FC<StudySessionModalProps> = ({
         canonicalKey={selectedSyntaxKey}
         onClose={() => setSelectedSyntaxKey(null)}
         onSelectRelatedTerm={(key) => setSelectedSyntaxKey(key)}
+      />
+
+      {/* BUG REPORT INBOX MODAL */}
+      <BugReportModal
+        isOpen={isBugReportOpen}
+        onClose={() => {
+          setIsBugReportOpen(false);
+          setBugReportTargetQuestion(null);
+        }}
+        question={bugReportTargetQuestion || currentQuestion}
+        sessionId={session?.id}
       />
     </div>
   );
