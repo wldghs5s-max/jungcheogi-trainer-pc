@@ -2,9 +2,9 @@
 
 <!-- TUNNEL_URL_START -->
 > ### 📱 실시간 모바일 / 외부 접속 링크
-> **[👉 정처기 학습 플랫폼 바로가기 (클릭)](https://violations-showcase-softball-calculators.trycloudflare.com)**  
-> - **실시간 URL**: `https://violations-showcase-softball-calculators.trycloudflare.com`  
-> - **마지막 갱신**: 2026-10-06 20:22:49 KST
+> **[👉 정처기 학습 플랫폼 바로가기 (클릭)](https://voip-towns-pete-scores.trycloudflare.com)**  
+> - **실시간 URL**: `https://voip-towns-pete-scores.trycloudflare.com`  
+> - **마지막 갱신**: 2026-10-06 20:25:28 KST
 <!-- TUNNEL_URL_END -->
 
 
