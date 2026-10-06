@@ -10,7 +10,7 @@ echo [1/2] Checking latest updates from GitHub...
 git pull origin master
 echo.
 echo [2/2] Launching background server and system tray icon...
-start "" powershell.exe -NoProfile -WindowStyle Hidden -ExecutionPolicy Bypass -File "%~dp0scripts\tray_launcher.ps1"
+start "" powershell.exe -STA -NoProfile -ExecutionPolicy Bypass -EncodedCommand UwBlAHQALQBMAG8AYwBhAHQAaQBvAG4AIAAtAEwAaQB0AGUAcgBhAGwAUABhAHQAaAAgACgARwBlAHQALQBMAG8AYwBhAHQAaQBvAG4AKQAuAFAAYQB0AGgAOwAgACYAIAAuAFwAcwBjAHIAaQBwAHQAcwBcAHQAcgBhAHkAXwBsAGEAdQBuAGMAaABlAHIALgBwAHMAMQA=
 
 echo.
 echo [SUCCESS] Platform is now running in the system tray!
