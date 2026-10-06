@@ -1,4 +1,4 @@
-﻿# 정처기 PC 학습 플랫폼 - 윈도우 시스템 트레이 런처
+# Jungcheogi PC Trainer - Windows System Tray Launcher
 $scriptDir = $PSScriptRoot
 if (-not $scriptDir) {
     if ($MyInvocation.MyCommand.Path) {
@@ -14,30 +14,17 @@ if (-not (Test-Path "$projectRoot\package.json")) {
 }
 
 $logFile = "$scriptDir\tray_debug.log"
-"[$(Get-Date)] 1. Tray launcher script started" | Out-File $logFile -Encoding utf8
+"[$(Get-Date)] 1. Tray launcher script started" | Out-File $logFile -Encoding ascii
 
 try {
-    # 콘솔 창 자동 숨김 (ShowWindow SW_HIDE)
-    $windowType = Add-Type -Name Window -Namespace Console -MemberDefinition '
-    [DllImport("Kernel32.dll")]
-    public static extern IntPtr GetConsoleWindow();
-
-    [DllImport("user32.dll")]
-    public static extern bool ShowWindow(IntPtr hWnd, int nCmdShow);
-    ' -PassThru
-    $consolePtr = [Console.Window]::GetConsoleWindow()
-    if ($consolePtr -ne [IntPtr]::Zero) {
-        [Console.Window]::ShowWindow($consolePtr, 0)
-    }
-
     Add-Type -AssemblyName System.Windows.Forms
     Add-Type -AssemblyName System.Drawing
-    "[$(Get-Date)] 2. Assemblies loaded successfully" | Out-File $logFile -Append -Encoding utf8
+    "[$(Get-Date)] 2. Assemblies loaded successfully" | Out-File $logFile -Append -Encoding ascii
 
     Set-Location $projectRoot
-    "[$(Get-Date)] 3. Project root: $projectRoot" | Out-File $logFile -Append -Encoding utf8
+    "[$(Get-Date)] 3. Project root: $projectRoot" | Out-File $logFile -Append -Encoding ascii
 
-    # 백그라운드로 dev:all 실행 (서버 + 클라이언트 + 터널)
+    # Launch dev:all in background
     $startInfo = New-Object System.Diagnostics.ProcessStartInfo
     $startInfo.FileName = "cmd.exe"
     $startInfo.Arguments = "/c npm run dev:all"
@@ -47,35 +34,35 @@ try {
     $startInfo.UseShellExecute = $false
 
     $serverProcess = [System.Diagnostics.Process]::Start($startInfo)
-    "[$(Get-Date)] 4. Background server process started (PID: $($serverProcess.Id))" | Out-File $logFile -Append -Encoding utf8
+    "[$(Get-Date)] 4. Background server process started (PID: $($serverProcess.Id))" | Out-File $logFile -Append -Encoding ascii
 
-    # 트레이 아이콘 설정
+    # Configure NotifyIcon
     $notifyIcon = New-Object System.Windows.Forms.NotifyIcon
     $notifyIcon.Icon = [System.Drawing.SystemIcons]::Application
-    $notifyIcon.Text = "정처기 PC 학습 플랫폼 (실행 중)"
+    $notifyIcon.Text = "Jungcheogi Trainer PC (Running)"
     $notifyIcon.Visible = $true
 
-    # 우클릭 컨텍스트 메뉴 구성
+    # Context Menu
     $contextMenu = New-Object System.Windows.Forms.ContextMenuStrip
 
     $menuTitle = New-Object System.Windows.Forms.ToolStripMenuItem
-    $menuTitle.Text = "정처기 PC 플랫폼 v1.2.0"
+    $menuTitle.Text = "Jungcheogi Trainer v1.2.0"
     $menuTitle.Enabled = $false
     $contextMenu.Items.Add($menuTitle) | Out-Null
 
     $contextMenu.Items.Add((New-Object System.Windows.Forms.ToolStripSeparator)) | Out-Null
 
-    # [웹 브라우저 열기]
+    # Open Web
     $menuOpenWeb = New-Object System.Windows.Forms.ToolStripMenuItem
-    $menuOpenWeb.Text = "🌐 로컬 학습 열기 (http://localhost:5173)"
+    $menuOpenWeb.Text = "Open Web App (localhost:5173)"
     $menuOpenWeb.add_Click({
         Start-Process "http://localhost:5173"
     })
     $contextMenu.Items.Add($menuOpenWeb) | Out-Null
 
-    # [모바일/외부 URL 확인 (GitHub)]
+    # Open GitHub
     $menuGithub = New-Object System.Windows.Forms.ToolStripMenuItem
-    $menuGithub.Text = "📱 모바일 접속 주소 확인 (GitHub)"
+    $menuGithub.Text = "Check Mobile URL (GitHub)"
     $menuGithub.add_Click({
         Start-Process "https://github.com/wldghs5s-max/jungcheogi-trainer-pc"
     })
@@ -83,9 +70,9 @@ try {
 
     $contextMenu.Items.Add((New-Object System.Windows.Forms.ToolStripSeparator)) | Out-Null
 
-    # [전체 종료]
+    # Exit
     $menuExit = New-Object System.Windows.Forms.ToolStripMenuItem
-    $menuExit.Text = "❌ 전체 종료 (서버/터널 중지)"
+    $menuExit.Text = "Stop & Exit Platform"
     $menuExit.add_Click({
         $notifyIcon.Visible = $false
         Get-Process -Name "cloudflared" -ErrorAction SilentlyContinue | Stop-Process -Force -ErrorAction SilentlyContinue
@@ -105,18 +92,18 @@ try {
 
     $notifyIcon.ContextMenuStrip = $contextMenu
 
-    # 더블클릭 시 브라우저 바로 열기
+    # Double click
     $notifyIcon.add_DoubleClick({
         Start-Process "http://localhost:5173"
     })
 
-    # 풍선 도움말 알림
-    $notifyIcon.BalloonTipTitle = "정처기 PC 플랫폼 실행됨"
-    $notifyIcon.BalloonTipText = "백그라운드에서 실행 중입니다.`n더블클릭: 브라우저 열기`n우클릭: 모바일 주소 확인 및 종료"
+    # Balloon tip
+    $notifyIcon.BalloonTipTitle = "Jungcheogi Trainer PC"
+    $notifyIcon.BalloonTipText = "Platform is running in the background. Double-click to open."
     $notifyIcon.BalloonTipIcon = [System.Windows.Forms.ToolTipIcon]::Info
-    $notifyIcon.ShowBalloonTip(4000)
+    $notifyIcon.ShowBalloonTip(3000)
 
-    # 시작 3초 후 브라우저 자동 오픈
+    # Auto open browser after 3 seconds
     $openTimer = New-Object System.Windows.Forms.Timer
     $openTimer.Interval = 3000
     $openTimer.add_Tick({
@@ -126,9 +113,9 @@ try {
     })
     $openTimer.Start()
 
-    "[$(Get-Date)] 5. Starting Application Run loop" | Out-File $logFile -Append -Encoding utf8
+    "[$(Get-Date)] 5. Starting Application Run loop" | Out-File $logFile -Append -Encoding ascii
     [System.Windows.Forms.Application]::Run()
-    "[$(Get-Date)] 6. Application Run loop exited" | Out-File $logFile -Append -Encoding utf8
+    "[$(Get-Date)] 6. Application Run loop exited" | Out-File $logFile -Append -Encoding ascii
 } catch {
-    "[$(Get-Date)] EXCEPTION CAUGHT: $($_.Exception.ToString())" | Out-File $logFile -Append -Encoding utf8
+    "[$(Get-Date)] EXCEPTION CAUGHT: $($_.Exception.ToString())" | Out-File $logFile -Append -Encoding ascii
 }
