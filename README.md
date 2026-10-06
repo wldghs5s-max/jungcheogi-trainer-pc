@@ -2,9 +2,9 @@
 
 <!-- TUNNEL_URL_START -->
 > ### 📱 실시간 모바일 / 외부 접속 링크
-> **[👉 정처기 학습 플랫폼 바로가기 (클릭)](https://privileges-netscape-consist-reduced.trycloudflare.com)**  
-> - **실시간 URL**: `https://privileges-netscape-consist-reduced.trycloudflare.com`  
-> - **마지막 갱신**: 2026-10-06 20:14:03 KST
+> **[👉 정처기 학습 플랫폼 바로가기 (클릭)](https://place-removing-subsection-blair.trycloudflare.com)**  
+> - **실시간 URL**: `https://place-removing-subsection-blair.trycloudflare.com`  
+> - **마지막 갱신**: 2026-10-06 20:15:24 KST
 <!-- TUNNEL_URL_END -->
 
 
