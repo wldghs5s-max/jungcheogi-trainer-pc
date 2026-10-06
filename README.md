@@ -2,9 +2,9 @@
 
 <!-- TUNNEL_URL_START -->
 > ### 📱 실시간 모바일 / 외부 접속 링크
-> **[👉 정처기 학습 플랫폼 바로가기 (클릭)](https://arch-reviewing-dem-lady.trycloudflare.com)**  
-> - **실시간 URL**: `https://arch-reviewing-dem-lady.trycloudflare.com`  
-> - **마지막 갱신**: 2026-10-06 20:30:21 KST
+> **[👉 정처기 학습 플랫폼 바로가기 (클릭)](https://attract-rack-cancellation-causes.trycloudflare.com)**  
+> - **실시간 URL**: `https://attract-rack-cancellation-causes.trycloudflare.com`  
+> - **마지막 갱신**: 2026-10-06 20:46:36 KST
 <!-- TUNNEL_URL_END -->
 
 
