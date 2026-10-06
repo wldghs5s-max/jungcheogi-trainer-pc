@@ -184,4 +184,23 @@ export interface IndependentGenerationContext {
   strictLive?: boolean;
 }
 
+export interface AICodeExplanationsRequest {
+  questionId?: string;
+  questionData?: Question;
+  forceRegenerate?: boolean;
+  requestVersion?: number;
+}
+
+export interface AICodeExplanationsResponse {
+  questionId: string;
+  codeHash: string;
+  status: "READY" | "FAILED" | "PENDING";
+  lines: AICodeLineResponse[];
+  generatedAt: string;
+  source: "GEMINI" | "MOCK" | "CACHE";
+  modelUsed?: string;
+  retryCount?: number;
+  generationId?: string;
+  errorMessage?: string;
+}
 

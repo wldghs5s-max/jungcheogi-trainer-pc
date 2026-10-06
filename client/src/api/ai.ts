@@ -5,6 +5,8 @@ import {
   AIProgressiveHintsResponse,
   AICodeLineRequest,
   AICodeLineResponse,
+  AICodeExplanationsRequest,
+  AICodeExplanationsResponse,
   AIGeminiVariationRequest,
   AIGeminiVariationResponse,
   AIVariationDrillResponse,
@@ -80,6 +82,31 @@ export async function fetchAICodeLine(
     }
 
     const data: AICodeLineResponse = await res.json();
+    return { data };
+  } catch (err: any) {
+    return { data: null, error: err?.message || '네트워크 오류가 발생했습니다.' };
+  }
+}
+
+/**
+ * 문제 단위 전체 코드 줄별 해설 패키지 사전 생성 및 캐시 조회/재생성 요청
+ */
+export async function fetchAICodeExplanations(
+  req: AICodeExplanationsRequest
+): Promise<{ data: AICodeExplanationsResponse | null; error?: string }> {
+  try {
+    const res = await apiFetch('/api/ai/code-explanations', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(req),
+    });
+
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      return { data: null, error: err.message || `전체 코드 해설 요청 실패 (${res.status})` };
+    }
+
+    const data: AICodeExplanationsResponse = await res.json();
     return { data };
   } catch (err: any) {
     return { data: null, error: err?.message || '네트워크 오류가 발생했습니다.' };

@@ -7,6 +7,7 @@ import {
   AITutoringExplanationResponse,
   AIProgressiveHintsResponse,
   AICodeLineResponse,
+  AICodeExplanationsResponse,
   normalizeVariationType,
   GroundTruthConflictStatus,
   GroundTruthConflictReport,
@@ -29,6 +30,7 @@ import {
   UnsupportedIndependentGenerationError,
 } from "./languageGeneration.js";
 import { hasValidGroundTruth } from "@jungcheogi/shared";
+import { createHash } from "crypto";
 
 export const DISCONTINUED_MODEL_REGEX = /gemini-(?:1\.5|2\.0|2\.5)/i;
 
@@ -271,6 +273,12 @@ export interface CodeLineContext {
   deepAnalysis?: boolean;
 }
 
+export interface CodeAllLinesContext {
+  question: Question;
+  concept?: Concept | null;
+  deepAnalysis?: boolean;
+}
+
 export interface VariationContext {
   question: Question;
   concept?: Concept | null;
@@ -299,6 +307,9 @@ export interface IAIService {
     context: HintsContext,
   ): Promise<AIProgressiveHintsResponse>;
   explainCodeLine(context: CodeLineContext): Promise<AICodeLineResponse>;
+  explainCodeAllLines(
+    context: CodeAllLinesContext,
+  ): Promise<AICodeExplanationsResponse>;
   generateVariation(context: VariationContext): Promise<GeneratedVariation>;
   generateIndependentQuestion(
     context: IndependentGenerationContext,
@@ -690,6 +701,38 @@ export class MockAIService implements IAIService {
       source: "MOCK",
       modelUsed: "mock-engine",
       promotionReason: deepAnalysis ? "AI 심층 분석" : undefined,
+    };
+  }
+
+  public async explainCodeAllLines(
+    context: CodeAllLinesContext,
+  ): Promise<AICodeExplanationsResponse> {
+    const { question, concept, deepAnalysis } = context;
+    const code = question.code || "";
+    const lines = code.split("\n");
+    const parsedLines: AICodeLineResponse[] = [];
+
+    for (let i = 0; i < lines.length; i++) {
+      const lineRes = await this.explainCodeLine({
+        question,
+        concept,
+        lineNumber: i + 1,
+        deepAnalysis,
+      });
+      parsedLines.push(lineRes);
+    }
+
+    const codeHash = createHash("sha256").update(code.trim()).digest("hex").slice(0, 16);
+
+    return {
+      questionId: question.id,
+      codeHash,
+      status: "READY",
+      lines: parsedLines,
+      generatedAt: new Date().toISOString(),
+      source: "MOCK",
+      modelUsed: "mock-engine",
+      retryCount: 0,
     };
   }
 
@@ -1239,6 +1282,131 @@ ${surroundingLines}
         err?.message,
       );
       return this.fallbackMock.explainCodeLine(context);
+    }
+  }
+
+  public async explainCodeAllLines(
+    context: CodeAllLinesContext,
+  ): Promise<AICodeExplanationsResponse> {
+    try {
+      const { question, concept, deepAnalysis } = context;
+      const code = question.code || "";
+      const lines = code.split("\n");
+      const codeHash = createHash("sha256").update(code.trim()).digest("hex").slice(0, 16);
+
+      const promotion = evaluatePromotion(question, { deepAnalysis });
+
+      const prompt = `
+당신은 대한민국 국가기술자격 '정보처리기사 실기' 프로그래밍 문제 전문 AI 튜터입니다.
+수험생이 아래 기출 코드를 학습할 수 있도록, **모든 코드 라인(Line 1부터 Line ${lines.length}까지)**에 대한 심층 해설 패키지를 단 1회의 JSON으로 생성하십시오.
+
+[해설 작성 절대 원칙]
+1. 분량 및 간결성 (핵심):
+   - 교과서적인 장황한 설명이나 하드웨어 일반론(CPU 레지스터, 물리 메모리 주소 등)을 절대 늘어놓지 마십시오.
+   - 정보처리기사 실기 수험생이 각 줄을 클릭했을 때 "이 줄이 무슨 의미인지, 앞뒤 흐름에서 왜 필요한지" 3초 만에 파악할 수 있도록 1~3문장 정도로 간결하게 작성하십시오.
+2. 필드별 작성 지침:
+   - lineNumber: 해당 라인 번호 (1부터 시작하는 정수, 필수)
+   - summary: 이 줄이 무엇을 하는지 1~3문장 핵심 설명 (필수)
+   - runtimeMeaning: 변수 변화, 조건문 분기, 메모리 할당, 루프 탈출 조건 등 실행 시점의 구체적인 의미 (필수)
+   - flow: 이전 줄의 결과와 현재 줄이 어떻게 연결되는지 1~2문장 (해당 없으면 null)
+   - caution: 해당 줄에서 실제로 헷갈릴 가능성이 높은 연산자 우선순위나 함정 1~2문장 (해당 없으면 null)
+   - deepExplanation: 포인터 연산이나 메모리 주소 원리 등 심층 분석 1~2문장 (해당 없으면 null)
+   - syntaxElements: 해당 줄의 핵심 키워드/연산자/표준함수 문자열 배열 (예: ["자료형 선언", "포인터 역참조 (*)"])
+3. 문제의 공식 정답/해설/채점 결과를 절대 수정하거나 변경하지 마십시오.
+
+[문제 정보]
+- 과목: ${question.subject}
+- 언어: ${question.language || "C"}
+- 문제: ${question.question}
+- 정답: ${JSON.stringify(question.groundTruthAnswer)}
+${concept ? `- 관련 개념: ${concept.title}` : ""}
+
+[전체 코드 (${lines.length}줄)]
+${lines.map((l, i) => `${i + 1}: ${l}`).join("\n")}
+
+[요구 JSON 스키마]
+{
+  "lines": [
+    {
+      "lineNumber": 1,
+      "summary": "...",
+      "runtimeMeaning": "...",
+      "flow": "...",
+      "caution": "...",
+      "deepExplanation": null,
+      "syntaxElements": ["..."]
+    }
+  ]
+}
+`;
+
+      const candidateModels = promotion.shouldPromote
+        ? [promotion.model, getFastModel()]
+        : [promotion.model];
+
+      const { data: rawResult, modelUsed } = await this.callGeminiWithModels(
+        prompt,
+        candidateModels,
+        true,
+      );
+
+      const generatedLinesMap = new Map<number, any>();
+      if (Array.isArray(rawResult?.lines)) {
+        for (const item of rawResult.lines) {
+          if (item && typeof item.lineNumber === "number") {
+            generatedLinesMap.set(item.lineNumber, item);
+          }
+        }
+      }
+
+      const parsedLines: AICodeLineResponse[] = [];
+      for (let i = 0; i < lines.length; i++) {
+        const lineNum = i + 1;
+        const targetLine = lines[i] || "";
+        const item = generatedLinesMap.get(lineNum);
+
+        const summary =
+          item?.summary ||
+          item?.runtimeMeaning ||
+          `${lineNum}번째 라인 실행 구문입니다.`;
+        const flow = item?.flow || undefined;
+        const caution = item?.caution || item?.examTip || undefined;
+        const deepExplanation = item?.deepExplanation || undefined;
+
+        parsedLines.push({
+          lineNumber: lineNum,
+          code: targetLine,
+          summary,
+          flow,
+          caution,
+          deepExplanation,
+          syntaxElements: Array.isArray(item?.syntaxElements) ? item.syntaxElements : [],
+          userDefinedElements: Array.isArray(item?.userDefinedElements) ? item.userDefinedElements : [],
+          runtimeMeaning: item?.runtimeMeaning || summary,
+          surroundingContext: flow || `전체 ${lines.length}줄 중 ${lineNum}번째 라인`,
+          examTip: caution || "기출 빈출 라인이므로 주의 깊게 확인하세요.",
+          source: "GEMINI",
+          modelUsed,
+          promotionReason: promotion.shouldPromote ? promotion.reason : undefined,
+        });
+      }
+
+      return {
+        questionId: question.id,
+        codeHash,
+        status: "READY",
+        lines: parsedLines,
+        generatedAt: new Date().toISOString(),
+        source: "GEMINI",
+        modelUsed,
+        retryCount: 0,
+      };
+    } catch (err: any) {
+      console.warn(
+        "[GeminiAIService] explainCodeAllLines failed, falling back to mock:",
+        err?.message,
+      );
+      return this.fallbackMock.explainCodeAllLines(context);
     }
   }
 

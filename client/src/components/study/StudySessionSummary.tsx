@@ -1,5 +1,5 @@
 import React from "react";
-import { Trophy, RotateCcw } from "lucide-react";
+import { Trophy, RotateCcw, Zap } from "lucide-react";
 import { SessionSummaryResponse } from "@jungcheogi/shared";
 import { styles } from "./studySessionStyles";
 
@@ -8,6 +8,7 @@ interface StudySessionSummaryProps {
   loadingSummary: boolean;
   onRestart: () => void;
   onClose: () => void;
+  onStartDrill?: (questionId: string) => void;
 }
 
 export const StudySessionSummary: React.FC<StudySessionSummaryProps> = ({
@@ -15,6 +16,7 @@ export const StudySessionSummary: React.FC<StudySessionSummaryProps> = ({
   loadingSummary,
   onRestart,
   onClose,
+  onStartDrill,
 }) => {
   return (
     <div style={styles.summaryContainer}>
@@ -91,23 +93,57 @@ export const StudySessionSummary: React.FC<StudySessionSummaryProps> = ({
                       <span style={styles.reviewQCat}>
                         {q?.category || "카테고리"}
                       </span>
-                      <div style={styles.reviewStatusBadge}>
-                        {item.scoringStatus === "UNSCORED" ? (
-                          <span style={{ color: "#F59E0B" }}>
-                            ⚡ 비검증 연습 (미채점)
-                          </span>
-                        ) : item.isUnknown ? (
-                          <span style={{ color: "var(--color-warning)" }}>
-                            ? 모르겠음
-                          </span>
-                        ) : item.isCorrect ? (
-                          <span style={{ color: "var(--color-success)" }}>
-                            ✓ 정답
-                          </span>
-                        ) : (
-                          <span style={{ color: "var(--color-danger)" }}>
-                            ✕ 오답
-                          </span>
+                      <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                        <div style={styles.reviewStatusBadge}>
+                          {item.scoringStatus === "UNSCORED" ? (
+                            <span style={{ color: "#F59E0B" }}>
+                              ⚡ 비검증 연습 (미채점)
+                            </span>
+                          ) : item.isUnknown ? (
+                            <span style={{ color: "var(--color-warning)" }}>
+                              ? 모르겠음
+                            </span>
+                          ) : item.isCorrect ? (
+                            <span style={{ color: "var(--color-success)" }}>
+                              ✓ 정답
+                            </span>
+                          ) : (
+                            <span style={{ color: "var(--color-danger)" }}>
+                              ✕ 오답
+                            </span>
+                          )}
+                        </div>
+                        {onStartDrill && q && (
+                          <button
+                            type="button"
+                            onClick={() => onStartDrill(q.id)}
+                            style={{
+                              display: "inline-flex",
+                              alignItems: "center",
+                              gap: "4px",
+                              padding: "3px 8px",
+                              fontSize: "11px",
+                              fontWeight: 600,
+                              color: item.isCorrect ? "#10B981" : "#F59E0B",
+                              backgroundColor: item.isCorrect
+                                ? "rgba(16, 185, 129, 0.12)"
+                                : "rgba(245, 158, 11, 0.12)",
+                              border: `1px solid ${
+                                item.isCorrect
+                                  ? "rgba(16, 185, 129, 0.3)"
+                                  : "rgba(245, 158, 11, 0.3)"
+                              }`,
+                              borderRadius: "4px",
+                              cursor: "pointer",
+                            }}
+                            title="이 문제를 기반으로 한 AI 변형 문제를 즉시 풉니다."
+                          >
+                            <Zap
+                              size={12}
+                              color={item.isCorrect ? "#10B981" : "#F59E0B"}
+                            />
+                            <span>AI 변형 풀기</span>
+                          </button>
                         )}
                       </div>
                     </div>

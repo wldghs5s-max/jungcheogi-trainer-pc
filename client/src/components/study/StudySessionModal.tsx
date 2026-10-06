@@ -18,6 +18,7 @@ import {
   Cpu,
   Zap,
   RefreshCw,
+  RotateCcw,
 } from "lucide-react";
 import {
   Question,
@@ -43,7 +44,7 @@ import { StudySessionSummary } from "./StudySessionSummary";
 import {
   fetchAIExplanation,
   fetchAIProgressiveHints,
-  fetchAICodeLine,
+  fetchAICodeExplanations,
   fetchAIVariationDrill,
   stageAIVariationDrill,
 } from "../../api/ai";
@@ -97,9 +98,13 @@ export const StudySessionModal: React.FC<StudySessionModalProps> = ({
   const [codeLineCache, setCodeLineCache] = useState<
     Record<number, AICodeLineResponse>
   >({});
-  const [loadingLineNumber, setLoadingLineNumber] = useState<number | null>(
-    null,
-  );
+  const [codeExplanationStatus, setCodeExplanationStatus] = useState<
+    "IDLE" | "PENDING" | "READY" | "FAILED" | "REGENERATING"
+  >("IDLE");
+  const [codeExplanationError, setCodeExplanationError] = useState<
+    string | null
+  >(null);
+  const codeExplanationVersionRef = useRef<number>(0);
   const [selectedLineNumber, setSelectedLineNumber] = useState<number | null>(
     null,
   );
@@ -188,8 +193,45 @@ export const StudySessionModal: React.FC<StudySessionModalProps> = ({
     setAiHints(null);
     setCodeLineCache({});
     setSelectedLineNumber(null);
+    setCodeExplanationStatus("IDLE");
+    setCodeExplanationError(null);
     setAiExplanationData(null);
     setAiExplanationError(null);
+
+    // Phase 8: 코드 문제가 로드되는 즉시 백그라운드에서 전체 줄별 해설 패키지 사전 생성 (Non-blocking)
+    if (currentQuestion.code && currentQuestion.code.trim().length > 0) {
+      const q = currentQuestion;
+      const targetVersion = ++codeExplanationVersionRef.current;
+      setCodeExplanationStatus("PENDING");
+
+      fetchAICodeExplanations({
+        questionId: q.id,
+        questionData: q,
+        forceRegenerate: false,
+      })
+        .then((res) => {
+          if (codeExplanationVersionRef.current !== targetVersion) return;
+          if (res.data && res.data.lines) {
+            const cacheMap: Record<number, AICodeLineResponse> = {};
+            res.data.lines.forEach((l) => {
+              cacheMap[l.lineNumber] = l;
+            });
+            setCodeLineCache(cacheMap);
+            setCodeExplanationStatus("READY");
+            setCodeExplanationError(null);
+          } else {
+            setCodeExplanationStatus("FAILED");
+            setCodeExplanationError(
+              res.error || "코드 해설을 불러오지 못했습니다.",
+            );
+          }
+        })
+        .catch((err) => {
+          if (codeExplanationVersionRef.current !== targetVersion) return;
+          setCodeExplanationStatus("FAILED");
+          setCodeExplanationError(err?.message || "코드 해설 요청 실패");
+        });
+    }
 
     let count = 1;
     if (Array.isArray(currentQuestion.groundTruthAnswer)) {
@@ -426,27 +468,69 @@ export const StudySessionModal: React.FC<StudySessionModalProps> = ({
     }
   };
 
-  // Phase 8: Interactive Line-by-line Code Anatomy
-  const handleSelectCodeLine = async (lineNum: number) => {
+  // Phase 8: Interactive Line-by-line Code Anatomy (Zero-Gemini Instant Display)
+  const handleSelectCodeLine = (lineNum: number) => {
     if (!currentQuestion || !currentQuestion.code) return;
     if (selectedLineNumber === lineNum) {
       setSelectedLineNumber(null);
       return;
     }
-
     setSelectedLineNumber(lineNum);
-    if (codeLineCache[lineNum]) return;
+  };
 
-    setLoadingLineNumber(lineNum);
-    const res = await fetchAICodeLine({
-      questionId: currentQuestion.id,
-      questionData: currentQuestion,
-      lineNumber: lineNum,
-    });
-    setLoadingLineNumber(null);
+  // Phase 8: 전체 해설 다시 생성 (문제 단위 1회 일괄 재생성 & 원자적 캐시 교체)
+  const handleRegenerateAllCodeExplanations = async () => {
+    if (!currentQuestion || !currentQuestion.code) return;
+    if (
+      codeExplanationStatus === "REGENERATING" ||
+      codeExplanationStatus === "PENDING"
+    ) {
+      return;
+    }
 
-    if (res.data) {
-      setCodeLineCache((prev) => ({ ...prev, [lineNum]: res.data! }));
+    const q = currentQuestion;
+    const targetVersion = ++codeExplanationVersionRef.current;
+    setCodeExplanationStatus("REGENERATING");
+    setCodeExplanationError(null);
+
+    try {
+      const res = await fetchAICodeExplanations({
+        questionId: q.id,
+        questionData: q,
+        forceRegenerate: true,
+      });
+
+      if (codeExplanationVersionRef.current !== targetVersion) return;
+
+      if (res.data && res.data.lines) {
+        const cacheMap: Record<number, AICodeLineResponse> = {};
+        res.data.lines.forEach((l) => {
+          cacheMap[l.lineNumber] = l;
+        });
+        setCodeLineCache(cacheMap);
+        setCodeExplanationStatus("READY");
+        if (res.data.errorMessage) {
+          setCodeExplanationError(res.data.errorMessage);
+        } else {
+          setCodeExplanationError(null);
+        }
+      } else {
+        // 실패 시: 기존 정상 해설은 절대 삭제하지 않고 유지!
+        setCodeExplanationStatus(
+          Object.keys(codeLineCache).length > 0 ? "READY" : "FAILED",
+        );
+        setCodeExplanationError(
+          res.error || "재생성에 실패하여 기존 해설을 유지합니다.",
+        );
+      }
+    } catch (err: any) {
+      if (codeExplanationVersionRef.current !== targetVersion) return;
+      setCodeExplanationStatus(
+        Object.keys(codeLineCache).length > 0 ? "READY" : "FAILED",
+      );
+      setCodeExplanationError(
+        err?.message || "재생성에 실패하여 기존 해설을 유지합니다.",
+      );
     }
   };
 
@@ -479,14 +563,18 @@ export const StudySessionModal: React.FC<StudySessionModalProps> = ({
   };
 
   // Phase 8: 학습용 AI 즉시 변형 문제 풀기 (No strategy selection, instant transition)
-  const handleStartAIVariationDrill = async () => {
-    if (!currentQuestion || isGeneratingDrill) return;
+  const handleStartAIVariationDrill = async (targetQuestionId?: string) => {
+    const parentId =
+      targetQuestionId ||
+      originalQuestionBeforeDrill?.id ||
+      currentQuestion?.id;
+    if (!parentId || isGeneratingDrill) return;
     const requestToken = Date.now();
     drillRequestTokenRef.current = requestToken;
     setIsGeneratingDrill(true);
 
     const res = await fetchAIVariationDrill({
-      parentQuestionId: originalQuestionBeforeDrill?.id || currentQuestion.id,
+      parentQuestionId: parentId,
     });
     setIsGeneratingDrill(false);
 
@@ -494,7 +582,12 @@ export const StudySessionModal: React.FC<StudySessionModalProps> = ({
       return;
     }
 
-    if (!res.data || !res.data.success || !res.data.question || !res.data.drillSession) {
+    if (
+      !res.data ||
+      !res.data.success ||
+      !res.data.question ||
+      !res.data.drillSession
+    ) {
       alert(
         res.error ||
           res.data?.message ||
@@ -503,7 +596,7 @@ export const StudySessionModal: React.FC<StudySessionModalProps> = ({
       return;
     }
 
-    if (!isDrillQuestion) {
+    if (!isDrillQuestion && currentQuestion) {
       setOriginalQuestionBeforeDrill(currentQuestion);
     }
 
@@ -525,6 +618,7 @@ export const StudySessionModal: React.FC<StudySessionModalProps> = ({
     setAiHints(null);
     setCodeLineCache({});
     setSelectedLineNumber(null);
+    setPhase("PRACTICE");
   };
 
   // 임시 변형 문제를 Staging 검수 대기열에 저장
@@ -889,7 +983,9 @@ export const StudySessionModal: React.FC<StudySessionModalProps> = ({
                       const lineNum = idx + 1;
                       const isSelected = selectedLineNumber === lineNum;
                       const lineData = codeLineCache[lineNum];
-                      const isLoadingThis = loadingLineNumber === lineNum;
+                      const isBusy =
+                        codeExplanationStatus === "PENDING" ||
+                        codeExplanationStatus === "REGENERATING";
 
                       return (
                         <React.Fragment key={idx}>
@@ -916,9 +1012,11 @@ export const StudySessionModal: React.FC<StudySessionModalProps> = ({
                             <pre style={styles.codeLineContent}>
                               {lineText || " "}
                             </pre>
-                            {isLoadingThis && (
+                            {isBusy && !lineData && isSelected && (
                               <span style={styles.codeLineLoadingTag}>
-                                분석 중...
+                                {codeExplanationStatus === "REGENERATING"
+                                  ? "재생성 중..."
+                                  : "준비 중..."}
                               </span>
                             )}
                           </div>
@@ -969,10 +1067,23 @@ export const StudySessionModal: React.FC<StudySessionModalProps> = ({
                                 </button>
                               </div>
 
-                              {isLoadingThis ? (
+                              {isBusy && !lineData ? (
                                 <div style={styles.inlineLoadingText}>
-                                  컴파일러 및 런타임 메모리 상태를 정밀 분석하고
-                                  있습니다...
+                                  <RefreshCw
+                                    size={14}
+                                    className="spin"
+                                    color="#38BDF8"
+                                    style={{
+                                      display: "inline-block",
+                                      marginRight: "6px",
+                                      verticalAlign: "middle",
+                                    }}
+                                  />
+                                  <span>
+                                    {codeExplanationStatus === "REGENERATING"
+                                      ? "새로운 전체 해설을 분석 및 재생성하고 있습니다..."
+                                      : "해설을 준비하고 있습니다... (문제를 풀면서 잠시 기다려주세요)"}
+                                  </span>
                                 </div>
                               ) : lineData ? (
                                 <div style={styles.inlineAnatomyBody}>
@@ -980,7 +1091,7 @@ export const StudySessionModal: React.FC<StudySessionModalProps> = ({
                                     <strong style={{ color: "#F8FAFC" }}>
                                       ⚡ 런타임/메모리 동작:
                                     </strong>{" "}
-                                    <span>{lineData.runtimeMeaning}</span>
+                                    <span>{lineData.runtimeMeaning || lineData.summary}</span>
                                   </div>
                                   {lineData.syntaxElements &&
                                     lineData.syntaxElements.length > 0 && (
@@ -1016,12 +1127,121 @@ export const StudySessionModal: React.FC<StudySessionModalProps> = ({
                                       <span>{lineData.examTip}</span>
                                     </div>
                                   )}
+
+                                  {/* 전체 해설 다시 생성 액션 바 (어느 줄에서든 1클릭 일괄 재생성) */}
+                                  <div
+                                    style={{
+                                      marginTop: "12px",
+                                      paddingTop: "10px",
+                                      borderTop: "1px dashed rgba(148, 163, 184, 0.2)",
+                                      display: "flex",
+                                      alignItems: "center",
+                                      justifyContent: "space-between",
+                                      flexWrap: "wrap",
+                                      gap: "8px",
+                                    }}
+                                  >
+                                    <span
+                                      style={{
+                                        fontSize: "12px",
+                                        color: "#94A3B8",
+                                      }}
+                                    >
+                                      💡 설명이 불충분하거나 어색한가요?
+                                    </span>
+                                    <button
+                                      type="button"
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        handleRegenerateAllCodeExplanations();
+                                      }}
+                                      disabled={codeExplanationStatus === "REGENERATING"}
+                                      style={{
+                                        display: "inline-flex",
+                                        alignItems: "center",
+                                        gap: "5px",
+                                        padding: "4px 10px",
+                                        fontSize: "12px",
+                                        fontWeight: 600,
+                                        color: "#F59E0B",
+                                        backgroundColor: "rgba(245, 158, 11, 0.12)",
+                                        border: "1px solid rgba(245, 158, 11, 0.35)",
+                                        borderRadius: "6px",
+                                        cursor:
+                                          codeExplanationStatus === "REGENERATING"
+                                            ? "not-allowed"
+                                            : "pointer",
+                                      }}
+                                      title="문제 전체 코드를 다시 분석하여 모든 줄의 해설 패키지를 일괄 교체합니다."
+                                    >
+                                      <RotateCcw
+                                        size={13}
+                                        className={
+                                          codeExplanationStatus === "REGENERATING"
+                                            ? "spin"
+                                            : ""
+                                        }
+                                      />
+                                      <span>
+                                        {codeExplanationStatus === "REGENERATING"
+                                          ? "전체 해설 재생성 중..."
+                                          : "↻ 전체 해설 다시 생성"}
+                                      </span>
+                                    </button>
+                                  </div>
+                                  {codeExplanationError && (
+                                    <div
+                                      style={{
+                                        marginTop: "6px",
+                                        fontSize: "12px",
+                                        color: "#EF4444",
+                                      }}
+                                    >
+                                      {codeExplanationError}
+                                    </div>
+                                  )}
                                 </div>
                               ) : (
                                 <div
-                                  style={{ color: "#EF4444", fontSize: "13px" }}
+                                  style={{
+                                    padding: "8px 0",
+                                    color: "#EF4444",
+                                    fontSize: "13px",
+                                    display: "flex",
+                                    alignItems: "center",
+                                    justifyContent: "space-between",
+                                    flexWrap: "wrap",
+                                    gap: "8px",
+                                  }}
                                 >
-                                  분석 정보를 불러오지 못했습니다.
+                                  <span>
+                                    {codeExplanationError ||
+                                      "AI 해설 준비에 실패했습니다."}
+                                  </span>
+                                  <button
+                                    type="button"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      handleRegenerateAllCodeExplanations();
+                                    }}
+                                    disabled={codeExplanationStatus === "REGENERATING"}
+                                    style={{
+                                      display: "inline-flex",
+                                      alignItems: "center",
+                                      gap: "5px",
+                                      padding: "4px 10px",
+                                      fontSize: "12px",
+                                      fontWeight: 600,
+                                      color: "#F59E0B",
+                                      backgroundColor: "rgba(245, 158, 11, 0.12)",
+                                      border: "1px solid rgba(245, 158, 11, 0.35)",
+                                      borderRadius: "6px",
+                                      cursor: "pointer",
+                                    }}
+                                  >
+                                    <RotateCcw size={13} />
+                                    <span>해설 생성 다시 시도</span>
+                                  </button>
                                 </div>
                               )}
                             </div>
@@ -1313,6 +1533,52 @@ export const StudySessionModal: React.FC<StudySessionModalProps> = ({
                     </div>
                   </div>
 
+                  {/* Phase 8: 맞힌 문제 & 틀린 문제 공통 AI 즉시 변형 문제 풀기 액션 바 */}
+                  <div style={styles.variationRow}>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        void handleStartAIVariationDrill();
+                      }}
+                      disabled={isGeneratingDrill}
+                      style={{
+                        ...styles.drillStartBtn,
+                        backgroundColor: submitResult.isCorrect
+                          ? "rgba(16, 185, 129, 0.15)"
+                          : "rgba(245, 158, 11, 0.15)",
+                        borderColor: submitResult.isCorrect
+                          ? "rgba(16, 185, 129, 0.4)"
+                          : "rgba(245, 158, 11, 0.4)",
+                        color: submitResult.isCorrect ? "#10B981" : "#F59E0B",
+                      }}
+                    >
+                      {isGeneratingDrill ? (
+                        <>
+                          <RefreshCw
+                            size={16}
+                            className="spin"
+                            color={submitResult.isCorrect ? "#10B981" : "#F59E0B"}
+                          />
+                          <span>
+                            AI가 문제 특성을 분석하여 맞춤 변형 문제를 생성 및 검증하는 중...
+                          </span>
+                        </>
+                      ) : (
+                        <>
+                          <Zap
+                            size={16}
+                            color={submitResult.isCorrect ? "#10B981" : "#F59E0B"}
+                          />
+                          <span>
+                            {submitResult.isCorrect
+                              ? "💡 맞힌 문제 다지기 (AI 변형 문제 즉시 풀기)"
+                              : "💡 오답 약점 보완 (AI 변형 문제 즉시 풀기)"}
+                          </span>
+                        </>
+                      )}
+                    </button>
+                  </div>
+
                   {/* GROUND TRUTH OFFICIAL EXPLANATION (Green/Gold Border) */}
                   {submitResult.officialExplanation && (
                     <div style={styles.groundTruthBox}>
@@ -1530,7 +1796,9 @@ export const StudySessionModal: React.FC<StudySessionModalProps> = ({
                         <div style={styles.variationRow}>
                           <button
                             type="button"
-                            onClick={handleStartAIVariationDrill}
+                            onClick={() => {
+                              void handleStartAIVariationDrill();
+                            }}
                             disabled={isGeneratingDrill}
                             style={styles.drillStartBtn}
                           >
@@ -1689,6 +1957,7 @@ export const StudySessionModal: React.FC<StudySessionModalProps> = ({
               loadingSummary={loadingSummary}
               onRestart={() => setPhase("CONFIG")}
               onClose={onClose}
+              onStartDrill={(qId) => handleStartAIVariationDrill(qId)}
             />
           )}
         </div>

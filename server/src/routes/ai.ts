@@ -6,6 +6,8 @@ import {
   AIProgressiveHintsResponse,
   AICodeLineRequest,
   AICodeLineResponse,
+  AICodeExplanationsRequest,
+  AICodeExplanationsResponse,
   AIGeminiVariationRequest,
   AIGeminiVariationResponse,
   AIBatchGenerateRequest,
@@ -26,7 +28,9 @@ import { QuestionRepository } from "../db/repositories/questionRepository.js";
 import { ConceptRepository } from "../db/repositories/conceptRepository.js";
 import { ImportBatchRepository } from "../db/repositories/importBatchRepository.js";
 import { SessionRepository } from "../db/repositories/sessionRepository.js";
+import { codeExplanationRepo } from "../db/repositories/codeExplanationRepository.js";
 import { getDatabase } from "../db/database.js";
+import { createHash } from "crypto";
 import { getAIService } from "../engine/aiService.js";
 import { MockQuestionVariationGenerator } from "../engine/variationGenerator.js";
 import { VariationValidator } from "../engine/variationValidator.js";
@@ -145,7 +149,154 @@ export async function aiRoutes(fastify: FastifyInstance): Promise<void> {
     },
   );
 
-  // 3. 코드 라인별 심층 해부 (Line-by-Line Anatomy)
+  // 동시 요청 중복 실행 방지 맵 (In-flight request deduplication)
+  const inFlightCodeExplanations = new Map<string, Promise<AICodeExplanationsResponse>>();
+
+  // 3-1. 문제 단위 전체 코드 줄별 해설 패키지 사전 생성 및 캐시 조회/재생성
+  fastify.post(
+    "/api/ai/code-explanations",
+    async (
+      request: FastifyRequest<{ Body: AICodeExplanationsRequest }>,
+      reply: FastifyReply,
+    ) => {
+      const { questionId, questionData, forceRegenerate } = request.body || {};
+
+      let question: Question | null = null;
+      if (questionData) {
+        question = questionData;
+      } else if (questionId) {
+        question = questionRepo.findById(questionId);
+      }
+
+      if (!question) {
+        return reply.status(questionId ? 404 : 400).send({
+          error: questionId ? "Not Found" : "Bad Request",
+          message: questionId
+            ? `ID가 '${questionId}'인 문제를 찾을 수 없습니다.`
+            : "questionId 또는 questionData는 필수입니다.",
+        });
+      }
+
+      if (!question.code) {
+        return reply.status(400).send({
+          error: "Bad Request",
+          message: "해당 문제는 코드가 포함되어 있지 않습니다.",
+        });
+      }
+
+      const codeHash = createHash("sha256")
+        .update(question.code.trim())
+        .digest("hex")
+        .slice(0, 16);
+      const promptVersion = 1;
+
+      // 1) 캐시 확인 (강제 재생성이 아닌 경우)
+      if (!forceRegenerate) {
+        const cached = codeExplanationRepo.findByQuestionAndHash(
+          question.id,
+          codeHash,
+          promptVersion,
+        );
+        if (cached && cached.status === "READY") {
+          return reply.status(200).send({
+            questionId: question.id,
+            codeHash,
+            status: "READY",
+            lines: cached.explanationPayload.lines,
+            generatedAt: cached.generatedAt,
+            source: "CACHE",
+            modelUsed: cached.model,
+            retryCount: cached.retryCount,
+          });
+        }
+      }
+
+      // 2) 동시 중복 호출 방지 (In-flight deduplication)
+      const inFlightKey = `${question.id}:${codeHash}`;
+      if (inFlightCodeExplanations.has(inFlightKey) && !forceRegenerate) {
+        try {
+          const inFlightResult = await inFlightCodeExplanations.get(inFlightKey)!;
+          return reply.status(200).send(inFlightResult);
+        } catch {
+          // in-flight 실패 시 계속 진행
+        }
+      }
+
+      const concept = question.conceptId
+        ? conceptRepo.findById(question.conceptId)
+        : null;
+
+      const generationPromise = (async (): Promise<AICodeExplanationsResponse> => {
+        try {
+          const genResult = await aiService.explainCodeAllLines({
+            question: question!,
+            concept,
+          });
+
+          // DB에 원자적으로 캐시 저장/갱신
+          codeExplanationRepo.upsertExplanation({
+            questionId: question!.id,
+            codeHash,
+            promptVersion,
+            model: genResult.modelUsed || "gemini-3.8-flash",
+            status: "READY",
+            lines: genResult.lines,
+            generatedAt: genResult.generatedAt,
+          });
+
+          return {
+            ...genResult,
+            questionId: question!.id,
+            codeHash,
+            source: genResult.source || "GENERATED",
+          };
+        } catch (err: any) {
+          // 수동 재생성 실패 시: 기존 정상 캐시 보존 원칙!
+          const existing = codeExplanationRepo.findByQuestionAndHash(
+            question!.id,
+            codeHash,
+            promptVersion,
+          );
+          if (existing && existing.status === "READY") {
+            codeExplanationRepo.incrementRetryCount(
+              question!.id,
+              codeHash,
+              promptVersion,
+            );
+            return {
+              questionId: question!.id,
+              codeHash,
+              status: "READY",
+              lines: existing.explanationPayload.lines,
+              generatedAt: existing.generatedAt,
+              source: "CACHE",
+              modelUsed: existing.model,
+              retryCount: existing.retryCount + 1,
+              errorMessage:
+                "새 해설 생성에 실패하여 기존 정상 해설을 유지합니다.",
+            };
+          }
+          throw err;
+        }
+      })();
+
+      inFlightCodeExplanations.set(inFlightKey, generationPromise);
+
+      try {
+        const result = await generationPromise;
+        return reply.status(200).send(result);
+      } catch (err: any) {
+        return reply.status(500).send({
+          error: "Internal Server Error",
+          message: err?.message || "코드 해설 생성 중 오류가 발생했습니다.",
+        });
+      } finally {
+        inFlightCodeExplanations.delete(inFlightKey);
+      }
+    },
+  );
+
+  // 3-2. 코드 라인별 심층 해부 (Line-by-Line Anatomy - 하위 호환 및 단일 라인 조회)
   fastify.post(
     "/api/ai/code-line",
     async (
@@ -183,6 +334,28 @@ export async function aiRoutes(fastify: FastifyInstance): Promise<void> {
           error: "Bad Request",
           message: "해당 문제는 코드가 포함되어 있지 않습니다.",
         });
+      }
+
+      // 캐시가 이미 존재하면 캐시에서 lineNumber 라인을 즉시 반환 (Gemini 호출 0회)
+      const codeHash = createHash("sha256")
+        .update(question.code.trim())
+        .digest("hex")
+        .slice(0, 16);
+      const cached = codeExplanationRepo.findByQuestionAndHash(
+        question.id,
+        codeHash,
+        1,
+      );
+      if (cached && cached.status === "READY") {
+        const found = cached.explanationPayload.lines.find(
+          (l) => l.lineNumber === Number(lineNumber),
+        );
+        if (found) {
+          return reply.status(200).send({
+            ...found,
+            source: "CACHE" as const,
+          });
+        }
       }
 
       const concept = question.conceptId

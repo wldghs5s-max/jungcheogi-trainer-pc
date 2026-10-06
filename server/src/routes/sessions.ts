@@ -174,16 +174,9 @@ export async function sessionRoutes(fastify: FastifyInstance): Promise<void> {
       };
     }
 
-    const isTemporaryDrill =
-      question.studyVisibility === 'TEMPORARY_DRILL' ||
-      session.title.includes('Drill') ||
-      session.title.includes('드릴');
-
     const isUnverifiedPractice =
       question.answerSource === 'AI_UNVERIFIED' ||
       session.title.includes('비검증');
-
-    const shouldIsolateFromSrs = isTemporaryDrill || isUnverifiedPractice;
 
     if (!isUnverifiedPractice && !hasValidGroundTruth(question.groundTruthAnswer)) {
       return {
@@ -270,8 +263,8 @@ export async function sessionRoutes(fastify: FastifyInstance): Promise<void> {
     const savedAttempt = attemptRepo.create(attempt);
 
     // ★ P0 / 개인학습 안전 가드:
-    // TEMPORARY_DRILL 또는 비검증 연습 문제의 풀이 시도는 공식 SRS 복습 상태(review_states) 및 취약도에 절대 반영하지 않는다!
-    if (!shouldIsolateFromSrs) {
+    // 비검증 연습 문제의 풀이 시도는 공식 SRS 복습 상태(review_states) 및 취약도에 절대 반영하지 않는다!
+    if (!isUnverifiedPractice) {
       reviewState = reviewRepo.recordAttempt(savedAttempt, question);
     }
 
@@ -318,8 +311,8 @@ export async function sessionRoutes(fastify: FastifyInstance): Promise<void> {
       isSessionCompleted: isCompleted,
       nextQuestionId,
       reviewState,
-      isUnverifiedPractice: shouldIsolateFromSrs,
-      verificationStatus: shouldIsolateFromSrs ? 'UNVERIFIED' : 'VERIFIED',
+      isUnverifiedPractice,
+      verificationStatus: isUnverifiedPractice ? 'UNVERIFIED' : 'VERIFIED',
       sessionProgress: {
         currentIndex: recordOnly ? session.currentIndex : nextIndex,
         totalQuestions: session.totalQuestions,
