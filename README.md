@@ -2,9 +2,9 @@
 
 <!-- TUNNEL_URL_START -->
 > ### 📱 실시간 모바일 / 외부 접속 링크
-> **[👉 정처기 학습 플랫폼 바로가기 (클릭)](https://phone-digest-paths-frontier.trycloudflare.com)**  
-> - **실시간 URL**: `https://phone-digest-paths-frontier.trycloudflare.com`  
-> - **마지막 갱신**: 2026-10-06 20:17:52 KST
+> **[👉 정처기 학습 플랫폼 바로가기 (클릭)](https://above-regular-motivated-pride.trycloudflare.com)**  
+> - **실시간 URL**: `https://above-regular-motivated-pride.trycloudflare.com`  
+> - **마지막 갱신**: 2026-10-06 20:20:07 KST
 <!-- TUNNEL_URL_END -->
 
 
