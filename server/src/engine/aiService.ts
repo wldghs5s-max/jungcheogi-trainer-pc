@@ -1407,6 +1407,10 @@ ${surroundingLines}
    - 줄별 설명 간의 논리적 모순 금지 (변수 추적 일관성 유지)
 4. 분량 및 간결성:
    - 각 필드는 1~2문장의 명확하고 정확한 한국어로 작성하십시오.
+5. 정확한 메모리/포인터 인덱싱 및 정답 일치 원칙 (매우 중요):
+   - C/C++/Java 언어의 모든 배열과 포인터 연산은 0부터 시작(0-indexed)함을 철저히 준수하십시오.
+   - 2차원 배열과 포인터 배열(예: int* parr[2] = {arr[1], arr[2]}) 연산 시, parr[0]이 가리키는 행과 parr[1]이 가리키는 행의 메모리 주소를 오독하지 마십시오.
+   - 제공된 [정답]과 줄별 runtimeBehavior 설명이 논리적으로 100% 일치해야 하며, 설명 도중 계산 실수나 인덱스 오독으로 인해 최종 정답과 모순되는 중간 값을 절대로 서술하지 마십시오.
 
 [지원 문법 키 목록 (syntaxTerms에 매핑할 canonicalKey 후보)]
 - C: c.logical_and (&&), c.logical_or (||), c.logical_not (!), c.modulo (%), c.increment (++ / --), c.compound_assign (+=, -=), c.ternary (?:), c.pointer (*), c.address_of (&), c.arrow_operator (->), c.struct (struct), c.array ([]), c.for (for), c.while (while), c.if (if)
@@ -1907,7 +1911,11 @@ ${context.userQuestion}
 1. 수험생이 선택한 코드 영역(있는 경우)을 중심으로, 전체 코드 실행 흐름 및 변수 메모리 상태 변화와 연결지어 설명하세요.
 2. 정보처리기사 실기 시험의 출제 포인트(포인터, 단락 평가, 연산자 우선순위, 증감식, 재귀, 상속/다형성, 슬라이싱 등)와 직결되는 핵심 원리를 명쾌하게 짚어주세요.
 3. 정답을 단순 스포일러하기보다는 수험생이 스스로 코드의 실행 원리를 납득할 수 있도록 단계별로 설명하세요.
-4. 가독성 높은 한국어 마크다운 형식으로 작성하세요. (수식이나 코드 조각은 백틱 활용)`;
+4. 가독성 높은 한국어 줄글과 구조화된 서식으로 작성하십시오.
+
+[수식 및 마크다운 기호 작성 원칙 (엄격 준수)]
+- 달러 기호($ 또는 $$)를 절대로 사용하지 마십시오! 변수명, 수식, 연산식에 LaTeX 수식 기호($)를 일절 쓰지 말고, 오직 백틱(\`코드\`)으로만 감싸십시오. (예: $arr[1][1]$ 절대 금지 -> \`arr[1][1]\` 사용)
+- 별표(*)나 볼드체(**)를 문장마다 불필요하게 남발하지 마십시오. 문맥상 꼭 필요한 소제목이나 핵심 키워드에만 제한적으로 사용하고, 불릿 목록은 하이픈(-) 기호를 사용하십시오.`;
 
     try {
       const candidateModels = GENERATOR_MODELS; // gemini-3.8-flash 우선, 실패 시 3.5 fallback
@@ -1917,9 +1925,16 @@ ${context.userQuestion}
         false,
       );
 
+      let answerText = typeof data === "string" ? data : String(data);
+      // 잔여 LaTeX 수식 기호 ($var$ -> `var`, $$ -> '') 치환 및 정돈
+      answerText = answerText
+        .replace(/\$\$([\s\S]*?)\$\$/g, (_m, p1) => `\n\`\`\`\n${p1.trim()}\n\`\`\`\n`)
+        .replace(/\$([^$\n]+)\$/g, "`$1`")
+        .replace(/\$/g, "");
+
       return {
         success: true,
-        answer: typeof data === "string" ? data : String(data),
+        answer: answerText,
         source: "GEMINI",
         modelUsed,
         durationMs: Date.now() - startTime,

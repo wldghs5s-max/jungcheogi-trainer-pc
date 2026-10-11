@@ -727,6 +727,18 @@ export const StudySessionModal: React.FC<StudySessionModalProps> = ({
 
       if (e.isComposing || (e as any).keyCode === 229) return;
 
+      // 질문 작성(textarea), 정답 입력(input), 또는 심층질문/버그제보 모달이 열려있는 중에는 Enter 단축키 차단
+      const target = e.target as HTMLElement | null;
+      if (
+        target?.tagName === "TEXTAREA" ||
+        target?.tagName === "INPUT" ||
+        target?.isContentEditable ||
+        isDeepQuestionOpen ||
+        isBugReportOpen
+      ) {
+        return;
+      }
+
       if (submitResult) {
         // If feedback is showing, Enter advances to next question
         if (e.key === "Enter") {
@@ -738,7 +750,14 @@ export const StudySessionModal: React.FC<StudySessionModalProps> = ({
 
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [isOpen, phase, submitResult, currentQuestion]);
+  }, [
+    isOpen,
+    phase,
+    submitResult,
+    currentQuestion,
+    isDeepQuestionOpen,
+    isBugReportOpen,
+  ]);
 
   // Copy code snippet helper
   const handleCopyCode = () => {
@@ -2176,6 +2195,14 @@ export const StudySessionModal: React.FC<StudySessionModalProps> = ({
         }}
         question={bugReportTargetQuestion || currentQuestion}
         sessionId={session?.id}
+        defaultUserAnswer={
+          submitResult?.attempt?.userAnswer ||
+          (userInputs.some((v) => v.trim()) ? userInputs : undefined)
+        }
+        defaultSystemAnswer={
+          submitResult?.groundTruthAnswer ||
+          (bugReportTargetQuestion || currentQuestion)?.groundTruthAnswer
+        }
       />
     </div>
   );

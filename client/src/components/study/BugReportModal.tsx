@@ -23,6 +23,8 @@ interface BugReportModalProps {
   question: Question | null;
   sessionId?: string;
   defaultCategory?: BugReportCategory;
+  defaultUserAnswer?: string | string[];
+  defaultSystemAnswer?: string | string[];
 }
 
 export const BugReportModal: React.FC<BugReportModalProps> = ({
@@ -31,6 +33,8 @@ export const BugReportModal: React.FC<BugReportModalProps> = ({
   question,
   sessionId,
   defaultCategory = "ANSWER_OR_EXPLANATION",
+  defaultUserAnswer,
+  defaultSystemAnswer,
 }) => {
   const [category, setCategory] = useState<BugReportCategory>(defaultCategory);
   const [description, setDescription] = useState("");
@@ -40,18 +44,36 @@ export const BugReportModal: React.FC<BugReportModalProps> = ({
   const [error, setError] = useState<string | null>(null);
   const [successReportId, setSuccessReportId] = useState<string | null>(null);
 
-  // 모달 열릴 때 상태 초기화
+  // 모달 열릴 때 상태 초기화 및 유저 답안/시스템 판정값 자동 채우기
   useEffect(() => {
     if (isOpen) {
       setCategory(defaultCategory);
       setDescription("");
-      setExpectedBehavior("");
-      setActualBehavior("");
+
+      const formatAnswer = (ans: any) => {
+        if (!ans) return "";
+        if (Array.isArray(ans)) return ans.join(", ");
+        return String(ans);
+      };
+
+      const userAnsStr = formatAnswer(defaultUserAnswer);
+      const sysAnsStr = formatAnswer(
+        defaultSystemAnswer || question?.groundTruthAnswer
+      );
+
+      setExpectedBehavior(userAnsStr ? `정답 제출값: ${userAnsStr}` : "");
+      setActualBehavior(sysAnsStr ? `시스템 판정 정답: ${sysAnsStr}` : "");
       setError(null);
       setSuccessReportId(null);
       setIsSubmitting(false);
     }
-  }, [isOpen, defaultCategory]);
+  }, [
+    isOpen,
+    defaultCategory,
+    defaultUserAnswer,
+    defaultSystemAnswer,
+    question,
+  ]);
 
   // ESC 키로 닫기
   useEffect(() => {

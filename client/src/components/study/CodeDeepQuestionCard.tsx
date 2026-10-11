@@ -201,6 +201,7 @@ export const CodeDeepQuestionCard: React.FC<CodeDeepQuestionCardProps> = ({
 
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
+      e.stopPropagation();
       handleSendQuestion();
     }
   };
@@ -374,7 +375,9 @@ export const CodeDeepQuestionCard: React.FC<CodeDeepQuestionCardProps> = ({
                           )}
                         </div>
                       )}
-                      <div style={styles.messageContent}>{msg.content}</div>
+                      <div style={styles.messageContent}>
+                        {isUser ? msg.content : renderFormattedContent(msg.content)}
+                      </div>
                     </div>
                   </div>
                 );
@@ -483,6 +486,118 @@ export const CodeDeepQuestionCard: React.FC<CodeDeepQuestionCardProps> = ({
       </div>
     </>
   );
+};
+
+// 마크다운 인라인 서식 (코드, 볼드) 파싱 헬퍼
+const renderInlineFormatted = (text: string) => {
+  const segments = text.split(/(`[^`]+`|\*\*[^*]+\*\*)/g);
+  return segments.map((seg, sIdx) => {
+    if (seg.startsWith("`") && seg.endsWith("`") && seg.length >= 2) {
+      return (
+        <code key={sIdx} style={styles.chatInlineCode}>
+          {seg.slice(1, -1)}
+        </code>
+      );
+    }
+    if (seg.startsWith("**") && seg.endsWith("**") && seg.length >= 4) {
+      return (
+        <strong key={sIdx} style={{ color: "#F8FAFC", fontWeight: 700 }}>
+          {seg.slice(2, -2)}
+        </strong>
+      );
+    }
+    return seg;
+  });
+};
+
+// AI 답변 전용 마크다운 서식 렌더러 ($, * 등 지저분한 특수문자 정돈)
+const renderFormattedContent = (content: string) => {
+  if (!content) return null;
+
+  // 1. 잔여 LaTeX $ 기호 백틱으로 치환 및 불필요한 $$ 제거
+  const sanitized = content
+    .replace(/\$\$([\s\S]*?)\$\$/g, "\n```\n$1\n```\n")
+    .replace(/\$([^$\n]+)\$/g, "`$1`")
+    .replace(/\$/g, "");
+
+  // 2. 코드 블록 분리
+  const parts = sanitized.split(/(```[\s\S]*?```)/g);
+
+  return parts.map((part, pIdx) => {
+    if (part.startsWith("```") && part.endsWith("```")) {
+      const rawLines = part.slice(3, -3).trim().split("\n");
+      const maybeLang = rawLines[0]?.match(/^[a-zA-Z0-9_-]+$/) ? rawLines[0] : "";
+      const code = maybeLang ? rawLines.slice(1).join("\n") : rawLines.join("\n");
+      return (
+        <pre key={pIdx} style={styles.chatCodeBlock}>
+          <code>{code}</code>
+        </pre>
+      );
+    }
+
+    // 일반 텍스트 라인
+    const lines = part.split("\n");
+    return (
+      <div key={pIdx}>
+        {lines.map((line, lIdx) => {
+          let trimmed = line.trim();
+          if (!trimmed) {
+            return <div key={lIdx} style={{ height: "6px" }} />;
+          }
+
+          // 소제목
+          if (trimmed.startsWith("### ")) {
+            return (
+              <div key={lIdx} style={styles.chatHeading}>
+                {renderInlineFormatted(trimmed.slice(4))}
+              </div>
+            );
+          }
+          if (trimmed.startsWith("## ")) {
+            return (
+              <div key={lIdx} style={styles.chatHeading}>
+                {renderInlineFormatted(trimmed.slice(3))}
+              </div>
+            );
+          }
+
+          // 불릿 항목 (* 또는 -)
+          let isBullet = false;
+          if (trimmed.startsWith("* ") || trimmed.startsWith("- ")) {
+            trimmed = trimmed.slice(2);
+            isBullet = true;
+          }
+
+          return (
+            <div
+              key={lIdx}
+              style={{
+                display: "flex",
+                alignItems: "flex-start",
+                gap: "6px",
+                marginBottom: "4px",
+                lineHeight: "1.6",
+              }}
+            >
+              {isBullet && (
+                <span
+                  style={{
+                    color: "#38BDF8",
+                    fontSize: "14px",
+                    lineHeight: "1.4",
+                    flexShrink: 0,
+                  }}
+                >
+                  •
+                </span>
+              )}
+              <span style={{ flex: 1 }}>{renderInlineFormatted(trimmed)}</span>
+            </div>
+          );
+        })}
+      </div>
+    );
+  });
 };
 
 const styles: Record<string, React.CSSProperties> = {
@@ -930,5 +1045,34 @@ const styles: Record<string, React.CSSProperties> = {
     justifyContent: "center",
     flexShrink: 0,
     transition: "background-color 0.15s ease",
+  },
+  chatHeading: {
+    fontSize: "13px",
+    fontWeight: 700,
+    color: "#38BDF8",
+    marginTop: "8px",
+    marginBottom: "4px",
+  },
+  chatInlineCode: {
+    backgroundColor: "rgba(0, 0, 0, 0.35)",
+    border: "1px solid rgba(56, 189, 248, 0.25)",
+    color: "#BAE6FD",
+    padding: "1px 5px",
+    borderRadius: "4px",
+    fontFamily: "'Fira Code', Consolas, monospace",
+    fontSize: "12px",
+    margin: "0 2px",
+  },
+  chatCodeBlock: {
+    backgroundColor: "#090D16",
+    border: "1px solid #334155",
+    borderRadius: "8px",
+    padding: "10px 12px",
+    margin: "8px 0",
+    overflowX: "auto",
+    fontFamily: "'Fira Code', Consolas, monospace",
+    fontSize: "12px",
+    lineHeight: "1.5",
+    color: "#E2E8F0",
   },
 };
