@@ -7,6 +7,9 @@ import {
   RefreshCw,
   Code,
   AlertCircle,
+  Maximize2,
+  Minimize2,
+  ArrowDown,
 } from "lucide-react";
 import {
   Question,
@@ -32,15 +35,60 @@ export const CodeDeepQuestionCard: React.FC<CodeDeepQuestionCardProps> = ({
   } | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [isMaximized, setIsMaximized] = useState<boolean>(false);
+  const [showScrollBottomBtn, setShowScrollBottomBtn] = useState<boolean>(false);
 
+  const cardContainerRef = useRef<HTMLDivElement>(null);
   const codeContainerRef = useRef<HTMLDivElement>(null);
-  const chatBottomRef = useRef<HTMLDivElement>(null);
+  const messagesContainerRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
+  const isUserScrollingUpRef = useRef<boolean>(false);
 
-  // 자동 스크롤
+  // 일반 모드 진입 시 카드가 모달 뷰포트 내에 편안하게 들어오도록 자동 위치 정렬
   useEffect(() => {
-    chatBottomRef.current?.scrollIntoView({ behavior: "smooth" });
+    if (!isMaximized && cardContainerRef.current) {
+      cardContainerRef.current.scrollIntoView({ behavior: "smooth", block: "nearest" });
+    }
+  }, []);
+
+  // 채팅 스크롤 위치 감지 (사용자가 위로 스크롤한 경우 자동 스크롤 일시 정지)
+  const handleChatScroll = () => {
+    if (!messagesContainerRef.current) return;
+    const { scrollTop, scrollHeight, clientHeight } = messagesContainerRef.current;
+    const isNearBottom = scrollHeight - scrollTop - clientHeight < 60;
+    isUserScrollingUpRef.current = !isNearBottom;
+    setShowScrollBottomBtn(!isNearBottom && messages.length > 0);
+  };
+
+  const scrollToBottom = (smooth = true) => {
+    if (messagesContainerRef.current) {
+      messagesContainerRef.current.scrollTo({
+        top: messagesContainerRef.current.scrollHeight,
+        behavior: smooth ? "smooth" : "auto",
+      });
+      isUserScrollingUpRef.current = false;
+      setShowScrollBottomBtn(false);
+    }
+  };
+
+  // 메시지 수신/로딩 시 채팅 컨테이너 내부만 스크롤 (부모 모달 간섭 절대 차단)
+  useEffect(() => {
+    if (!isUserScrollingUpRef.current && messagesContainerRef.current) {
+      scrollToBottom(true);
+    }
   }, [messages, isLoading]);
+
+  // ESC 키로 전체화면 해제
+  useEffect(() => {
+    const handleGlobalKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape" && isMaximized) {
+        e.stopPropagation();
+        setIsMaximized(false);
+      }
+    };
+    window.addEventListener("keydown", handleGlobalKeyDown);
+    return () => window.removeEventListener("keydown", handleGlobalKeyDown);
+  }, [isMaximized]);
 
   // 코드 영역 마우스 드래그(선택) 감지
   const handleCodeMouseUp = () => {
@@ -51,11 +99,13 @@ export const CodeDeepQuestionCard: React.FC<CodeDeepQuestionCardProps> = ({
     const text = rawSelected.trim();
     if (!text) return;
 
-    // 선택 영역이 이 심층 질문 카드의 코드 영역 내부에 있는지 확인
-    if (
+    // 선택 영역이 이 심층 질문 카드의 코드 영역 내부에 있는지 확인 (anchor 또는 focus 둘 다 지원)
+    const isInsideCode =
       codeContainerRef.current &&
-      codeContainerRef.current.contains(selection.anchorNode)
-    ) {
+      (codeContainerRef.current.contains(selection.anchorNode) ||
+        codeContainerRef.current.contains(selection.focusNode));
+
+    if (isInsideCode) {
       setSelectedSnippet(text);
 
       // 라인 번호 추정 계산
@@ -74,6 +124,11 @@ export const CodeDeepQuestionCard: React.FC<CodeDeepQuestionCardProps> = ({
       } else {
         setSelectedRange(null);
       }
+
+      // 드래그 선택 즉시 질문 입력창에 포커스를 맞추고 타이핑 대기
+      setTimeout(() => {
+        inputRef.current?.focus();
+      }, 50);
     }
   };
 
@@ -105,6 +160,9 @@ export const CodeDeepQuestionCard: React.FC<CodeDeepQuestionCardProps> = ({
     setInputQuestion("");
     setError(null);
     setIsLoading(true);
+    isUserScrollingUpRef.current = false;
+    setShowScrollBottomBtn(false);
+    setTimeout(() => scrollToBottom(true), 50);
 
     try {
       const res = await askCodeDeepQuestion({
@@ -150,154 +208,209 @@ export const CodeDeepQuestionCard: React.FC<CodeDeepQuestionCardProps> = ({
   const codeLines = (question.code || "").split("\n");
 
   return (
-    <div style={styles.deepCardContainer}>
-      {/* 1. Header */}
-      <div style={styles.header}>
-        <div style={styles.headerTitleWrap}>
-          <div style={styles.iconBadge}>
-            <MessageSquare size={16} color="#38BDF8" />
-          </div>
-          <div>
-            <div style={styles.titleRow}>
-              <span style={styles.headerTitle}>코드 심층 질문 워크스페이스</span>
-              <span style={styles.geminiBadge}>Gemini 3.8</span>
-              <span style={styles.languageBadge}>{question.language || "CODE"}</span>
+    <>
+      {isMaximized && (
+        <div
+          style={styles.backdrop}
+          onClick={() => setIsMaximized(false)}
+        />
+      )}
+      <div
+        ref={cardContainerRef}
+        style={
+          isMaximized
+            ? styles.maximizedOverlay
+            : styles.deepCardContainer
+        }
+      >
+        {/* 1. Header */}
+        <div style={styles.header}>
+          <div style={styles.headerTitleWrap}>
+            <div style={styles.iconBadge}>
+              <MessageSquare size={16} color="#38BDF8" />
             </div>
-            <p style={styles.headerSubtitle}>
-              궁금한 코드 부분을 마우스로 <strong>자유롭게 드래그(선택)</strong>한 후 질문하세요. 드래그하지 않으면 전체 코드 맥락에서 질문합니다.
-            </p>
+            <div>
+              <div style={styles.titleRow}>
+                <span style={styles.headerTitle}>코드 심층 질문 워크스페이스</span>
+                <span style={styles.geminiBadge}>Gemini 3.8</span>
+                <span style={styles.languageBadge}>
+                  {question.language || "CODE"}
+                </span>
+                {isMaximized && (
+                  <span style={styles.maximizedBadge}>전체 화면 모드</span>
+                )}
+              </div>
+              <p style={styles.headerSubtitle}>
+                궁금한 코드 부분을 마우스로 <strong>자유롭게 드래그(선택)</strong>한 후 질문하세요. 드래그하지 않으면 전체 코드 맥락에서 질문합니다.
+              </p>
+            </div>
+          </div>
+          <div style={styles.headerActions}>
+            <button
+              type="button"
+              onClick={() => setIsMaximized((prev) => !prev)}
+              style={styles.actionBtn}
+              title={isMaximized ? "원래 크기로 축소 (Esc)" : "전체 화면으로 확장"}
+            >
+              {isMaximized ? (
+                <Minimize2 size={17} color="#94A3B8" />
+              ) : (
+                <Maximize2 size={17} color="#94A3B8" />
+              )}
+            </button>
+            <button
+              type="button"
+              onClick={onClose}
+              style={styles.actionBtn}
+              title="심층 질문 닫기"
+            >
+              <X size={18} color="#94A3B8" />
+            </button>
           </div>
         </div>
-        <button
-          type="button"
-          onClick={onClose}
-          style={styles.closeBtn}
-          title="심층 질문 닫기"
-        >
-          <X size={18} color="#94A3B8" />
-        </button>
-      </div>
 
-      <div style={styles.workspaceBody}>
-        {/* 2. Non-interactive Text-Selectable Code Viewer */}
-        <div style={styles.codeColumn}>
-          <div style={styles.codeColumnHeader}>
-            <div style={styles.codeHeaderLabel}>
-              <Code size={14} color="#94A3B8" />
-              <span>문제 소스 코드 (드래그하여 선택 가능)</span>
+        <div
+          style={
+            isMaximized
+              ? styles.workspaceBodyMaximized
+              : styles.workspaceBody
+          }
+        >
+          {/* 2. Non-interactive Text-Selectable Code Viewer */}
+          <div style={styles.codeColumn}>
+            <div style={styles.codeColumnHeader}>
+              <div style={styles.codeHeaderLabel}>
+                <Code size={14} color="#94A3B8" />
+                <span>문제 소스 코드 (드래그하여 선택 가능)</span>
+              </div>
+              {selectedSnippet && (
+                <button
+                  type="button"
+                  onClick={handleClearSelection}
+                  style={styles.clearSelectionBtn}
+                >
+                  선택 해제 ✕
+                </button>
+              )}
             </div>
-            {selectedSnippet && (
+
+            <div
+              ref={codeContainerRef}
+              onMouseUp={handleCodeMouseUp}
+              style={styles.codeScrollBox}
+              title="마우스로 텍스트를 드래그하여 질문할 부분을 지정하세요"
+            >
+              {codeLines.map((line, idx) => {
+                const lineNum = idx + 1;
+                return (
+                  <div key={idx} style={styles.codeLineRow}>
+                    <span style={styles.lineNumberCol}>{lineNum}</span>
+                    <span style={styles.lineContentCol}>{line || " "}</span>
+                  </div>
+                );
+              })}
+            </div>
+
+            <div style={styles.codeFooterTip}>
+              <span>💡 팁: 원하는 줄이나 수식(`++b`, `*p` 등)을 드래그하면 AI 튜터가 해당 포인트를 집중 해설합니다.</span>
+            </div>
+          </div>
+
+          {/* 3. Interactive Chat Panel */}
+          <div style={styles.chatColumn}>
+            <div
+              ref={messagesContainerRef}
+              onScroll={handleChatScroll}
+              style={styles.messagesContainer}
+            >
+              {messages.length === 0 && (
+                <div style={styles.emptyState}>
+                  <Sparkles size={28} color="#38BDF8" style={{ marginBottom: "8px" }} />
+                  <div style={styles.emptyTitle}>Gemini 3.8 프로그래밍 튜터</div>
+                  <div style={styles.emptyText}>
+                    좌측 소스 코드에서 이해가 안 가는 부분이나 연산식을 선택하고 질문을 남겨보세요.
+                  </div>
+                  <div style={styles.suggestedQuestions}>
+                    <button
+                      type="button"
+                      onClick={() => setInputQuestion("이 코드의 실행 순서와 메모리 변수 상태 변화를 알려주세요.")}
+                      style={styles.suggestBtn}
+                    >
+                      💬 "실행 순서와 변수 변화를 알려주세요"
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setInputQuestion("시험에서 헷갈리기 쉬운 함정이나 출제 포인트가 무엇인가요?")}
+                      style={styles.suggestBtn}
+                    >
+                      ⚡ "시험 출제 포인트와 함정을 짚어주세요"
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {messages.map((msg, idx) => {
+                const isUser = msg.role === "user";
+                return (
+                  <div
+                    key={idx}
+                    style={isUser ? styles.userMessageWrap : styles.assistantMessageWrap}
+                  >
+                    <div style={isUser ? styles.userBubble : styles.assistantBubble}>
+                      {/* 선택된 코드 스니펫 뱃지 */}
+                      {isUser && msg.selectedText && (
+                        <div style={styles.messageSnippetBadge}>
+                          <Code size={12} color="#38BDF8" />
+                          <span>포커스: </span>
+                          <code>{msg.selectedText}</code>
+                          {msg.selectedRange?.startLine && (
+                            <span style={styles.lineRangeText}>
+                              (Line {msg.selectedRange.startLine}
+                              {msg.selectedRange.endLine && msg.selectedRange.endLine !== msg.selectedRange.startLine
+                                ? `~${msg.selectedRange.endLine}`
+                                : ""}
+                              )
+                            </span>
+                          )}
+                        </div>
+                      )}
+                      <div style={styles.messageContent}>{msg.content}</div>
+                    </div>
+                  </div>
+                );
+              })}
+
+              {isLoading && (
+                <div style={styles.assistantMessageWrap}>
+                  <div style={styles.assistantBubble}>
+                    <div style={styles.loadingRow}>
+                      <RefreshCw size={14} className="spin" color="#38BDF8" />
+                      <span>Gemini 3.8이 코드 문맥을 정밀 분석하고 있습니다...</span>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {error && (
+                <div style={styles.errorBanner}>
+                  <AlertCircle size={15} color="#EF4444" />
+                  <span>{error}</span>
+                </div>
+              )}
+            </div>
+
+            {/* 맨 아래로 스크롤 버튼 (스크롤을 올렸을 때 표시) */}
+            {showScrollBottomBtn && (
               <button
                 type="button"
-                onClick={handleClearSelection}
-                style={styles.clearSelectionBtn}
+                onClick={() => scrollToBottom(true)}
+                style={styles.scrollToBottomBtn}
+                title="최신 대화로 스크롤"
               >
-                선택 해제 ✕
+                <ArrowDown size={13} color="#38BDF8" />
+                <span>최신 대화 보기</span>
               </button>
             )}
-          </div>
-
-          <div
-            ref={codeContainerRef}
-            onMouseUp={handleCodeMouseUp}
-            style={styles.codeScrollBox}
-            title="마우스로 텍스트를 드래그하여 질문할 부분을 지정하세요"
-          >
-            {codeLines.map((line, idx) => {
-              const lineNum = idx + 1;
-              return (
-                <div key={idx} style={styles.codeLineRow}>
-                  <span style={styles.lineNumberCol}>{lineNum}</span>
-                  <span style={styles.lineContentCol}>{line || " "}</span>
-                </div>
-              );
-            })}
-          </div>
-
-          <div style={styles.codeFooterTip}>
-            <span>💡 팁: 원하는 줄이나 수식(`++b`, `*p` 등)을 드래그하면 AI 튜터가 해당 포인트를 집중 해설합니다.</span>
-          </div>
-        </div>
-
-        {/* 3. Interactive Chat Panel */}
-        <div style={styles.chatColumn}>
-          <div style={styles.messagesContainer}>
-            {messages.length === 0 && (
-              <div style={styles.emptyState}>
-                <Sparkles size={28} color="#38BDF8" style={{ marginBottom: "8px" }} />
-                <div style={styles.emptyTitle}>Gemini 3.8 프로그래밍 튜터</div>
-                <div style={styles.emptyText}>
-                  좌측 소스 코드에서 이해가 안 가는 부분이나 연산식을 선택하고 질문을 남겨보세요.
-                </div>
-                <div style={styles.suggestedQuestions}>
-                  <button
-                    type="button"
-                    onClick={() => setInputQuestion("이 코드의 실행 순서와 메모리 변수 상태 변화를 알려주세요.")}
-                    style={styles.suggestBtn}
-                  >
-                    💬 "실행 순서와 변수 변화를 알려주세요"
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setInputQuestion("시험에서 헷갈리기 쉬운 함정이나 출제 포인트가 무엇인가요?")}
-                    style={styles.suggestBtn}
-                  >
-                    ⚡ "시험 출제 포인트와 함정을 짚어주세요"
-                  </button>
-                </div>
-              </div>
-            )}
-
-            {messages.map((msg, idx) => {
-              const isUser = msg.role === "user";
-              return (
-                <div
-                  key={idx}
-                  style={isUser ? styles.userMessageWrap : styles.assistantMessageWrap}
-                >
-                  <div style={isUser ? styles.userBubble : styles.assistantBubble}>
-                    {/* 선택된 코드 스니펫 뱃지 */}
-                    {isUser && msg.selectedText && (
-                      <div style={styles.messageSnippetBadge}>
-                        <Code size={12} color="#38BDF8" />
-                        <span>포커스: </span>
-                        <code>{msg.selectedText}</code>
-                        {msg.selectedRange?.startLine && (
-                          <span style={styles.lineRangeText}>
-                            (Line {msg.selectedRange.startLine}
-                            {msg.selectedRange.endLine && msg.selectedRange.endLine !== msg.selectedRange.startLine
-                              ? `~${msg.selectedRange.endLine}`
-                              : ""}
-                            )
-                          </span>
-                        )}
-                      </div>
-                    )}
-                    <div style={styles.messageContent}>{msg.content}</div>
-                  </div>
-                </div>
-              );
-            })}
-
-            {isLoading && (
-              <div style={styles.assistantMessageWrap}>
-                <div style={styles.assistantBubble}>
-                  <div style={styles.loadingRow}>
-                    <RefreshCw size={14} className="spin" color="#38BDF8" />
-                    <span>Gemini 3.8이 코드 문맥을 정밀 분석하고 있습니다...</span>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {error && (
-              <div style={styles.errorBanner}>
-                <AlertCircle size={15} color="#EF4444" />
-                <span>{error}</span>
-              </div>
-            )}
-
-            <div ref={chatBottomRef} />
           </div>
 
           {/* 4. Input Area */}
@@ -368,7 +481,7 @@ export const CodeDeepQuestionCard: React.FC<CodeDeepQuestionCardProps> = ({
           </div>
         </div>
       </div>
-    </div>
+    </>
   );
 };
 
@@ -384,18 +497,60 @@ const styles: Record<string, React.CSSProperties> = {
     display: "flex",
     flexDirection: "column",
   },
+  maximizedOverlay: {
+    position: "fixed",
+    top: "16px",
+    left: "16px",
+    right: "16px",
+    bottom: "16px",
+    zIndex: 1200,
+    backgroundColor: "#0F172A",
+    border: "1px solid #38BDF8",
+    borderRadius: "14px",
+    boxShadow: "0 25px 60px -10px rgba(0, 0, 0, 0.9)",
+    display: "flex",
+    flexDirection: "column",
+    overflow: "hidden",
+  },
+  backdrop: {
+    position: "fixed",
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: "rgba(10, 15, 30, 0.8)",
+    backdropFilter: "blur(4px)",
+    zIndex: 1190,
+  },
   header: {
     display: "flex",
     alignItems: "center",
     justifyContent: "space-between",
-    padding: "12px 16px",
+    padding: "12px 18px",
     backgroundColor: "#1E293B",
     borderBottom: "1px solid #334155",
+    flexShrink: 0,
   },
   headerTitleWrap: {
     display: "flex",
     alignItems: "center",
     gap: "10px",
+  },
+  headerActions: {
+    display: "flex",
+    alignItems: "center",
+    gap: "6px",
+  },
+  actionBtn: {
+    background: "transparent",
+    border: "none",
+    padding: "6px",
+    borderRadius: "6px",
+    cursor: "pointer",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    transition: "background 0.15s ease",
   },
   iconBadge: {
     width: "32px",
@@ -426,6 +581,15 @@ const styles: Record<string, React.CSSProperties> = {
     padding: "1px 6px",
     borderRadius: "4px",
   },
+  maximizedBadge: {
+    fontSize: "11px",
+    fontWeight: 700,
+    color: "#10B981",
+    backgroundColor: "rgba(16, 185, 129, 0.15)",
+    border: "1px solid rgba(16, 185, 129, 0.3)",
+    padding: "1px 6px",
+    borderRadius: "4px",
+  },
   languageBadge: {
     fontSize: "11px",
     fontWeight: 600,
@@ -451,15 +615,29 @@ const styles: Record<string, React.CSSProperties> = {
   },
   workspaceBody: {
     display: "grid",
-    gridTemplateColumns: "1fr 1fr",
-    minHeight: "420px",
-    maxHeight: "580px",
+    gridTemplateColumns: "42% 58%",
+    height: "380px",
+    maxHeight: "420px",
+    minHeight: "320px",
+    flex: 1,
+    overflow: "hidden",
+  },
+  workspaceBodyMaximized: {
+    display: "grid",
+    gridTemplateColumns: "45% 55%",
+    flex: 1,
+    minHeight: 0,
+    height: "calc(100vh - 120px)",
+    maxHeight: "none",
+    overflow: "hidden",
   },
   codeColumn: {
     borderRight: "1px solid #334155",
     backgroundColor: "#090D16",
     display: "flex",
     flexDirection: "column",
+    minHeight: 0,
+    overflow: "hidden",
   },
   codeColumnHeader: {
     display: "flex",
@@ -468,6 +646,7 @@ const styles: Record<string, React.CSSProperties> = {
     padding: "8px 12px",
     backgroundColor: "#131C2E",
     borderBottom: "1px solid #1E293B",
+    flexShrink: 0,
   },
   codeHeaderLabel: {
     display: "flex",
@@ -506,13 +685,16 @@ const styles: Record<string, React.CSSProperties> = {
     WebkitUserSelect: "text",
   },
   lineNumberCol: {
-    width: "32px",
-    minWidth: "32px",
-    color: "#475569",
+    width: "36px",
+    minWidth: "36px",
+    color: "#64748B",
     textAlign: "right",
-    paddingRight: "12px",
+    paddingRight: "14px",
     userSelect: "none",
     WebkitUserSelect: "none",
+    fontFamily: "monospace",
+    borderRight: "1px solid #1E293B",
+    marginRight: "10px",
   },
   lineContentCol: {
     flex: 1,
@@ -527,11 +709,15 @@ const styles: Record<string, React.CSSProperties> = {
     color: "#64748B",
     borderTop: "1px solid #1E293B",
     backgroundColor: "#090D16",
+    flexShrink: 0,
   },
   chatColumn: {
     display: "flex",
     flexDirection: "column",
     backgroundColor: "#0F172A",
+    position: "relative",
+    minHeight: 0,
+    overflow: "hidden",
   },
   messagesContainer: {
     flex: 1,
@@ -540,6 +726,26 @@ const styles: Record<string, React.CSSProperties> = {
     display: "flex",
     flexDirection: "column",
     gap: "12px",
+    minHeight: 0,
+  },
+  scrollToBottomBtn: {
+    position: "absolute",
+    bottom: "85px",
+    right: "24px",
+    display: "flex",
+    alignItems: "center",
+    gap: "6px",
+    backgroundColor: "#1E293B",
+    border: "1px solid #38BDF8",
+    color: "#38BDF8",
+    padding: "6px 12px",
+    borderRadius: "20px",
+    fontSize: "12px",
+    fontWeight: 600,
+    boxShadow: "0 4px 12px rgba(0, 0, 0, 0.4)",
+    cursor: "pointer",
+    zIndex: 10,
+    transition: "transform 0.15s ease",
   },
   emptyState: {
     display: "flex",
@@ -652,6 +858,7 @@ const styles: Record<string, React.CSSProperties> = {
     borderTop: "1px solid #334155",
     padding: "10px 14px",
     backgroundColor: "#131C2E",
+    flexShrink: 0,
   },
   activeSelectionBanner: {
     display: "flex",

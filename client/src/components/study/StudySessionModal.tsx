@@ -22,6 +22,8 @@ import {
   AlertTriangle,
   MessageSquare,
   Bug,
+  Maximize2,
+  Minimize2,
 } from "lucide-react";
 import {
   Question,
@@ -145,6 +147,9 @@ export const StudySessionModal: React.FC<StudySessionModalProps> = ({
   // 코드 심층 질문 워크스페이스 상태
   const [isDeepQuestionOpen, setIsDeepQuestionOpen] = useState<boolean>(false);
 
+  // 모달 전체화면(최대화) 상태
+  const [isModalMaximized, setIsModalMaximized] = useState<boolean>(false);
+
   // 버그 리포트 Inbox 모달 상태
   const [isBugReportOpen, setIsBugReportOpen] = useState<boolean>(false);
   const [bugReportTargetQuestion, setBugReportTargetQuestion] =
@@ -194,6 +199,7 @@ export const StudySessionModal: React.FC<StudySessionModalProps> = ({
       setDrillSession(null);
       setDrillExecutionStatus(null);
       setIsDeepQuestionOpen(false);
+      setIsModalMaximized(false);
     } else {
       if (timerRef.current) clearInterval(timerRef.current);
     }
@@ -747,7 +753,20 @@ export const StudySessionModal: React.FC<StudySessionModalProps> = ({
 
   return (
     <div style={styles.overlay}>
-      <div style={styles.modal}>
+      <div
+        style={{
+          ...styles.modal,
+          ...(isModalMaximized
+            ? {
+                maxWidth: "98vw",
+                width: "98vw",
+                maxHeight: "98vh",
+                height: "98vh",
+                borderRadius: "12px",
+              }
+            : {}),
+        }}
+      >
         {/* TOP BAR */}
         <div style={styles.topBar}>
           <div style={styles.topBarLeft}>
@@ -792,6 +811,17 @@ export const StudySessionModal: React.FC<StudySessionModalProps> = ({
                 </span>
               </div>
             )}
+            {/* 전체화면 최대화/축소 버튼 */}
+            <button
+              type="button"
+              onClick={() => setIsModalMaximized((prev) => !prev)}
+              style={styles.closeBtn}
+              title={
+                isModalMaximized ? "기본 크기로 축소" : "화면 최대화 (전체화면)"
+              }
+            >
+              {isModalMaximized ? <Minimize2 size={19} /> : <Maximize2 size={19} />}
+            </button>
             <button
               onClick={() => {
                 if (phase === "PRACTICE" && !submitResult?.isSessionCompleted) {

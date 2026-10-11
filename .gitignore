@@ -40,3 +40,7 @@ Thumbs.db
 
 # Scratch & temporary test scripts
 scratch/
+
+# Log files
+*.log
+tray_debug.log

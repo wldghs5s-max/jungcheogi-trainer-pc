@@ -20,8 +20,9 @@ export const styles: Record<string, CSSProperties> = {
     border: "1px solid #334155",
     borderRadius: "16px",
     width: "100%",
-    maxWidth: "1000px",
-    maxHeight: "92vh",
+    maxWidth: "1160px",
+    height: "92vh",
+    maxHeight: "94vh",
     display: "flex",
     flexDirection: "column",
     boxShadow: "0 25px 50px -12px rgba(0, 0, 0, 0.7)",
@@ -34,6 +35,7 @@ export const styles: Record<string, CSSProperties> = {
     padding: "16px 24px",
     backgroundColor: "#1E293B",
     borderBottom: "1px solid #334155",
+    flexShrink: 0,
   },
   topBarLeft: {
     display: "flex",
@@ -87,6 +89,7 @@ export const styles: Record<string, CSSProperties> = {
     padding: "12px 24px 8px 24px",
     backgroundColor: "#1E293B",
     borderBottom: "1px solid #334155",
+    flexShrink: 0,
   },
   progressInfo: {
     display: "flex",
@@ -120,6 +123,7 @@ export const styles: Record<string, CSSProperties> = {
     padding: "28px",
     overflowY: "auto",
     flex: 1,
+    minHeight: 0,
   },
 
   // CONFIG STYLES
