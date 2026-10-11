@@ -2,9 +2,9 @@
 
 <!-- TUNNEL_URL_START -->
 > ### 📱 실시간 모바일 / 외부 접속 링크
-> **[👉 정처기 학습 플랫폼 바로가기 (클릭)](https://consultants-billy-racial-height.trycloudflare.com)**  
-> - **실시간 URL**: `https://consultants-billy-racial-height.trycloudflare.com`  
-> - **마지막 갱신**: 2026-10-11 16:40:46 KST
+> **[👉 정처기 학습 플랫폼 바로가기 (클릭)](https://impacts-aside-centuries-the.trycloudflare.com)**  
+> - **실시간 URL**: `https://impacts-aside-centuries-the.trycloudflare.com`  
+> - **마지막 갱신**: 2026-10-12 06:54:15 KST
 <!-- TUNNEL_URL_END -->
 
 
