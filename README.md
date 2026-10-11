@@ -2,9 +2,9 @@
 
 <!-- TUNNEL_URL_START -->
 > ### 📱 실시간 모바일 / 외부 접속 링크
-> **[👉 정처기 학습 플랫폼 바로가기 (클릭)](https://mixture-motors-mar-nancy.trycloudflare.com)**  
-> - **실시간 URL**: `https://mixture-motors-mar-nancy.trycloudflare.com`  
-> - **마지막 갱신**: 2026-10-11 15:10:37 KST
+> **[👉 정처기 학습 플랫폼 바로가기 (클릭)](https://ace-knowing-liability-verse.trycloudflare.com)**  
+> - **실시간 URL**: `https://ace-knowing-liability-verse.trycloudflare.com`  
+> - **마지막 갱신**: 2026-10-11 16:40:23 KST
 <!-- TUNNEL_URL_END -->
 
 
