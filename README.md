@@ -2,9 +2,9 @@
 
 <!-- TUNNEL_URL_START -->
 > ### 📱 실시간 모바일 / 외부 접속 링크
-> **[👉 정처기 학습 플랫폼 바로가기 (클릭)](https://important-feedback-certificate-nutritional.trycloudflare.com)**  
-> - **실시간 URL**: `https://important-feedback-certificate-nutritional.trycloudflare.com`  
-> - **마지막 갱신**: 2026-10-15 07:41:32 KST
+> **[👉 정처기 학습 플랫폼 바로가기 (클릭)](https://step-inline-how-return.trycloudflare.com)**  
+> - **실시간 URL**: `https://step-inline-how-return.trycloudflare.com`  
+> - **마지막 갱신**: 2026-10-16 07:41:50 KST
 <!-- TUNNEL_URL_END -->
 
 
