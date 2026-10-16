@@ -113,6 +113,9 @@ export const StudySessionModal: React.FC<StudySessionModalProps> = ({
     string | null
   >(null);
   const codeExplanationVersionRef = useRef<number>(0);
+  // AI 해설 요청 경합 방지: 문제가 바뀐 뒤 늦게 도착한 이전 문제 해설이 덮어쓰지 않도록 요청 토큰/문제 ID 비교
+  const aiExplanationRequestRef = useRef<number>(0);
+  const currentQuestionIdRef = useRef<string | null>(null);
   const [selectedLineNumber, setSelectedLineNumber] = useState<number | null>(
     null,
   );
@@ -208,6 +211,11 @@ export const StudySessionModal: React.FC<StudySessionModalProps> = ({
   // Setup inputs whenever currentQuestion changes
   useEffect(() => {
     if (!currentQuestion) return;
+
+    // 문제 전환 시 진행 중이던 이전 문제의 AI 해설 요청 결과를 무효화
+    currentQuestionIdRef.current = currentQuestion.id;
+    aiExplanationRequestRef.current += 1;
+    setLoadingAIExplanation(false);
 
     setShowHint(false);
     setHintLevel(0);
@@ -568,6 +576,13 @@ export const StudySessionModal: React.FC<StudySessionModalProps> = ({
     if (!currentQuestion || !result) return;
     if (aiExplanationData && !deepAnalysis) return;
 
+    // 요청 시점의 문제 ID/토큰 기록 → 응답 도착 시 다른 문제로 넘어갔으면 폐기
+    const requestQuestionId = currentQuestion.id;
+    const requestToken = ++aiExplanationRequestRef.current;
+    const isStale = () =>
+      aiExplanationRequestRef.current !== requestToken ||
+      currentQuestionIdRef.current !== requestQuestionId;
+
     setLoadingAIExplanation(true);
     setAiExplanationError(null);
     const res = await fetchAIExplanation({
@@ -578,9 +593,14 @@ export const StudySessionModal: React.FC<StudySessionModalProps> = ({
       isUnknown: result.attempt.isUnknown,
       deepAnalysis,
     });
+
+    if (isStale()) return;
     setLoadingAIExplanation(false);
 
     if (res.data) {
+      // 서버가 돌려준 해설이 요청한 문제의 것이 아니면 방어적으로 폐기
+      const returnedId = (res.data as { questionId?: string }).questionId;
+      if (returnedId && returnedId !== requestQuestionId) return;
       setAiExplanationData(res.data);
     } else {
       setAiExplanationError(res.error || "AI 해설을 불러오지 못했습니다.");
