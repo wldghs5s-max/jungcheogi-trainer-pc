@@ -2,9 +2,9 @@
 
 <!-- TUNNEL_URL_START -->
 > ### 📱 실시간 모바일 / 외부 접속 링크
-> **[👉 정처기 학습 플랫폼 바로가기 (클릭)](https://assigned-bold-native-gordon.trycloudflare.com)**  
-> - **실시간 URL**: `https://assigned-bold-native-gordon.trycloudflare.com`  
-> - **마지막 갱신**: 2026-10-19 07:43:07 KST
+> **[👉 정처기 학습 플랫폼 바로가기 (클릭)](https://fixes-nursing-signature-philip.trycloudflare.com)**  
+> - **실시간 URL**: `https://fixes-nursing-signature-philip.trycloudflare.com`  
+> - **마지막 갱신**: 2026-10-20 07:44:55 KST
 <!-- TUNNEL_URL_END -->
 
 
