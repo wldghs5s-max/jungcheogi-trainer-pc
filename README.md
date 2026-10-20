@@ -2,9 +2,9 @@
 
 <!-- TUNNEL_URL_START -->
 > ### 📱 실시간 모바일 / 외부 접속 링크
-> **[👉 정처기 학습 플랫폼 바로가기 (클릭)](https://fixes-nursing-signature-philip.trycloudflare.com)**  
-> - **실시간 URL**: `https://fixes-nursing-signature-philip.trycloudflare.com`  
-> - **마지막 갱신**: 2026-10-20 07:44:55 KST
+> **[👉 정처기 학습 플랫폼 바로가기 (클릭)](https://jewel-although-way-reggae.trycloudflare.com)**  
+> - **실시간 URL**: `https://jewel-although-way-reggae.trycloudflare.com`  
+> - **마지막 갱신**: 2026-10-21 08:09:56 KST
 <!-- TUNNEL_URL_END -->
 
 
