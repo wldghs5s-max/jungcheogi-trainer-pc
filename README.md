@@ -2,9 +2,9 @@
 
 <!-- TUNNEL_URL_START -->
 > ### 📱 실시간 모바일 / 외부 접속 링크
-> **[👉 정처기 학습 플랫폼 바로가기 (클릭)](https://folders-bite-galaxy-advances.trycloudflare.com)**  
-> - **실시간 URL**: `https://folders-bite-galaxy-advances.trycloudflare.com`  
-> - **마지막 갱신**: 2026-10-22 07:39:18 KST
+> **[👉 정처기 학습 플랫폼 바로가기 (클릭)](https://connection-principal-ride-corp.trycloudflare.com)**  
+> - **실시간 URL**: `https://connection-principal-ride-corp.trycloudflare.com`  
+> - **마지막 갱신**: 2026-10-24 18:42:59 KST
 <!-- TUNNEL_URL_END -->
 
 
